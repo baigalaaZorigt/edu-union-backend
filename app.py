@@ -261,7 +261,7 @@ def delete_au3(au3_code):
 
 
 # ===================== school_category (Сургуулийн ангилал) =====================
-SCHOOL_CATEGORY_FIELDS = ("buten_ner", "tovch_ner", "angli_ner")
+SCHOOL_CATEGORY_FIELDS = ("full_name", "short_name", "english_name")
 
 
 @app.route("/api/school_category", methods=["GET"])
@@ -285,7 +285,7 @@ def get_school_category(cid):
 @app.route("/api/school_category", methods=["POST"])
 def create_school_category():
     data = request.get_json(silent=True)
-    require_fields(data, ["buten_ner"])
+    require_fields(data, ["full_name"])
     # id заавал биш — өгвөл тогтсон утгаар, эс бөгөөс автоматаар оноогдоно
     cols, vals = [], []
     if data.get("id") is not None:

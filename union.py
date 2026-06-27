@@ -13,32 +13,34 @@ OWNER_TYPES = ("horoo", "organization")
 CONTACT_TYPES = ("утас", "факс", "и-мэйл")
 SCHOOL_TYPES = ("Их сургууль", "СӨБ", "ЕБС", "МСҮТ")
 
-# Гишүүний бүртгэлийн талбарууд (organization_id-аас бусад, оруулж/засаж болох)
+# Гишүүний бүртгэлийн талбарууд (organization_id-аас бусад, оруулж/засаж болох).
+# Боловсрол (#10) нь member_education хүснэгтэд олноор бүртгэгдэнэ.
 MEMBER_FIELDS = (
-    "name", "birth_date", "gender", "register_number", "ue_batlamj_number",
-    "ue_joined_date", "member_status", "albn_tushaal", "mergejil", "bolovsrol",
-    "phone_fax", "address", "signature",
+    "name", "birth_date", "gender", "register_number", "union_card_number",
+    "union_joined_date", "member_status", "position", "profession",
+    "phone_fax", "au1_code", "au2_code", "au3_code", "address_detail", "signature",
 )
 
 # Цалингийн хүсэлт
 SALARY_STATUSES = ("хүлээгдэж буй", "зөвшөөрсөн", "татгалзсан")
 SALARY_SECTORS = ("СӨБ ба ЕБС", "Мэргэжлийн боловсрол", "Шинжлэх ухаан")
 # Цалингийн хүсэлтийн засаж/оруулж болох талбарууд (member_id-аас бусад).
-# salbar/kod/albn_tushaal/tsalin нь salary_scale_id өгсөн үед шатлалаас автоматаар хуулагдана.
+# sector/code/position/salary нь salary_scale_id өгсөн үед шатлалаас автоматаар хуулагдана.
 SALARY_FIELDS = (
-    "salary_scale_id", "salbar", "kod", "albn_tushaal", "tsalin",
+    "salary_scale_id", "sector", "code", "position", "salary",
     "status", "request_date", "note",
 )
 # Цалингийн шатлалын талбарууд
-SALARY_SCALE_FIELDS = ("salbar", "kod", "albn_tushaal", "tsalin")
+SALARY_SCALE_FIELDS = ("sector", "code", "position", "salary")
 
 # Гишүүний боловсролын мөрийн талбарууд (member_id-аас бусад)
-MEMBER_EDUCATION_FIELDS = ("education_degree_id", "surguuli", "mergejil", "tugssun_on")
+MEMBER_EDUCATION_FIELDS = ("education_degree_id", "school", "profession", "graduation_year")
 
 # Байгууллагын бүх талбар (зөвхөн эдгээрийг л оруулж/засна)
 ORG_FIELDS = (
-    "name", "org_type", "school_type", "registration_number", "founded_date",
-    "activity_code", "activity_name", "parent_org", "address",
+    "name", "school_type", "registration_number", "founded_date",
+    "activity_code", "activity_name", "parent_org",
+    "au1_code", "au2_code", "au3_code", "address_detail",
 )
 
 
@@ -53,6 +55,21 @@ def require(data, fields):
     miss = [f for f in fields if not data.get(f)]
     if miss:
         abort(400, description="Дутуу талбар: " + ", ".join(miss))
+
+
+def _check_au(conn, data):
+    """Хаягийн au1/au2/au3 код өгсөн бол засаг захиргааны нэгжид байгаа эсэхийг шалгана."""
+    checks = (
+        ("au1_code", "admin_unit1", "code", "Аймаг/нийслэл (au1_code)"),
+        ("au2_code", "admin_unit2", "au2_code", "Сум/дүүрэг (au2_code)"),
+        ("au3_code", "admin_unit3", "au3_code", "Баг/хороо (au3_code)"),
+    )
+    for field, table, col, label in checks:
+        val = data.get(field)
+        if val and not conn.execute(
+                f"SELECT 1 FROM {table} WHERE {col}=?", (val,)).fetchone():
+            conn.close()
+            abort(400, description=f"{label} олдсонгүй")
 
 
 def org_stats(conn, org_id):
@@ -181,6 +198,7 @@ def create_org():
     if not conn.execute("SELECT 1 FROM horoo WHERE id=?", (data["horoo_id"],)).fetchone():
         conn.close()
         abort(400, description="horoo_id (эцэг хороо) олдсонгүй")
+    _check_au(conn, data)
     cols = ["horoo_id"] + list(ORG_FIELDS)
     vals = [data["horoo_id"]] + [data.get(f) for f in ORG_FIELDS]
     ph = ", ".join("?" * len(cols))
@@ -201,9 +219,10 @@ def update_org(oid):
     fields = [f for f in ORG_FIELDS if f in data]
     if not fields:
         abort(400, description="Шинэчлэх талбар алга")
+    conn = get_db()
+    _check_au(conn, data)
     sets = ", ".join(f"{f}=?" for f in fields)
     vals = [data[f] for f in fields] + [oid]
-    conn = get_db()
     cur = conn.execute(f"UPDATE organization SET {sets} WHERE id=?", vals)
     conn.commit()
     conn.close()
@@ -247,7 +266,7 @@ def get_member(mid):
     out = dict(row)
     # Боловсролыг зэргийн нэртэй нь хамт буцаана
     out["educations"] = rows(conn.execute(
-        "SELECT me.*, ed.ner AS education_degree_name "
+        "SELECT me.*, ed.name AS education_degree_name "
         "FROM member_education me "
         "LEFT JOIN education_degree ed ON ed.id = me.education_degree_id "
         "WHERE me.member_id=? ORDER BY me.id", (mid,)).fetchall())
@@ -264,6 +283,7 @@ def create_member():
                         (data["organization_id"],)).fetchone():
         conn.close()
         abort(400, description="organization_id (эцэг байгууллага) олдсонгүй")
+    _check_au(conn, data)
     cols, vals = ["organization_id"], [data["organization_id"]]
     for f in MEMBER_FIELDS:
         if data.get(f) is not None:
@@ -287,9 +307,10 @@ def update_member(mid):
     fields = [f for f in MEMBER_FIELDS if f in data]
     if not fields:
         abort(400, description="Шинэчлэх талбар алга")
+    conn = get_db()
+    _check_au(conn, data)
     sets = ", ".join(f"{f}=?" for f in fields)
     vals = [data[f] for f in fields] + [mid]
-    conn = get_db()
     cur = conn.execute(f"UPDATE member SET {sets} WHERE id=?", vals)
     conn.commit()
     conn.close()
@@ -385,13 +406,13 @@ def _validate_salary(data):
     st = data.get("status")
     if st and st not in SALARY_STATUSES:
         abort(400, description="status буруу. Сонголт: " + ", ".join(SALARY_STATUSES))
-    sb = data.get("salbar")
+    sb = data.get("sector")
     if sb and sb not in SALARY_SECTORS:
-        abort(400, description="salbar буруу. Сонголт: " + ", ".join(SALARY_SECTORS))
+        abort(400, description="sector буруу. Сонголт: " + ", ".join(SALARY_SECTORS))
 
 
 def _apply_scale(conn, data):
-    """salary_scale_id өгсөн бол шатлалаас salbar/kod/albn_tushaal/tsalin-г хуулж буцаана."""
+    """salary_scale_id өгсөн бол шатлалаас sector/code/position/salary-г хуулж буцаана."""
     scale_id = data.get("salary_scale_id")
     if scale_id is None:
         return data
@@ -400,7 +421,7 @@ def _apply_scale(conn, data):
         conn.close()
         abort(400, description="salary_scale_id (цалингийн шатлал) олдсонгүй")
     merged = dict(data)
-    for f in ("salbar", "kod", "albn_tushaal", "tsalin"):
+    for f in ("sector", "code", "position", "salary"):
         merged[f] = sc[f]
     return merged
 
@@ -469,7 +490,7 @@ def update_salary(sid):
         abort(400, description="JSON их бие шаардлагатай")
     _validate_salary(data)
     conn = get_db()
-    data = _apply_scale(conn, data)  # шатлал сонгосон бол salbar/kod/.../tsalin-г хуулна
+    data = _apply_scale(conn, data)  # шатлал сонгосон бол sector/code/.../salary-г хуулна
     fields = [f for f in SALARY_FIELDS if f in data]
     if not fields:
         conn.close()
@@ -498,11 +519,11 @@ def delete_salary(sid):
 # ==================== salary_scale (Цалингийн шатлал, лавлах) ====================
 @bp.route("/api/salary_scale", methods=["GET"])
 def list_salary_scale():
-    salbar = request.args.get("salbar")
+    sector = request.args.get("sector")
     conn = get_db()
-    if salbar:
+    if sector:
         data = rows(conn.execute(
-            "SELECT * FROM salary_scale WHERE salbar=? ORDER BY id", (salbar,)).fetchall())
+            "SELECT * FROM salary_scale WHERE sector=? ORDER BY id", (sector,)).fetchall())
     else:
         data = rows(conn.execute("SELECT * FROM salary_scale ORDER BY id").fetchall())
     conn.close()
@@ -522,7 +543,7 @@ def get_salary_scale(sid):
 @bp.route("/api/salary_scale", methods=["POST"])
 def create_salary_scale():
     data = request.get_json(silent=True)
-    require(data, ["salbar", "kod"])
+    require(data, ["sector", "code"])
     conn = get_db()
     cols = list(SALARY_SCALE_FIELDS)
     vals = [data.get(f) for f in cols]
@@ -533,7 +554,7 @@ def create_salary_scale():
         conn.commit()
     except Exception:
         conn.close()
-        abort(409, description="Энэ код (kod) аль хэдийн бүртгэгдсэн байна")
+        abort(409, description="Энэ код (code) аль хэдийн бүртгэгдсэн байна")
     new_id = cur.lastrowid
     row = conn.execute("SELECT * FROM salary_scale WHERE id=?", (new_id,)).fetchone()
     conn.close()
@@ -556,7 +577,7 @@ def update_salary_scale(sid):
         conn.commit()
     except Exception:
         conn.close()
-        abort(409, description="Энэ код (kod) аль хэдийн бүртгэгдсэн байна")
+        abort(409, description="Энэ код (code) аль хэдийн бүртгэгдсэн байна")
     conn.close()
     if cur.rowcount == 0:
         abort(404, description="Цалингийн шатлал олдсонгүй")
@@ -596,9 +617,9 @@ def get_education_degree(eid):
 @bp.route("/api/education_degree", methods=["POST"])
 def create_education_degree():
     data = request.get_json(silent=True)
-    require(data, ["ner"])
+    require(data, ["name"])
     conn = get_db()
-    cols, vals = ["ner"], [data["ner"]]
+    cols, vals = ["name"], [data["name"]]
     if data.get("id") is not None:
         cols.append("id")
         vals.append(data["id"])
@@ -619,14 +640,14 @@ def create_education_degree():
 @bp.route("/api/education_degree/<int:eid>", methods=["PUT"])
 def update_education_degree(eid):
     data = request.get_json(silent=True)
-    require(data, ["ner"])
+    require(data, ["name"])
     conn = get_db()
-    cur = conn.execute("UPDATE education_degree SET ner=? WHERE id=?", (data["ner"], eid))
+    cur = conn.execute("UPDATE education_degree SET name=? WHERE id=?", (data["name"], eid))
     conn.commit()
     conn.close()
     if cur.rowcount == 0:
         abort(404, description="Боловсролын зэрэг олдсонгүй")
-    return jsonify(id=eid, ner=data["ner"])
+    return jsonify(id=eid, name=data["name"])
 
 
 @bp.route("/api/education_degree/<int:eid>", methods=["DELETE"])
@@ -655,7 +676,7 @@ def _check_degree(conn, data):
 def list_member_education():
     member_id = request.args.get("member_id")
     conn = get_db()
-    sql = ("SELECT me.*, ed.ner AS education_degree_name "
+    sql = ("SELECT me.*, ed.name AS education_degree_name "
            "FROM member_education me "
            "LEFT JOIN education_degree ed ON ed.id = me.education_degree_id")
     params = []

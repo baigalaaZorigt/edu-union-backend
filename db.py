@@ -53,14 +53,16 @@ CREATE TABLE IF NOT EXISTS organization (
     id                  INTEGER PRIMARY KEY AUTOINCREMENT,
     horoo_id            INTEGER NOT NULL,    -- Аль хороонд харьяалагдах
     name                TEXT NOT NULL,       -- Байгууллагын нэр
-    org_type            TEXT,                -- Сургууль / Цэцэрлэг / Эмнэлэг ...
-    school_type         TEXT,               -- Их сургууль / СӨБ / ЕБС / МСҮТ (зөвхөн сургуульд)
+    school_type         TEXT,               -- Их сургууль / СӨБ / ЕБС / МСҮТ
     registration_number TEXT,               -- Регистрийн дугаар
     founded_date        TEXT,               -- Үүсгэн байгуулагдсан огноо (YYYY-MM-DD)
     activity_code       TEXT,               -- Үйл ажиллагааны чиглэлийн код
     activity_name       TEXT,               -- Үндсэн үйл ажиллагааны чиглэл
     parent_org          TEXT,               -- Толгой байгууллага
-    address             TEXT,               -- Дэлгэрэнгүй хаяг
+    au1_code            TEXT,               -- Аймаг/нийслэл (admin_unit1.code)
+    au2_code            TEXT,               -- Сум/дүүрэг (admin_unit2.au2_code)
+    au3_code            TEXT,               -- Баг/хороо (admin_unit3.au3_code)
+    address_detail      TEXT,               -- Дэлгэрэнгүй хаяг
     FOREIGN KEY (horoo_id) REFERENCES horoo(id) ON DELETE CASCADE
 );
 
@@ -71,17 +73,20 @@ CREATE TABLE IF NOT EXISTS member (
     birth_date        TEXT,                  -- 2. Төрсөн он (YYYY-MM-DD)
     gender            TEXT,                  -- 3. Хүйс ('эр' / 'эм')
     register_number   TEXT,                  -- 4. Регистрийн дугаар
-    ue_batlamj_number TEXT,                  -- 5. ҮЭ-ийн батламжийн дугаар
-    ue_joined_date    TEXT,                  -- 6. ҮЭ-д элссэн он сар өдөр (YYYY-MM-DD)
+    union_card_number TEXT,                  -- 5. ҮЭ-ийн батламжийн дугаар
+    union_joined_date TEXT,                  -- 6. ҮЭ-д элссэн он сар өдөр (YYYY-MM-DD)
     member_status     TEXT,                  -- 7. ҮЭ-ийн гишүүний статус
-    albn_tushaal      TEXT,                  -- 8. Эрхэлж байгаа ажил, албан тушаал
-    mergejil          TEXT,                  -- 9. Мэргэжил
-    bolovsrol         TEXT,                  -- 10. Боловсрол
+    position          TEXT,                  -- 8. Эрхэлж байгаа ажил, албан тушаал
+    profession        TEXT,                  -- 9. Мэргэжил
     phone_fax         TEXT,                  -- 11. Факс, утасны дугаарууд
-    address           TEXT,                  -- 12. Оршин суугаа хаяг
+    au1_code          TEXT,                  -- Аймаг/нийслэл (admin_unit1.code)
+    au2_code          TEXT,                  -- Сум/дүүрэг (admin_unit2.au2_code)
+    au3_code          TEXT,                  -- Баг/хороо (admin_unit3.au3_code)
+    address_detail    TEXT,                  -- 12. Оршин суугаа дэлгэрэнгүй хаяг
     signature         INTEGER DEFAULT 0,     -- Гарын үсэг байгаа эсэх (0/1)
     FOREIGN KEY (organization_id) REFERENCES organization(id) ON DELETE CASCADE
 );
+-- Боловсрол (#10) нь member_education хүснэгтэд олноор бүртгэгдэнэ.
 
 CREATE TABLE IF NOT EXISTS contact (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -94,21 +99,21 @@ CREATE TABLE IF NOT EXISTS contact (
 
 -- Цалингийн шатлал (лавлах) — tsalin_husnegt.xlsx-аас
 CREATE TABLE IF NOT EXISTS salary_scale (
-    id           INTEGER PRIMARY KEY AUTOINCREMENT,
-    salbar       TEXT NOT NULL,               -- Салбар
-    kod          TEXT NOT NULL UNIQUE,        -- Код (ТҮБД-5 гэх мэт)
-    albn_tushaal TEXT,                        -- Албан тушаал
-    tsalin       INTEGER                      -- Цалин (төгрөг)
+    id       INTEGER PRIMARY KEY AUTOINCREMENT,
+    sector   TEXT NOT NULL,               -- Салбар
+    code     TEXT NOT NULL UNIQUE,        -- Код (ТҮБД-5 гэх мэт)
+    position TEXT,                        -- Албан тушаал
+    salary   INTEGER                      -- Цалин (төгрөг)
 );
 
 CREATE TABLE IF NOT EXISTS salary_request (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     member_id       INTEGER NOT NULL,         -- Аль гишүүний цалингийн хүсэлт
     salary_scale_id INTEGER,                  -- Сонгосон цалингийн шатлал (FK, snapshot хийгдэнэ)
-    salbar          TEXT,                     -- Салбар (шатлалаас хуулагдана)
-    kod             TEXT,                     -- Код (шатлалаас хуулагдана)
-    albn_tushaal    TEXT,                     -- Албан тушаал (шатлалаас хуулагдана)
-    tsalin          INTEGER,                  -- Цалингийн дүн (шатлалаас хуулагдана)
+    sector          TEXT,                     -- Салбар (шатлалаас хуулагдана)
+    code            TEXT,                     -- Код (шатлалаас хуулагдана)
+    position        TEXT,                     -- Албан тушаал (шатлалаас хуулагдана)
+    salary          INTEGER,                  -- Цалингийн дүн (шатлалаас хуулагдана)
     status          TEXT NOT NULL DEFAULT 'хүлээгдэж буй',  -- хүлээгдэж буй / зөвшөөрсөн / татгалзсан
     request_date    TEXT,                     -- Хүсэлт гаргасан огноо (YYYY-MM-DD)
     note            TEXT,                     -- Тайлбар (сонголтоор)
@@ -121,9 +126,9 @@ CREATE TABLE IF NOT EXISTS member_education (
     id                  INTEGER PRIMARY KEY AUTOINCREMENT,
     member_id           INTEGER NOT NULL,    -- Аль гишүүний боловсрол
     education_degree_id INTEGER,             -- Боловсролын зэрэг (FK, лавлах)
-    surguuli            TEXT,                -- Сургууль
-    mergejil            TEXT,                -- Мэргэжил
-    tugssun_on          TEXT,               -- Төгссөн он
+    school              TEXT,                -- Сургууль
+    profession          TEXT,                -- Мэргэжил
+    graduation_year     TEXT,               -- Төгссөн он
     FOREIGN KEY (member_id) REFERENCES member(id) ON DELETE CASCADE,
     FOREIGN KEY (education_degree_id) REFERENCES education_degree(id) ON DELETE SET NULL
 );
@@ -140,15 +145,15 @@ CREATE INDEX IF NOT EXISTS idx_medu_member ON member_education(member_id);
 # school_category — Боловсролын байгууллагын ангилал (бие даасан лавлах).
 SCHEMA_REF = """
 CREATE TABLE IF NOT EXISTS school_category (
-    id        INTEGER PRIMARY KEY,
-    buten_ner TEXT NOT NULL,   -- Бүтэн нэр
-    tovch_ner TEXT,            -- Товчилсон нэр (СӨБ, ЕБС ...)
-    angli_ner TEXT             -- Англи нэр
+    id           INTEGER PRIMARY KEY,
+    full_name    TEXT NOT NULL,   -- Бүтэн нэр
+    short_name   TEXT,            -- Товчилсон нэр (СӨБ, ЕБС ...)
+    english_name TEXT             -- Англи нэр
 );
 
 CREATE TABLE IF NOT EXISTS education_degree (
-    id  INTEGER PRIMARY KEY,
-    ner TEXT NOT NULL          -- Боловсролын зэрэг
+    id   INTEGER PRIMARY KEY,
+    name TEXT NOT NULL          -- Боловсролын зэрэг
 );
 """
 
@@ -219,28 +224,80 @@ def get_db():
 _MIGRATIONS = {
     "member": [
         ("register_number", "TEXT"),
-        ("ue_batlamj_number", "TEXT"),
-        ("ue_joined_date", "TEXT"),
+        ("union_card_number", "TEXT"),
+        ("union_joined_date", "TEXT"),
         ("member_status", "TEXT"),
-        ("albn_tushaal", "TEXT"),
-        ("mergejil", "TEXT"),
-        ("bolovsrol", "TEXT"),
+        ("position", "TEXT"),
+        ("profession", "TEXT"),
         ("phone_fax", "TEXT"),
-        ("address", "TEXT"),
+        ("au1_code", "TEXT"),
+        ("au2_code", "TEXT"),
+        ("au3_code", "TEXT"),
         ("signature", "INTEGER DEFAULT 0"),
     ],
     "salary_request": [
         ("salary_scale_id", "INTEGER"),
     ],
+    "organization": [
+        ("au1_code", "TEXT"),
+        ("au2_code", "TEXT"),
+        ("au3_code", "TEXT"),
+    ],
+}
+
+# Хуучин галиглал баганыг англи нэр рүү шилжүүлэх: хүснэгт -> [(хуучин, шинэ), ...]
+_RENAME_COLUMNS = {
+    "salary_scale": [("salbar", "sector"), ("kod", "code"),
+                     ("albn_tushaal", "position"), ("tsalin", "salary")],
+    "salary_request": [("salbar", "sector"), ("kod", "code"),
+                       ("albn_tushaal", "position"), ("tsalin", "salary")],
+    "member": [("albn_tushaal", "position"), ("mergejil", "profession"),
+               ("ue_batlamj_number", "union_card_number"),
+               ("ue_joined_date", "union_joined_date")],
+    "member_education": [("surguuli", "school"), ("mergejil", "profession"),
+                         ("tugssun_on", "graduation_year")],
+    "education_degree": [("ner", "name")],
+    "school_category": [("buten_ner", "full_name"), ("tovch_ner", "short_name"),
+                        ("angli_ner", "english_name")],
+}
+
+# Устгах баганууд (хэрэв байгаа бол): хүснэгт -> [багана, ...]
+_DROP_COLUMNS = {
+    "organization": ["org_type"],
+    "member": ["bolovsrol"],
 }
 
 
+def _cols(conn, table):
+    return {r[1] for r in conn.execute(f"PRAGMA table_info({table})")}
+
+
 def _migrate(conn):
+    # 0) Галиглал -> англи нэр солих (дутуу багана нэмэхээс ӨМНӨ)
+    for table, renames in _RENAME_COLUMNS.items():
+        existing = _cols(conn, table)
+        for old, new in renames:
+            if old in existing and new not in existing:
+                conn.execute(f"ALTER TABLE {table} RENAME COLUMN {old} TO {new}")
+    # 1) Дутуу багана нэмэх
     for table, cols in _MIGRATIONS.items():
-        existing = {r[1] for r in conn.execute(f"PRAGMA table_info({table})")}
+        existing = _cols(conn, table)
         for name, decl in cols:
             if name not in existing:
                 conn.execute(f"ALTER TABLE {table} ADD COLUMN {name} {decl}")
+    # 2) address -> address_detail нэр солих, эс бөгөөс address_detail-г шинээр нэмэх
+    for table in ("organization", "member"):
+        existing = _cols(conn, table)
+        if "address" in existing and "address_detail" not in existing:
+            conn.execute(f"ALTER TABLE {table} RENAME COLUMN address TO address_detail")
+        elif "address_detail" not in _cols(conn, table):
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN address_detail TEXT")
+    # 3) Хэрэглэхгүй болсон баганыг устгах
+    for table, drops in _DROP_COLUMNS.items():
+        existing = _cols(conn, table)
+        for name in drops:
+            if name in existing:
+                conn.execute(f"ALTER TABLE {table} DROP COLUMN {name}")
 
 
 def init_db():
@@ -258,7 +315,7 @@ def seed_education_degree():
     init_db()
     conn = get_db()
     conn.executemany(
-        "INSERT OR IGNORE INTO education_degree(id, ner) VALUES (?, ?)",
+        "INSERT OR IGNORE INTO education_degree(id, name) VALUES (?, ?)",
         EDUCATION_DEGREES,
     )
     conn.commit()
@@ -272,7 +329,7 @@ def seed_salary_scale():
     init_db()
     conn = get_db()
     conn.executemany(
-        "INSERT OR IGNORE INTO salary_scale(salbar, kod, albn_tushaal, tsalin) "
+        "INSERT OR IGNORE INTO salary_scale(sector, code, position, salary) "
         "VALUES (?, ?, ?, ?)",
         SALARY_SCALE,
     )
@@ -287,7 +344,7 @@ def seed_school_category():
     init_db()
     conn = get_db()
     conn.executemany(
-        "INSERT OR IGNORE INTO school_category(id, buten_ner, tovch_ner, angli_ner) "
+        "INSERT OR IGNORE INTO school_category(id, full_name, short_name, english_name) "
         "VALUES (?, ?, ?, ?)",
         SCHOOL_CATEGORIES,
     )
@@ -364,12 +421,14 @@ def seed_union():
 
     cur.execute(
         """INSERT INTO organization
-           (horoo_id, name, org_type, school_type, registration_number,
-            founded_date, activity_code, activity_name, parent_org, address)
-           VALUES (?,?,?,?,?,?,?,?,?,?)""",
-        (horoo_id, "АШУҮИС-ийн харьяа сургууль", "Сургууль", "Их сургууль",
+           (horoo_id, name, school_type, registration_number,
+            founded_date, activity_code, activity_name, parent_org,
+            au1_code, au2_code, address_detail)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+        (horoo_id, "АШУҮИС-ийн харьяа сургууль", "Их сургууль",
          "9923659", "2023-01-31", "8530", "Дээд боловсрол олгох үйл ажиллагаа",
-         "Анагаахын шинжлэх ухааны үндэсний их сургууль", "Ард Аюушийн гудамж"),
+         "Анагаахын шинжлэх ухааны үндэсний их сургууль",
+         "011", "01101", "Ард Аюушийн гудамж"),
     )
     org_id = cur.lastrowid
 
