@@ -13,13 +13,27 @@ OWNER_TYPES = ("horoo", "organization")
 CONTACT_TYPES = ("утас", "факс", "и-мэйл")
 SCHOOL_TYPES = ("Их сургууль", "СӨБ", "ЕБС", "МСҮТ")
 
+# Гишүүний бүртгэлийн талбарууд (organization_id-аас бусад, оруулж/засаж болох)
+MEMBER_FIELDS = (
+    "name", "birth_date", "gender", "register_number", "ue_batlamj_number",
+    "ue_joined_date", "member_status", "albn_tushaal", "mergejil", "bolovsrol",
+    "phone_fax", "address", "signature",
+)
+
 # Цалингийн хүсэлт
 SALARY_STATUSES = ("хүлээгдэж буй", "зөвшөөрсөн", "татгалзсан")
 SALARY_SECTORS = ("СӨБ ба ЕБС", "Мэргэжлийн боловсрол", "Шинжлэх ухаан")
-# Цалингийн хүсэлтийн засаж/оруулж болох талбарууд (member_id-аас бусад)
+# Цалингийн хүсэлтийн засаж/оруулж болох талбарууд (member_id-аас бусад).
+# salbar/kod/albn_tushaal/tsalin нь salary_scale_id өгсөн үед шатлалаас автоматаар хуулагдана.
 SALARY_FIELDS = (
-    "salbar", "kod", "albn_tushaal", "tsalin", "status", "request_date", "note",
+    "salary_scale_id", "salbar", "kod", "albn_tushaal", "tsalin",
+    "status", "request_date", "note",
 )
+# Цалингийн шатлалын талбарууд
+SALARY_SCALE_FIELDS = ("salbar", "kod", "albn_tushaal", "tsalin")
+
+# Гишүүний боловсролын мөрийн талбарууд (member_id-аас бусад)
+MEMBER_EDUCATION_FIELDS = ("education_degree_id", "surguuli", "mergejil", "tugssun_on")
 
 # Байгууллагын бүх талбар (зөвхөн эдгээрийг л оруулж/засна)
 ORG_FIELDS = (
@@ -223,6 +237,24 @@ def list_member():
     return jsonify(data)
 
 
+@bp.route("/api/member/<int:mid>", methods=["GET"])
+def get_member(mid):
+    conn = get_db()
+    row = conn.execute("SELECT * FROM member WHERE id=?", (mid,)).fetchone()
+    if not row:
+        conn.close()
+        abort(404, description="Гишүүн олдсонгүй")
+    out = dict(row)
+    # Боловсролыг зэргийн нэртэй нь хамт буцаана
+    out["educations"] = rows(conn.execute(
+        "SELECT me.*, ed.ner AS education_degree_name "
+        "FROM member_education me "
+        "LEFT JOIN education_degree ed ON ed.id = me.education_degree_id "
+        "WHERE me.member_id=? ORDER BY me.id", (mid,)).fetchall())
+    conn.close()
+    return jsonify(out)
+
+
 @bp.route("/api/member", methods=["POST"])
 def create_member():
     data = request.get_json(silent=True)
@@ -232,13 +264,19 @@ def create_member():
                         (data["organization_id"],)).fetchone():
         conn.close()
         abort(400, description="organization_id (эцэг байгууллага) олдсонгүй")
+    cols, vals = ["organization_id"], [data["organization_id"]]
+    for f in MEMBER_FIELDS:
+        if data.get(f) is not None:
+            cols.append(f)
+            vals.append(data[f])
+    ph = ", ".join("?" * len(cols))
     cur = conn.execute(
-        "INSERT INTO member(organization_id, name, gender, birth_date) VALUES (?,?,?,?)",
-        (data["organization_id"], data["name"], data.get("gender"), data.get("birth_date")))
+        f"INSERT INTO member({', '.join(cols)}) VALUES ({ph})", vals)
     conn.commit()
     new_id = cur.lastrowid
+    row = conn.execute("SELECT * FROM member WHERE id=?", (new_id,)).fetchone()
     conn.close()
-    return jsonify(id=new_id, **data), 201
+    return jsonify(dict(row)), 201
 
 
 @bp.route("/api/member/<int:mid>", methods=["PUT"])
@@ -246,8 +284,7 @@ def update_member(mid):
     data = request.get_json(silent=True)
     if not data:
         abort(400, description="JSON их бие шаардлагатай")
-    allowed = ["name", "gender", "birth_date"]
-    fields = [f for f in allowed if f in data]
+    fields = [f for f in MEMBER_FIELDS if f in data]
     if not fields:
         abort(400, description="Шинэчлэх талбар алга")
     sets = ", ".join(f"{f}=?" for f in fields)
@@ -353,6 +390,21 @@ def _validate_salary(data):
         abort(400, description="salbar буруу. Сонголт: " + ", ".join(SALARY_SECTORS))
 
 
+def _apply_scale(conn, data):
+    """salary_scale_id өгсөн бол шатлалаас salbar/kod/albn_tushaal/tsalin-г хуулж буцаана."""
+    scale_id = data.get("salary_scale_id")
+    if scale_id is None:
+        return data
+    sc = conn.execute("SELECT * FROM salary_scale WHERE id=?", (scale_id,)).fetchone()
+    if not sc:
+        conn.close()
+        abort(400, description="salary_scale_id (цалингийн шатлал) олдсонгүй")
+    merged = dict(data)
+    for f in ("salbar", "kod", "albn_tushaal", "tsalin"):
+        merged[f] = sc[f]
+    return merged
+
+
 @bp.route("/api/salary_request", methods=["GET"])
 def list_salary():
     member_id = request.args.get("member_id")
@@ -393,6 +445,7 @@ def create_salary():
     if not conn.execute("SELECT 1 FROM member WHERE id=?", (data["member_id"],)).fetchone():
         conn.close()
         abort(400, description="member_id (эцэг гишүүн) олдсонгүй")
+    data = _apply_scale(conn, data)  # шатлал сонгосон бол утгыг хуулна
     # Зөвхөн дамжуулсан талбарыг оруулна — оруулаагүй бол status DB-ийн default-аар бөглөгдөнө
     cols, vals = ["member_id"], [data["member_id"]]
     for f in SALARY_FIELDS:
@@ -415,12 +468,14 @@ def update_salary(sid):
     if not data:
         abort(400, description="JSON их бие шаардлагатай")
     _validate_salary(data)
+    conn = get_db()
+    data = _apply_scale(conn, data)  # шатлал сонгосон бол salbar/kod/.../tsalin-г хуулна
     fields = [f for f in SALARY_FIELDS if f in data]
     if not fields:
+        conn.close()
         abort(400, description="Шинэчлэх талбар алга")
     sets = ", ".join(f"{f}=?" for f in fields)
     vals = [data[f] for f in fields] + [sid]
-    conn = get_db()
     cur = conn.execute(f"UPDATE salary_request SET {sets} WHERE id=?", vals)
     conn.commit()
     conn.close()
@@ -438,3 +493,242 @@ def delete_salary(sid):
     if cur.rowcount == 0:
         abort(404, description="Цалингийн хүсэлт олдсонгүй")
     return jsonify(deleted=sid)
+
+
+# ==================== salary_scale (Цалингийн шатлал, лавлах) ====================
+@bp.route("/api/salary_scale", methods=["GET"])
+def list_salary_scale():
+    salbar = request.args.get("salbar")
+    conn = get_db()
+    if salbar:
+        data = rows(conn.execute(
+            "SELECT * FROM salary_scale WHERE salbar=? ORDER BY id", (salbar,)).fetchall())
+    else:
+        data = rows(conn.execute("SELECT * FROM salary_scale ORDER BY id").fetchall())
+    conn.close()
+    return jsonify(data)
+
+
+@bp.route("/api/salary_scale/<int:sid>", methods=["GET"])
+def get_salary_scale(sid):
+    conn = get_db()
+    row = conn.execute("SELECT * FROM salary_scale WHERE id=?", (sid,)).fetchone()
+    conn.close()
+    if not row:
+        abort(404, description="Цалингийн шатлал олдсонгүй")
+    return jsonify(dict(row))
+
+
+@bp.route("/api/salary_scale", methods=["POST"])
+def create_salary_scale():
+    data = request.get_json(silent=True)
+    require(data, ["salbar", "kod"])
+    conn = get_db()
+    cols = list(SALARY_SCALE_FIELDS)
+    vals = [data.get(f) for f in cols]
+    ph = ", ".join("?" * len(cols))
+    try:
+        cur = conn.execute(
+            f"INSERT INTO salary_scale({', '.join(cols)}) VALUES ({ph})", vals)
+        conn.commit()
+    except Exception:
+        conn.close()
+        abort(409, description="Энэ код (kod) аль хэдийн бүртгэгдсэн байна")
+    new_id = cur.lastrowid
+    row = conn.execute("SELECT * FROM salary_scale WHERE id=?", (new_id,)).fetchone()
+    conn.close()
+    return jsonify(dict(row)), 201
+
+
+@bp.route("/api/salary_scale/<int:sid>", methods=["PUT"])
+def update_salary_scale(sid):
+    data = request.get_json(silent=True)
+    if not data:
+        abort(400, description="JSON их бие шаардлагатай")
+    fields = [f for f in SALARY_SCALE_FIELDS if f in data]
+    if not fields:
+        abort(400, description="Шинэчлэх талбар алга")
+    sets = ", ".join(f"{f}=?" for f in fields)
+    vals = [data[f] for f in fields] + [sid]
+    conn = get_db()
+    try:
+        cur = conn.execute(f"UPDATE salary_scale SET {sets} WHERE id=?", vals)
+        conn.commit()
+    except Exception:
+        conn.close()
+        abort(409, description="Энэ код (kod) аль хэдийн бүртгэгдсэн байна")
+    conn.close()
+    if cur.rowcount == 0:
+        abort(404, description="Цалингийн шатлал олдсонгүй")
+    return jsonify(updated=sid, fields=fields)
+
+
+@bp.route("/api/salary_scale/<int:sid>", methods=["DELETE"])
+def delete_salary_scale(sid):
+    conn = get_db()
+    cur = conn.execute("DELETE FROM salary_scale WHERE id=?", (sid,))
+    conn.commit()
+    conn.close()
+    if cur.rowcount == 0:
+        abort(404, description="Цалингийн шатлал олдсонгүй")
+    return jsonify(deleted=sid)
+
+
+# ================ education_degree (Боловсролын зэрэг, лавлах) ================
+@bp.route("/api/education_degree", methods=["GET"])
+def list_education_degree():
+    conn = get_db()
+    data = rows(conn.execute("SELECT * FROM education_degree ORDER BY id").fetchall())
+    conn.close()
+    return jsonify(data)
+
+
+@bp.route("/api/education_degree/<int:eid>", methods=["GET"])
+def get_education_degree(eid):
+    conn = get_db()
+    row = conn.execute("SELECT * FROM education_degree WHERE id=?", (eid,)).fetchone()
+    conn.close()
+    if not row:
+        abort(404, description="Боловсролын зэрэг олдсонгүй")
+    return jsonify(dict(row))
+
+
+@bp.route("/api/education_degree", methods=["POST"])
+def create_education_degree():
+    data = request.get_json(silent=True)
+    require(data, ["ner"])
+    conn = get_db()
+    cols, vals = ["ner"], [data["ner"]]
+    if data.get("id") is not None:
+        cols.append("id")
+        vals.append(data["id"])
+    ph = ", ".join("?" * len(cols))
+    try:
+        cur = conn.execute(
+            f"INSERT INTO education_degree({', '.join(cols)}) VALUES ({ph})", vals)
+        conn.commit()
+    except Exception:
+        conn.close()
+        abort(409, description="Энэ id аль хэдийн бүртгэгдсэн байна")
+    new_id = data.get("id") or cur.lastrowid
+    row = conn.execute("SELECT * FROM education_degree WHERE id=?", (new_id,)).fetchone()
+    conn.close()
+    return jsonify(dict(row)), 201
+
+
+@bp.route("/api/education_degree/<int:eid>", methods=["PUT"])
+def update_education_degree(eid):
+    data = request.get_json(silent=True)
+    require(data, ["ner"])
+    conn = get_db()
+    cur = conn.execute("UPDATE education_degree SET ner=? WHERE id=?", (data["ner"], eid))
+    conn.commit()
+    conn.close()
+    if cur.rowcount == 0:
+        abort(404, description="Боловсролын зэрэг олдсонгүй")
+    return jsonify(id=eid, ner=data["ner"])
+
+
+@bp.route("/api/education_degree/<int:eid>", methods=["DELETE"])
+def delete_education_degree(eid):
+    conn = get_db()
+    cur = conn.execute("DELETE FROM education_degree WHERE id=?", (eid,))
+    conn.commit()
+    conn.close()
+    if cur.rowcount == 0:
+        abort(404, description="Боловсролын зэрэг олдсонгүй")
+    return jsonify(deleted=eid)
+
+
+# ================ member_education (Гишүүний боловсрол) ================
+def _check_degree(conn, data):
+    """education_degree_id өгсөн бол лавлахад байгаа эсэхийг шалгана."""
+    eid = data.get("education_degree_id")
+    if eid is None:
+        return
+    if not conn.execute("SELECT 1 FROM education_degree WHERE id=?", (eid,)).fetchone():
+        conn.close()
+        abort(400, description="education_degree_id (боловсролын зэрэг) олдсонгүй")
+
+
+@bp.route("/api/member_education", methods=["GET"])
+def list_member_education():
+    member_id = request.args.get("member_id")
+    conn = get_db()
+    sql = ("SELECT me.*, ed.ner AS education_degree_name "
+           "FROM member_education me "
+           "LEFT JOIN education_degree ed ON ed.id = me.education_degree_id")
+    params = []
+    if member_id:
+        sql += " WHERE me.member_id=?"
+        params.append(member_id)
+    sql += " ORDER BY me.id"
+    data = rows(conn.execute(sql, params).fetchall())
+    conn.close()
+    return jsonify(data)
+
+
+@bp.route("/api/member_education/<int:eid>", methods=["GET"])
+def get_member_education(eid):
+    conn = get_db()
+    row = conn.execute("SELECT * FROM member_education WHERE id=?", (eid,)).fetchone()
+    conn.close()
+    if not row:
+        abort(404, description="Боловсролын бүртгэл олдсонгүй")
+    return jsonify(dict(row))
+
+
+@bp.route("/api/member_education", methods=["POST"])
+def create_member_education():
+    data = request.get_json(silent=True)
+    require(data, ["member_id"])
+    conn = get_db()
+    if not conn.execute("SELECT 1 FROM member WHERE id=?", (data["member_id"],)).fetchone():
+        conn.close()
+        abort(400, description="member_id (эцэг гишүүн) олдсонгүй")
+    _check_degree(conn, data)
+    cols, vals = ["member_id"], [data["member_id"]]
+    for f in MEMBER_EDUCATION_FIELDS:
+        if data.get(f) is not None:
+            cols.append(f)
+            vals.append(data[f])
+    ph = ", ".join("?" * len(cols))
+    cur = conn.execute(
+        f"INSERT INTO member_education({', '.join(cols)}) VALUES ({ph})", vals)
+    conn.commit()
+    new_id = cur.lastrowid
+    row = conn.execute("SELECT * FROM member_education WHERE id=?", (new_id,)).fetchone()
+    conn.close()
+    return jsonify(dict(row)), 201
+
+
+@bp.route("/api/member_education/<int:eid>", methods=["PUT"])
+def update_member_education(eid):
+    data = request.get_json(silent=True)
+    if not data:
+        abort(400, description="JSON их бие шаардлагатай")
+    conn = get_db()
+    _check_degree(conn, data)
+    fields = [f for f in MEMBER_EDUCATION_FIELDS if f in data]
+    if not fields:
+        conn.close()
+        abort(400, description="Шинэчлэх талбар алга")
+    sets = ", ".join(f"{f}=?" for f in fields)
+    vals = [data[f] for f in fields] + [eid]
+    cur = conn.execute(f"UPDATE member_education SET {sets} WHERE id=?", vals)
+    conn.commit()
+    conn.close()
+    if cur.rowcount == 0:
+        abort(404, description="Боловсролын бүртгэл олдсонгүй")
+    return jsonify(updated=eid, fields=fields)
+
+
+@bp.route("/api/member_education/<int:eid>", methods=["DELETE"])
+def delete_member_education(eid):
+    conn = get_db()
+    cur = conn.execute("DELETE FROM member_education WHERE id=?", (eid,))
+    conn.commit()
+    conn.close()
+    if cur.rowcount == 0:
+        abort(404, description="Боловсролын бүртгэл олдсонгүй")
+    return jsonify(deleted=eid)

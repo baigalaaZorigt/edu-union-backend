@@ -65,11 +65,21 @@ CREATE TABLE IF NOT EXISTS organization (
 );
 
 CREATE TABLE IF NOT EXISTS member (
-    id              INTEGER PRIMARY KEY AUTOINCREMENT,
-    organization_id INTEGER NOT NULL,        -- Аль байгууллагад бүртгэлтэй
-    name            TEXT NOT NULL,           -- Гишүүний нэр
-    gender          TEXT,                    -- 'эр' / 'эм'
-    birth_date      TEXT,                    -- Төрсөн огноо (YYYY-MM-DD)
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    organization_id   INTEGER NOT NULL,      -- Аль гишүүн байгууллагад харьяалагдах (FK)
+    name              TEXT NOT NULL,         -- 1. Овог нэр
+    birth_date        TEXT,                  -- 2. Төрсөн он (YYYY-MM-DD)
+    gender            TEXT,                  -- 3. Хүйс ('эр' / 'эм')
+    register_number   TEXT,                  -- 4. Регистрийн дугаар
+    ue_batlamj_number TEXT,                  -- 5. ҮЭ-ийн батламжийн дугаар
+    ue_joined_date    TEXT,                  -- 6. ҮЭ-д элссэн он сар өдөр (YYYY-MM-DD)
+    member_status     TEXT,                  -- 7. ҮЭ-ийн гишүүний статус
+    albn_tushaal      TEXT,                  -- 8. Эрхэлж байгаа ажил, албан тушаал
+    mergejil          TEXT,                  -- 9. Мэргэжил
+    bolovsrol         TEXT,                  -- 10. Боловсрол
+    phone_fax         TEXT,                  -- 11. Факс, утасны дугаарууд
+    address           TEXT,                  -- 12. Оршин суугаа хаяг
+    signature         INTEGER DEFAULT 0,     -- Гарын үсэг байгаа эсэх (0/1)
     FOREIGN KEY (organization_id) REFERENCES organization(id) ON DELETE CASCADE
 );
 
@@ -82,17 +92,40 @@ CREATE TABLE IF NOT EXISTS contact (
     note       TEXT                         -- "захиргаа", "нягтлан" (сонголтоор)
 );
 
-CREATE TABLE IF NOT EXISTS salary_request (
+-- Цалингийн шатлал (лавлах) — tsalin_husnegt.xlsx-аас
+CREATE TABLE IF NOT EXISTS salary_scale (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
-    member_id    INTEGER NOT NULL,            -- Аль гишүүний цалингийн хүсэлт
-    salbar       TEXT,                        -- Салбар (СӨБ ба ЕБС / Мэргэжлийн боловсрол / Шинжлэх ухаан)
-    kod          TEXT,                        -- Код (ТҮБД-5, ТҮМБ-3, ТҮШУУ-7 гэх мэт)
+    salbar       TEXT NOT NULL,               -- Салбар
+    kod          TEXT NOT NULL UNIQUE,        -- Код (ТҮБД-5 гэх мэт)
     albn_tushaal TEXT,                        -- Албан тушаал
-    tsalin       INTEGER,                     -- Хүссэн цалингийн дүн (төгрөг)
-    status       TEXT NOT NULL DEFAULT 'хүлээгдэж буй',  -- хүлээгдэж буй / зөвшөөрсөн / татгалзсан
-    request_date TEXT,                        -- Хүсэлт гаргасан огноо (YYYY-MM-DD)
-    note         TEXT,                        -- Тайлбар (сонголтоор)
-    FOREIGN KEY (member_id) REFERENCES member(id) ON DELETE CASCADE
+    tsalin       INTEGER                      -- Цалин (төгрөг)
+);
+
+CREATE TABLE IF NOT EXISTS salary_request (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    member_id       INTEGER NOT NULL,         -- Аль гишүүний цалингийн хүсэлт
+    salary_scale_id INTEGER,                  -- Сонгосон цалингийн шатлал (FK, snapshot хийгдэнэ)
+    salbar          TEXT,                     -- Салбар (шатлалаас хуулагдана)
+    kod             TEXT,                     -- Код (шатлалаас хуулагдана)
+    albn_tushaal    TEXT,                     -- Албан тушаал (шатлалаас хуулагдана)
+    tsalin          INTEGER,                  -- Цалингийн дүн (шатлалаас хуулагдана)
+    status          TEXT NOT NULL DEFAULT 'хүлээгдэж буй',  -- хүлээгдэж буй / зөвшөөрсөн / татгалзсан
+    request_date    TEXT,                     -- Хүсэлт гаргасан огноо (YYYY-MM-DD)
+    note            TEXT,                     -- Тайлбар (сонголтоор)
+    FOREIGN KEY (member_id) REFERENCES member(id) ON DELETE CASCADE,
+    FOREIGN KEY (salary_scale_id) REFERENCES salary_scale(id) ON DELETE SET NULL
+);
+
+-- Гишүүний боловсрол (нэг гишүүнд олон мөр). education_degree-г лавлахаас сонгоно.
+CREATE TABLE IF NOT EXISTS member_education (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    member_id           INTEGER NOT NULL,    -- Аль гишүүний боловсрол
+    education_degree_id INTEGER,             -- Боловсролын зэрэг (FK, лавлах)
+    surguuli            TEXT,                -- Сургууль
+    mergejil            TEXT,                -- Мэргэжил
+    tugssun_on          TEXT,               -- Төгссөн он
+    FOREIGN KEY (member_id) REFERENCES member(id) ON DELETE CASCADE,
+    FOREIGN KEY (education_degree_id) REFERENCES education_degree(id) ON DELETE SET NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_horoo_holboo ON horoo(holboo_id);
@@ -100,6 +133,7 @@ CREATE INDEX IF NOT EXISTS idx_org_horoo ON organization(horoo_id);
 CREATE INDEX IF NOT EXISTS idx_member_org ON member(organization_id);
 CREATE INDEX IF NOT EXISTS idx_contact_owner ON contact(owner_type, owner_id);
 CREATE INDEX IF NOT EXISTS idx_salreq_member ON salary_request(member_id);
+CREATE INDEX IF NOT EXISTS idx_medu_member ON member_education(member_id);
 """
 
 # ------------------------- Лавлах хүснэгтүүд (reference) -------------------------
@@ -110,6 +144,11 @@ CREATE TABLE IF NOT EXISTS school_category (
     buten_ner TEXT NOT NULL,   -- Бүтэн нэр
     tovch_ner TEXT,            -- Товчилсон нэр (СӨБ, ЕБС ...)
     angli_ner TEXT             -- Англи нэр
+);
+
+CREATE TABLE IF NOT EXISTS education_degree (
+    id  INTEGER PRIMARY KEY,
+    ner TEXT NOT NULL          -- Боловсролын зэрэг
 );
 """
 
@@ -124,6 +163,48 @@ SCHOOL_CATEGORIES = [
     (7, "Нэмэлт боловсрол", None, None),
 ]
 
+# Боловсролын зэргийн ангилал (Боловсролын зэргийн ангилал.xlsx-аас)
+EDUCATION_DEGREES = [
+    (1, "Доктор, Профессор"),
+    (2, "Профессор"),
+    (3, "Дэд профессор"),
+    (4, "Магистр, Доктор"),
+    (5, "Магистр"),
+    (6, "Доктор (PhD)"),
+    (7, "Доктор (ScD)"),
+    (8, "Бакалавр + Магистр"),
+    (9, "Бакалавр (суурь)"),
+    (10, "Дэд бакалавр"),
+    (11, "Бакалавр (явц)"),
+    (12, "Мэргэжлийн боловсрол (МБС)"),
+    (13, "Техникийн боловсрол"),
+    (14, "Бүрэн дунд"),
+    (15, "Тусгай дунд"),
+    (16, "Бага боловсрол"),
+]
+
+# Цалингийн шатлалын анхдагч өгөгдөл (tsalin_husnegt.xlsx-аас): (salbar, kod, albn_tushaal, tsalin)
+SALARY_SCALE = [
+    ("СӨБ ба ЕБС", "ТҮБД-5", "Захирал, эрхлэгч", 3093930),
+    ("СӨБ ба ЕБС", "ТҮБД-4", "Менежер, ЕБС-ийн багш", 2946510),
+    ("СӨБ ба ЕБС", "ТҮБД-3", "Бага, дунд, ахлах ангийн багш, хоол зүйч", 2804760),
+    ("СӨБ ба ЕБС", "ТҮБД-2", "Дотуур байрны багш", 2672460),
+    ("СӨБ ба ЕБС", "ТҮБД-1", "Туслах багш", 2424870),
+    ("Мэргэжлийн боловсрол", "ТҮМБ-6", "Захирал", 1718000),
+    ("Мэргэжлийн боловсрол", "ТҮМБ-5", "Менежер", 1637000),
+    ("Мэргэжлийн боловсрол", "ТҮМБ-4", "Багш, аргазүйч, нийгмийн ажилтан", 1559000),
+    ("Мэргэжлийн боловсрол", "ТҮМБ-3", "Ерөнхий эрдмийн багш, хоол зүйч", 1484000),
+    ("Мэргэжлийн боловсрол", "ТҮМБ-2", "Дотуур байрны багш", 1414000),
+    ("Мэргэжлийн боловсрол", "ТҮМБ-1", "Дадлагажигч багш", 1283000),
+    ("Шинжлэх ухаан", "ТҮШУУ-7", "Академийн ерөнхийлөгч", 2388000),
+    ("Шинжлэх ухаан", "ТҮШУУ-6", "Дэд ерөнхийлөгч, нарийн бичиг", 1805000),
+    ("Шинжлэх ухаан", "ТҮШУУ-5", "Захирал, дэд захирал", 1718000),
+    ("Шинжлэх ухаан", "ТҮШУУ-4", "Нэгжийн дарга", 1637000),
+    ("Шинжлэх ухаан", "ТҮШУУ-3", "Судлаач, мэргэжилтэн", 1559000),
+    ("Шинжлэх ухаан", "ТҮШУУ-2", "Ажилтан", 1484000),
+    ("Шинжлэх ухаан", "ТҮШУУ-1", "Туслах ажилтан", 1283000),
+]
+
 
 def get_db():
     """Мөр бүрийг dict шиг хандах боломжтой холболт буцаана."""
@@ -133,13 +214,72 @@ def get_db():
     return conn
 
 
+# Хуучин DB дээр CREATE TABLE IF NOT EXISTS ажиллахгүй тул дутуу баганыг нэмнэ.
+# {хүснэгт: [(багана, тодорхойлолт), ...]}
+_MIGRATIONS = {
+    "member": [
+        ("register_number", "TEXT"),
+        ("ue_batlamj_number", "TEXT"),
+        ("ue_joined_date", "TEXT"),
+        ("member_status", "TEXT"),
+        ("albn_tushaal", "TEXT"),
+        ("mergejil", "TEXT"),
+        ("bolovsrol", "TEXT"),
+        ("phone_fax", "TEXT"),
+        ("address", "TEXT"),
+        ("signature", "INTEGER DEFAULT 0"),
+    ],
+    "salary_request": [
+        ("salary_scale_id", "INTEGER"),
+    ],
+}
+
+
+def _migrate(conn):
+    for table, cols in _MIGRATIONS.items():
+        existing = {r[1] for r in conn.execute(f"PRAGMA table_info({table})")}
+        for name, decl in cols:
+            if name not in existing:
+                conn.execute(f"ALTER TABLE {table} ADD COLUMN {name} {decl}")
+
+
 def init_db():
     conn = get_db()
     conn.executescript(SCHEMA)
     conn.executescript(SCHEMA_UNION)
     conn.executescript(SCHEMA_REF)
+    _migrate(conn)
     conn.commit()
     conn.close()
+
+
+def seed_education_degree():
+    """Боловсролын зэргийн ангиллын лавлах өгөгдлийг ачаална (давхардлыг алгасна)."""
+    init_db()
+    conn = get_db()
+    conn.executemany(
+        "INSERT OR IGNORE INTO education_degree(id, ner) VALUES (?, ?)",
+        EDUCATION_DEGREES,
+    )
+    conn.commit()
+    n = conn.execute("SELECT COUNT(*) FROM education_degree").fetchone()[0]
+    conn.close()
+    print("Боловсролын зэрэг ачаалагдлаа:", n)
+
+
+def seed_salary_scale():
+    """Цалингийн шатлалын лавлах өгөгдлийг ачаална (kod-оор давхардлыг алгасна)."""
+    init_db()
+    conn = get_db()
+    conn.executemany(
+        "INSERT OR IGNORE INTO salary_scale(salbar, kod, albn_tushaal, tsalin) "
+        "VALUES (?, ?, ?, ?)",
+        SALARY_SCALE,
+    )
+    conn.commit()
+    n = conn.execute("SELECT COUNT(*) FROM salary_scale").fetchone()[0]
+    conn.close()
+    print("Цалингийн шатлал ачаалагдлаа:", n)
 
 
 def seed_school_category():
@@ -263,3 +403,5 @@ if __name__ == "__main__":
     seed()
     seed_union()
     seed_school_category()
+    seed_salary_scale()
+    seed_education_degree()

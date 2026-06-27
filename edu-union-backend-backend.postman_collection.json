@@ -15,7 +15,10 @@
 		{ "key": "member_id", "value": "1" },
 		{ "key": "contact_id", "value": "1" },
 		{ "key": "salary_request_id", "value": "1" },
-		{ "key": "school_category_id", "value": "1" }
+		{ "key": "salary_scale_id", "value": "1" },
+		{ "key": "school_category_id", "value": "1" },
+		{ "key": "member_education_id", "value": "1" },
+		{ "key": "education_degree_id", "value": "1" }
 	],
 	"item": [
 		{
@@ -197,26 +200,65 @@
 					"request": { "method": "GET", "url": { "raw": "{{base_url}}/api/member?organization_id={{organization_id}}", "host": ["{{base_url}}"], "path": ["api", "member"], "query": [{ "key": "organization_id", "value": "{{organization_id}}" }] } }
 				},
 				{
-					"name": "Нэмэх",
+					"name": "Нэгийг авах",
+					"request": { "method": "GET", "url": { "raw": "{{base_url}}/api/member/{{member_id}}", "host": ["{{base_url}}"], "path": ["api", "member", "{{member_id}}"] } }
+				},
+				{
+					"name": "Нэмэх (бүрэн бүртгэл)",
 					"request": {
 						"method": "POST",
 						"header": [{ "key": "Content-Type", "value": "application/json" }],
-						"body": { "mode": "raw", "raw": "{\n  \"organization_id\": 1,\n  \"name\": \"Туяа\",\n  \"gender\": \"эм\",\n  \"birth_date\": \"2000-03-15\"\n}" },
+						"body": { "mode": "raw", "raw": "{\n  \"organization_id\": 1,\n  \"name\": \"Батын Болд\",\n  \"birth_date\": \"1985-04-12\",\n  \"gender\": \"эр\",\n  \"register_number\": \"УБ85041212\",\n  \"ue_batlamj_number\": \"ҮЭ-00123\",\n  \"ue_joined_date\": \"2020-09-01\",\n  \"member_status\": \"идэвхтэй\",\n  \"albn_tushaal\": \"Ахлах багш\",\n  \"mergejil\": \"Багш\",\n  \"bolovsrol\": \"Бакалавр\",\n  \"phone_fax\": \"99112233\",\n  \"address\": \"СБД 1-р хороо\",\n  \"signature\": 1\n}" },
 						"url": { "raw": "{{base_url}}/api/member", "host": ["{{base_url}}"], "path": ["api", "member"] }
 					}
 				},
 				{
-					"name": "Засах",
+					"name": "Засах (хэсэгчилсэн)",
 					"request": {
 						"method": "PUT",
 						"header": [{ "key": "Content-Type", "value": "application/json" }],
-						"body": { "mode": "raw", "raw": "{\n  \"name\": \"Туяа Бат\",\n  \"gender\": \"эм\",\n  \"birth_date\": \"1999-01-01\"\n}" },
+						"body": { "mode": "raw", "raw": "{\n  \"member_status\": \"идэвхгүй\",\n  \"phone_fax\": \"77001122\",\n  \"signature\": 0\n}" },
 						"url": { "raw": "{{base_url}}/api/member/{{member_id}}", "host": ["{{base_url}}"], "path": ["api", "member", "{{member_id}}"] }
 					}
 				},
 				{
 					"name": "Устгах",
 					"request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/member/{{member_id}}", "host": ["{{base_url}}"], "path": ["api", "member", "{{member_id}}"] } }
+				}
+			]
+		},
+		{
+			"name": "ҮЭ — Гишүүний боловсрол (member_education)",
+			"item": [
+				{
+					"name": "Жагсаалт (гишүүнээр шүүх)",
+					"request": { "method": "GET", "url": { "raw": "{{base_url}}/api/member_education?member_id={{member_id}}", "host": ["{{base_url}}"], "path": ["api", "member_education"], "query": [{ "key": "member_id", "value": "{{member_id}}" }] } }
+				},
+				{
+					"name": "Нэгийг авах",
+					"request": { "method": "GET", "url": { "raw": "{{base_url}}/api/member_education/{{member_education_id}}", "host": ["{{base_url}}"], "path": ["api", "member_education", "{{member_education_id}}"] } }
+				},
+				{
+					"name": "Нэмэх (зэрэг лавлахаас сонгож)",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"member_id\": 1,\n  \"education_degree_id\": 9,\n  \"surguuli\": \"МУИС\",\n  \"mergejil\": \"Математик\",\n  \"tugssun_on\": \"2007\"\n}" },
+						"url": { "raw": "{{base_url}}/api/member_education", "host": ["{{base_url}}"], "path": ["api", "member_education"] }
+					}
+				},
+				{
+					"name": "Засах (хэсэгчилсэн)",
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"education_degree_id\": 5,\n  \"tugssun_on\": \"2012\"\n}" },
+						"url": { "raw": "{{base_url}}/api/member_education/{{member_education_id}}", "host": ["{{base_url}}"], "path": ["api", "member_education", "{{member_education_id}}"] }
+					}
+				},
+				{
+					"name": "Устгах",
+					"request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/member_education/{{member_education_id}}", "host": ["{{base_url}}"], "path": ["api", "member_education", "{{member_education_id}}"] } }
 				}
 			]
 		},
@@ -272,11 +314,20 @@
 					"request": { "method": "GET", "url": { "raw": "{{base_url}}/api/salary_request/{{salary_request_id}}", "host": ["{{base_url}}"], "path": ["api", "salary_request", "{{salary_request_id}}"] } }
 				},
 				{
-					"name": "Нэмэх",
+					"name": "Нэмэх (шатлал сонгож)",
 					"request": {
 						"method": "POST",
 						"header": [{ "key": "Content-Type", "value": "application/json" }],
-						"body": { "mode": "raw", "raw": "{\n  \"member_id\": 1,\n  \"salbar\": \"СӨБ ба ЕБС\",\n  \"kod\": \"ТҮБД-3\",\n  \"albn_tushaal\": \"Бага ангийн багш\",\n  \"tsalin\": 2804760,\n  \"request_date\": \"2026-06-27\",\n  \"note\": \"Анхан шатны хүсэлт\"\n}" },
+						"body": { "mode": "raw", "raw": "{\n  \"member_id\": 1,\n  \"salary_scale_id\": 3,\n  \"request_date\": \"2026-06-27\",\n  \"note\": \"Шатлалаас сонгосон — salbar/kod/albn_tushaal/tsalin автоматаар хуулагдана\"\n}" },
+						"url": { "raw": "{{base_url}}/api/salary_request", "host": ["{{base_url}}"], "path": ["api", "salary_request"] }
+					}
+				},
+				{
+					"name": "Нэмэх (гар аргаар)",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"member_id\": 1,\n  \"salbar\": \"СӨБ ба ЕБС\",\n  \"kod\": \"ТҮБД-3\",\n  \"albn_tushaal\": \"Бага ангийн багш\",\n  \"tsalin\": 2804760,\n  \"request_date\": \"2026-06-27\"\n}" },
 						"url": { "raw": "{{base_url}}/api/salary_request", "host": ["{{base_url}}"], "path": ["api", "salary_request"] }
 					}
 				},
@@ -292,6 +343,76 @@
 				{
 					"name": "Устгах",
 					"request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/salary_request/{{salary_request_id}}", "host": ["{{base_url}}"], "path": ["api", "salary_request", "{{salary_request_id}}"] } }
+				}
+			]
+		},
+		{
+			"name": "Лавлах — Цалингийн шатлал (salary_scale)",
+			"item": [
+				{
+					"name": "Жагсаалт (салбараар шүүх)",
+					"request": { "method": "GET", "url": { "raw": "{{base_url}}/api/salary_scale", "host": ["{{base_url}}"], "path": ["api", "salary_scale"], "query": [{ "key": "salbar", "value": "СӨБ ба ЕБС", "disabled": true }] } }
+				},
+				{
+					"name": "Нэгийг авах",
+					"request": { "method": "GET", "url": { "raw": "{{base_url}}/api/salary_scale/{{salary_scale_id}}", "host": ["{{base_url}}"], "path": ["api", "salary_scale", "{{salary_scale_id}}"] } }
+				},
+				{
+					"name": "Нэмэх",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"salbar\": \"Шинжлэх ухаан\",\n  \"kod\": \"ТҮШУУ-8\",\n  \"albn_tushaal\": \"Шинэ зэрэг\",\n  \"tsalin\": 2500000\n}" },
+						"url": { "raw": "{{base_url}}/api/salary_scale", "host": ["{{base_url}}"], "path": ["api", "salary_scale"] }
+					}
+				},
+				{
+					"name": "Засах (хэсэгчилсэн)",
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"tsalin\": 2600000\n}" },
+						"url": { "raw": "{{base_url}}/api/salary_scale/{{salary_scale_id}}", "host": ["{{base_url}}"], "path": ["api", "salary_scale", "{{salary_scale_id}}"] }
+					}
+				},
+				{
+					"name": "Устгах",
+					"request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/salary_scale/{{salary_scale_id}}", "host": ["{{base_url}}"], "path": ["api", "salary_scale", "{{salary_scale_id}}"] } }
+				}
+			]
+		},
+		{
+			"name": "Лавлах — Боловсролын зэрэг (education_degree)",
+			"item": [
+				{
+					"name": "Жагсаалт",
+					"request": { "method": "GET", "url": { "raw": "{{base_url}}/api/education_degree", "host": ["{{base_url}}"], "path": ["api", "education_degree"] } }
+				},
+				{
+					"name": "Нэгийг авах",
+					"request": { "method": "GET", "url": { "raw": "{{base_url}}/api/education_degree/{{education_degree_id}}", "host": ["{{base_url}}"], "path": ["api", "education_degree", "{{education_degree_id}}"] } }
+				},
+				{
+					"name": "Нэмэх",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"ner\": \"Шинэ зэрэг\"\n}" },
+						"url": { "raw": "{{base_url}}/api/education_degree", "host": ["{{base_url}}"], "path": ["api", "education_degree"] }
+					}
+				},
+				{
+					"name": "Засах",
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"ner\": \"Шинэчилсэн зэрэг\"\n}" },
+						"url": { "raw": "{{base_url}}/api/education_degree/{{education_degree_id}}", "host": ["{{base_url}}"], "path": ["api", "education_degree", "{{education_degree_id}}"] }
+					}
+				},
+				{
+					"name": "Устгах",
+					"request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/education_degree/{{education_degree_id}}", "host": ["{{base_url}}"], "path": ["api", "education_degree", "{{education_degree_id}}"] } }
 				}
 			]
 		},
