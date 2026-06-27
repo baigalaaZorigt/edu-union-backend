@@ -102,6 +102,28 @@ CREATE INDEX IF NOT EXISTS idx_contact_owner ON contact(owner_type, owner_id);
 CREATE INDEX IF NOT EXISTS idx_salreq_member ON salary_request(member_id);
 """
 
+# ------------------------- Лавлах хүснэгтүүд (reference) -------------------------
+# school_category — Боловсролын байгууллагын ангилал (бие даасан лавлах).
+SCHEMA_REF = """
+CREATE TABLE IF NOT EXISTS school_category (
+    id        INTEGER PRIMARY KEY,
+    buten_ner TEXT NOT NULL,   -- Бүтэн нэр
+    tovch_ner TEXT,            -- Товчилсон нэр (СӨБ, ЕБС ...)
+    angli_ner TEXT             -- Англи нэр
+);
+"""
+
+# Сургуулийн ангиллын анхдагч өгөгдөл (Ангилал сургуулиуд.xlsx-аас)
+SCHOOL_CATEGORIES = [
+    (1, "Сургуулийн өмнөх боловсрол", "СӨБ", "Early Childhood Education (Preschool)"),
+    (2, "Ерөнхий боловсрол", "ЕБС", "General Education (Primary and Secondary Education)"),
+    (3, "Мэргэжлийн боловсрол, сургалт", "МБС", "Technical and Vocational Education and Training (TVET)"),
+    (4, "Их, дээд боловсрол", "ИДС", "Higher Education (Universities and Colleges)"),
+    (5, "Шинжлэх ухаан", "ШУ", "Science / Research"),
+    (6, "Боловсрол, шинжлэх ухааны туслах үйлчилгээ", "БШУТҮ", "Support Services in Education and Science"),
+    (7, "Нэмэлт боловсрол", None, None),
+]
+
 
 def get_db():
     """Мөр бүрийг dict шиг хандах боломжтой холболт буцаана."""
@@ -115,8 +137,24 @@ def init_db():
     conn = get_db()
     conn.executescript(SCHEMA)
     conn.executescript(SCHEMA_UNION)
+    conn.executescript(SCHEMA_REF)
     conn.commit()
     conn.close()
+
+
+def seed_school_category():
+    """Сургуулийн ангиллын лавлах өгөгдлийг ачаална (давхардлыг алгасна)."""
+    init_db()
+    conn = get_db()
+    conn.executemany(
+        "INSERT OR IGNORE INTO school_category(id, buten_ner, tovch_ner, angli_ner) "
+        "VALUES (?, ?, ?, ?)",
+        SCHOOL_CATEGORIES,
+    )
+    conn.commit()
+    n = conn.execute("SELECT COUNT(*) FROM school_category").fetchone()[0]
+    conn.close()
+    print("Сургуулийн ангилал ачаалагдлаа:", n)
 
 
 def _load_json(name):
@@ -224,3 +262,4 @@ def seed_union():
 if __name__ == "__main__":
     seed()
     seed_union()
+    seed_school_category()

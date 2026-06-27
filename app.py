@@ -260,6 +260,85 @@ def delete_au3(au3_code):
     return jsonify(deleted=au3_code)
 
 
+# ===================== school_category (Сургуулийн ангилал) =====================
+SCHOOL_CATEGORY_FIELDS = ("buten_ner", "tovch_ner", "angli_ner")
+
+
+@app.route("/api/school_category", methods=["GET"])
+def list_school_category():
+    conn = get_db()
+    rows = conn.execute("SELECT * FROM school_category ORDER BY id").fetchall()
+    conn.close()
+    return jsonify(rows_to_list(rows))
+
+
+@app.route("/api/school_category/<int:cid>", methods=["GET"])
+def get_school_category(cid):
+    conn = get_db()
+    row = conn.execute("SELECT * FROM school_category WHERE id=?", (cid,)).fetchone()
+    conn.close()
+    if not row:
+        abort(404, description="Ангилал олдсонгүй")
+    return jsonify(dict(row))
+
+
+@app.route("/api/school_category", methods=["POST"])
+def create_school_category():
+    data = request.get_json(silent=True)
+    require_fields(data, ["buten_ner"])
+    # id заавал биш — өгвөл тогтсон утгаар, эс бөгөөс автоматаар оноогдоно
+    cols, vals = [], []
+    if data.get("id") is not None:
+        cols.append("id")
+        vals.append(data["id"])
+    for f in SCHOOL_CATEGORY_FIELDS:
+        cols.append(f)
+        vals.append(data.get(f))
+    ph = ", ".join("?" * len(cols))
+    conn = get_db()
+    try:
+        cur = conn.execute(
+            f"INSERT INTO school_category({', '.join(cols)}) VALUES ({ph})", vals)
+        conn.commit()
+    except Exception:
+        conn.close()
+        abort(409, description="Энэ id аль хэдийн бүртгэгдсэн байна")
+    new_id = data.get("id") or cur.lastrowid
+    row = conn.execute("SELECT * FROM school_category WHERE id=?", (new_id,)).fetchone()
+    conn.close()
+    return jsonify(dict(row)), 201
+
+
+@app.route("/api/school_category/<int:cid>", methods=["PUT"])
+def update_school_category(cid):
+    data = request.get_json(silent=True)
+    if not data:
+        abort(400, description="JSON их бие шаардлагатай")
+    fields = [f for f in SCHOOL_CATEGORY_FIELDS if f in data]
+    if not fields:
+        abort(400, description="Шинэчлэх талбар алга")
+    sets = ", ".join(f"{f}=?" for f in fields)
+    vals = [data[f] for f in fields] + [cid]
+    conn = get_db()
+    cur = conn.execute(f"UPDATE school_category SET {sets} WHERE id=?", vals)
+    conn.commit()
+    conn.close()
+    if cur.rowcount == 0:
+        abort(404, description="Ангилал олдсонгүй")
+    return jsonify(updated=cid, fields=fields)
+
+
+@app.route("/api/school_category/<int:cid>", methods=["DELETE"])
+def delete_school_category(cid):
+    conn = get_db()
+    cur = conn.execute("DELETE FROM school_category WHERE id=?", (cid,))
+    conn.commit()
+    conn.close()
+    if cur.rowcount == 0:
+        abort(404, description="Ангилал олдсонгүй")
+    return jsonify(deleted=cid)
+
+
 if __name__ == "__main__":
     init_db()
     app.run(host='0.0.0.0', debug=True, port=5001)

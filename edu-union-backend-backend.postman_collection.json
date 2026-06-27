@@ -1,6 +1,6 @@
 {
 	"info": {
-		"name": "EMM Backend — Засаг захиргаа & Үйлдвэрчний эвлэл",
+		"name": "edu-union-backend — Засаг захиргаа & Үйлдвэрчний эвлэл",
 		"description": "Flask + SQLite CRUD API. base_url хувьсагчийг Variables хэсгээс өөрчилнө (default http://127.0.0.1:5001).",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
@@ -13,7 +13,9 @@
 		{ "key": "horoo_id", "value": "1" },
 		{ "key": "organization_id", "value": "1" },
 		{ "key": "member_id", "value": "1" },
-		{ "key": "contact_id", "value": "1" }
+		{ "key": "contact_id", "value": "1" },
+		{ "key": "salary_request_id", "value": "1" },
+		{ "key": "school_category_id", "value": "1" }
 	],
 	"item": [
 		{
@@ -118,37 +120,6 @@
 				{
 					"name": "Устгах",
 					"request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/au3/{{au3_code}}", "host": ["{{base_url}}"], "path": ["api", "au3", "{{au3_code}}"] } }
-				}
-			]
-		},
-		{
-			"name": "ҮЭ — Холбоо (holboo)",
-			"item": [
-				{
-					"name": "Жагсаалт",
-					"request": { "method": "GET", "url": { "raw": "{{base_url}}/api/holboo", "host": ["{{base_url}}"], "path": ["api", "holboo"] } }
-				},
-				{
-					"name": "Нэмэх",
-					"request": {
-						"method": "POST",
-						"header": [{ "key": "Content-Type", "value": "application/json" }],
-						"body": { "mode": "raw", "raw": "{\n  \"name\": \"Шинэ холбоо\"\n}" },
-						"url": { "raw": "{{base_url}}/api/holboo", "host": ["{{base_url}}"], "path": ["api", "holboo"] }
-					}
-				},
-				{
-					"name": "Засах",
-					"request": {
-						"method": "PUT",
-						"header": [{ "key": "Content-Type", "value": "application/json" }],
-						"body": { "mode": "raw", "raw": "{\n  \"name\": \"Шинэчилсэн холбоо\"\n}" },
-						"url": { "raw": "{{base_url}}/api/holboo/{{holboo_id}}", "host": ["{{base_url}}"], "path": ["api", "holboo", "{{holboo_id}}"] }
-					}
-				},
-				{
-					"name": "Устгах",
-					"request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/holboo/{{holboo_id}}", "host": ["{{base_url}}"], "path": ["api", "holboo", "{{holboo_id}}"] } }
 				}
 			]
 		},
@@ -286,6 +257,76 @@
 				{
 					"name": "Устгах",
 					"request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/contact/{{contact_id}}", "host": ["{{base_url}}"], "path": ["api", "contact", "{{contact_id}}"] } }
+				}
+			]
+		},
+		{
+			"name": "ҮЭ — Цалингийн хүсэлт (salary_request)",
+			"item": [
+				{
+					"name": "Жагсаалт (гишүүнээр / статусаар шүүх)",
+					"request": { "method": "GET", "url": { "raw": "{{base_url}}/api/salary_request?member_id={{member_id}}", "host": ["{{base_url}}"], "path": ["api", "salary_request"], "query": [{ "key": "member_id", "value": "{{member_id}}" }, { "key": "status", "value": "хүлээгдэж буй", "disabled": true }] } }
+				},
+				{
+					"name": "Нэгийг авах",
+					"request": { "method": "GET", "url": { "raw": "{{base_url}}/api/salary_request/{{salary_request_id}}", "host": ["{{base_url}}"], "path": ["api", "salary_request", "{{salary_request_id}}"] } }
+				},
+				{
+					"name": "Нэмэх",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"member_id\": 1,\n  \"salbar\": \"СӨБ ба ЕБС\",\n  \"kod\": \"ТҮБД-3\",\n  \"albn_tushaal\": \"Бага ангийн багш\",\n  \"tsalin\": 2804760,\n  \"request_date\": \"2026-06-27\",\n  \"note\": \"Анхан шатны хүсэлт\"\n}" },
+						"url": { "raw": "{{base_url}}/api/salary_request", "host": ["{{base_url}}"], "path": ["api", "salary_request"] }
+					}
+				},
+				{
+					"name": "Засах (статус / дүн)",
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"status\": \"зөвшөөрсөн\",\n  \"tsalin\": 2900000\n}" },
+						"url": { "raw": "{{base_url}}/api/salary_request/{{salary_request_id}}", "host": ["{{base_url}}"], "path": ["api", "salary_request", "{{salary_request_id}}"] }
+					}
+				},
+				{
+					"name": "Устгах",
+					"request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/salary_request/{{salary_request_id}}", "host": ["{{base_url}}"], "path": ["api", "salary_request", "{{salary_request_id}}"] } }
+				}
+			]
+		},
+		{
+			"name": "Лавлах — Сургуулийн ангилал (school_category)",
+			"item": [
+				{
+					"name": "Жагсаалт",
+					"request": { "method": "GET", "url": { "raw": "{{base_url}}/api/school_category", "host": ["{{base_url}}"], "path": ["api", "school_category"] } }
+				},
+				{
+					"name": "Нэгийг авах",
+					"request": { "method": "GET", "url": { "raw": "{{base_url}}/api/school_category/{{school_category_id}}", "host": ["{{base_url}}"], "path": ["api", "school_category", "{{school_category_id}}"] } }
+				},
+				{
+					"name": "Нэмэх",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"buten_ner\": \"Тусгай боловсрол\",\n  \"tovch_ner\": \"ТБ\",\n  \"angli_ner\": \"Special Education\"\n}" },
+						"url": { "raw": "{{base_url}}/api/school_category", "host": ["{{base_url}}"], "path": ["api", "school_category"] }
+					}
+				},
+				{
+					"name": "Засах (хэсэгчилсэн)",
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"angli_ner\": \"Additional Education\"\n}" },
+						"url": { "raw": "{{base_url}}/api/school_category/{{school_category_id}}", "host": ["{{base_url}}"], "path": ["api", "school_category", "{{school_category_id}}"] }
+					}
+				},
+				{
+					"name": "Устгах",
+					"request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/school_category/{{school_category_id}}", "host": ["{{base_url}}"], "path": ["api", "school_category", "{{school_category_id}}"] } }
 				}
 			]
 		}
