@@ -1,0 +1,293 @@
+{
+	"info": {
+		"name": "EMM Backend — Засаг захиргаа & Үйлдвэрчний эвлэл",
+		"description": "Flask + SQLite CRUD API. base_url хувьсагчийг Variables хэсгээс өөрчилнө (default http://127.0.0.1:5001).",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{ "key": "base_url", "value": "http://127.0.0.1:5001" },
+		{ "key": "au1_code", "value": "099" },
+		{ "key": "au2_code", "value": "09901" },
+		{ "key": "au3_code", "value": "0990151" },
+		{ "key": "holboo_id", "value": "1" },
+		{ "key": "horoo_id", "value": "1" },
+		{ "key": "organization_id", "value": "1" },
+		{ "key": "member_id", "value": "1" },
+		{ "key": "contact_id", "value": "1" }
+	],
+	"item": [
+		{
+			"name": "Засаг захиргаа — Аймаг (au1)",
+			"item": [
+				{
+					"name": "Жагсаалт",
+					"request": { "method": "GET", "url": { "raw": "{{base_url}}/api/au1", "host": ["{{base_url}}"], "path": ["api", "au1"] } }
+				},
+				{
+					"name": "Нэгийг авах",
+					"request": { "method": "GET", "url": { "raw": "{{base_url}}/api/au1/{{au1_code}}", "host": ["{{base_url}}"], "path": ["api", "au1", "{{au1_code}}"] } }
+				},
+				{
+					"name": "Нэмэх",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"code\": \"099\",\n  \"name\": \"Туршилт аймаг\"\n}" },
+						"url": { "raw": "{{base_url}}/api/au1", "host": ["{{base_url}}"], "path": ["api", "au1"] }
+					}
+				},
+				{
+					"name": "Засах",
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"name\": \"Шинэчилсэн нэр\"\n}" },
+						"url": { "raw": "{{base_url}}/api/au1/{{au1_code}}", "host": ["{{base_url}}"], "path": ["api", "au1", "{{au1_code}}"] }
+					}
+				},
+				{
+					"name": "Устгах",
+					"request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/au1/{{au1_code}}", "host": ["{{base_url}}"], "path": ["api", "au1", "{{au1_code}}"] } }
+				}
+			]
+		},
+		{
+			"name": "Засаг захиргаа — Сум (au2)",
+			"item": [
+				{
+					"name": "Жагсаалт (аймгаар шүүх)",
+					"request": { "method": "GET", "url": { "raw": "{{base_url}}/api/au2?au1_code=011", "host": ["{{base_url}}"], "path": ["api", "au2"], "query": [{ "key": "au1_code", "value": "011" }] } }
+				},
+				{
+					"name": "Нэгийг авах",
+					"request": { "method": "GET", "url": { "raw": "{{base_url}}/api/au2/{{au2_code}}", "host": ["{{base_url}}"], "path": ["api", "au2", "{{au2_code}}"] } }
+				},
+				{
+					"name": "Нэмэх",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"au2_code\": \"09901\",\n  \"au2_name\": \"Туршилт сум\",\n  \"au1_code\": \"011\"\n}" },
+						"url": { "raw": "{{base_url}}/api/au2", "host": ["{{base_url}}"], "path": ["api", "au2"] }
+					}
+				},
+				{
+					"name": "Засах",
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"au2_name\": \"Шинэчилсэн сум\"\n}" },
+						"url": { "raw": "{{base_url}}/api/au2/{{au2_code}}", "host": ["{{base_url}}"], "path": ["api", "au2", "{{au2_code}}"] }
+					}
+				},
+				{
+					"name": "Устгах",
+					"request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/au2/{{au2_code}}", "host": ["{{base_url}}"], "path": ["api", "au2", "{{au2_code}}"] } }
+				}
+			]
+		},
+		{
+			"name": "Засаг захиргаа — Баг (au3)",
+			"item": [
+				{
+					"name": "Жагсаалт (сумаар шүүх)",
+					"request": { "method": "GET", "url": { "raw": "{{base_url}}/api/au3?au2_code=01101", "host": ["{{base_url}}"], "path": ["api", "au3"], "query": [{ "key": "au2_code", "value": "01101" }] } }
+				},
+				{
+					"name": "Нэгийг авах",
+					"request": { "method": "GET", "url": { "raw": "{{base_url}}/api/au3/{{au3_code}}", "host": ["{{base_url}}"], "path": ["api", "au3", "{{au3_code}}"] } }
+				},
+				{
+					"name": "Нэмэх",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"au3_code\": \"0990151\",\n  \"au3_name\": \"1-р баг\",\n  \"au1_code\": \"011\",\n  \"au2_code\": \"01101\"\n}" },
+						"url": { "raw": "{{base_url}}/api/au3", "host": ["{{base_url}}"], "path": ["api", "au3"] }
+					}
+				},
+				{
+					"name": "Засах",
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"au3_name\": \"Шинэчилсэн баг\"\n}" },
+						"url": { "raw": "{{base_url}}/api/au3/{{au3_code}}", "host": ["{{base_url}}"], "path": ["api", "au3", "{{au3_code}}"] }
+					}
+				},
+				{
+					"name": "Устгах",
+					"request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/au3/{{au3_code}}", "host": ["{{base_url}}"], "path": ["api", "au3", "{{au3_code}}"] } }
+				}
+			]
+		},
+		{
+			"name": "ҮЭ — Холбоо (holboo)",
+			"item": [
+				{
+					"name": "Жагсаалт",
+					"request": { "method": "GET", "url": { "raw": "{{base_url}}/api/holboo", "host": ["{{base_url}}"], "path": ["api", "holboo"] } }
+				},
+				{
+					"name": "Нэмэх",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"name\": \"Шинэ холбоо\"\n}" },
+						"url": { "raw": "{{base_url}}/api/holboo", "host": ["{{base_url}}"], "path": ["api", "holboo"] }
+					}
+				},
+				{
+					"name": "Засах",
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"name\": \"Шинэчилсэн холбоо\"\n}" },
+						"url": { "raw": "{{base_url}}/api/holboo/{{holboo_id}}", "host": ["{{base_url}}"], "path": ["api", "holboo", "{{holboo_id}}"] }
+					}
+				},
+				{
+					"name": "Устгах",
+					"request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/holboo/{{holboo_id}}", "host": ["{{base_url}}"], "path": ["api", "holboo", "{{holboo_id}}"] } }
+				}
+			]
+		},
+		{
+			"name": "ҮЭ — Хороо (horoo)",
+			"item": [
+				{
+					"name": "Жагсаалт (холбоогоор шүүх)",
+					"request": { "method": "GET", "url": { "raw": "{{base_url}}/api/horoo?holboo_id={{holboo_id}}", "host": ["{{base_url}}"], "path": ["api", "horoo"], "query": [{ "key": "holboo_id", "value": "{{holboo_id}}" }] } }
+				},
+				{
+					"name": "Нэмэх",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"holboo_id\": 1,\n  \"name\": \"Шинэ хороо\"\n}" },
+						"url": { "raw": "{{base_url}}/api/horoo", "host": ["{{base_url}}"], "path": ["api", "horoo"] }
+					}
+				},
+				{
+					"name": "Засах",
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"name\": \"Шинэчилсэн хороо\"\n}" },
+						"url": { "raw": "{{base_url}}/api/horoo/{{horoo_id}}", "host": ["{{base_url}}"], "path": ["api", "horoo", "{{horoo_id}}"] }
+					}
+				},
+				{
+					"name": "Устгах",
+					"request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/horoo/{{horoo_id}}", "host": ["{{base_url}}"], "path": ["api", "horoo", "{{horoo_id}}"] } }
+				}
+			]
+		},
+		{
+			"name": "ҮЭ — Гишүүн байгууллага (organization)",
+			"item": [
+				{
+					"name": "Жагсаалт (хороогоор шүүх)",
+					"request": { "method": "GET", "url": { "raw": "{{base_url}}/api/organization?horoo_id={{horoo_id}}", "host": ["{{base_url}}"], "path": ["api", "organization"], "query": [{ "key": "horoo_id", "value": "{{horoo_id}}" }] } }
+				},
+				{
+					"name": "Нэгийг авах (статистик + холбоо барих)",
+					"request": { "method": "GET", "url": { "raw": "{{base_url}}/api/organization/{{organization_id}}", "host": ["{{base_url}}"], "path": ["api", "organization", "{{organization_id}}"] } }
+				},
+				{
+					"name": "Нэмэх (бүх талбар)",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"horoo_id\": 1,\n  \"name\": \"Шинэ сургууль\",\n  \"org_type\": \"Сургууль\",\n  \"school_type\": \"МСҮТ\",\n  \"registration_number\": \"9923659\",\n  \"founded_date\": \"2023-01-31\",\n  \"activity_code\": \"8530\",\n  \"activity_name\": \"Дээд боловсрол олгох үйл ажиллагаа\",\n  \"parent_org\": \"АШУҮИС\",\n  \"address\": \"Ард Аюушийн гудамж\"\n}" },
+						"url": { "raw": "{{base_url}}/api/organization", "host": ["{{base_url}}"], "path": ["api", "organization"] }
+					}
+				},
+				{
+					"name": "Засах (хэсэгчилсэн)",
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"address\": \"Шинэ хаяг 12\",\n  \"school_type\": \"Их сургууль\"\n}" },
+						"url": { "raw": "{{base_url}}/api/organization/{{organization_id}}", "host": ["{{base_url}}"], "path": ["api", "organization", "{{organization_id}}"] }
+					}
+				},
+				{
+					"name": "Устгах",
+					"request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/organization/{{organization_id}}", "host": ["{{base_url}}"], "path": ["api", "organization", "{{organization_id}}"] } }
+				}
+			]
+		},
+		{
+			"name": "ҮЭ — Гишүүн (member)",
+			"item": [
+				{
+					"name": "Жагсаалт (байгууллагаар шүүх)",
+					"request": { "method": "GET", "url": { "raw": "{{base_url}}/api/member?organization_id={{organization_id}}", "host": ["{{base_url}}"], "path": ["api", "member"], "query": [{ "key": "organization_id", "value": "{{organization_id}}" }] } }
+				},
+				{
+					"name": "Нэмэх",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"organization_id\": 1,\n  \"name\": \"Туяа\",\n  \"gender\": \"эм\",\n  \"birth_date\": \"2000-03-15\"\n}" },
+						"url": { "raw": "{{base_url}}/api/member", "host": ["{{base_url}}"], "path": ["api", "member"] }
+					}
+				},
+				{
+					"name": "Засах",
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"name\": \"Туяа Бат\",\n  \"gender\": \"эм\",\n  \"birth_date\": \"1999-01-01\"\n}" },
+						"url": { "raw": "{{base_url}}/api/member/{{member_id}}", "host": ["{{base_url}}"], "path": ["api", "member", "{{member_id}}"] }
+					}
+				},
+				{
+					"name": "Устгах",
+					"request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/member/{{member_id}}", "host": ["{{base_url}}"], "path": ["api", "member", "{{member_id}}"] } }
+				}
+			]
+		},
+		{
+			"name": "ҮЭ — Холбоо барих (contact)",
+			"item": [
+				{
+					"name": "Жагсаалт (эзэмшигчээр шүүх)",
+					"request": { "method": "GET", "url": { "raw": "{{base_url}}/api/contact?owner_type=organization&owner_id={{organization_id}}", "host": ["{{base_url}}"], "path": ["api", "contact"], "query": [{ "key": "owner_type", "value": "organization" }, { "key": "owner_id", "value": "{{organization_id}}" }] } }
+				},
+				{
+					"name": "Нэмэх (байгууллагад)",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"owner_type\": \"organization\",\n  \"owner_id\": 1,\n  \"type\": \"утас\",\n  \"value\": \"99112233\",\n  \"note\": \"захиргаа\"\n}" },
+						"url": { "raw": "{{base_url}}/api/contact", "host": ["{{base_url}}"], "path": ["api", "contact"] }
+					}
+				},
+				{
+					"name": "Нэмэх (хороонд)",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"owner_type\": \"horoo\",\n  \"owner_id\": 1,\n  \"type\": \"и-мэйл\",\n  \"value\": \"horoo@example.mn\"\n}" },
+						"url": { "raw": "{{base_url}}/api/contact", "host": ["{{base_url}}"], "path": ["api", "contact"] }
+					}
+				},
+				{
+					"name": "Засах",
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"value\": \"77001122\",\n  \"note\": \"шинэ\"\n}" },
+						"url": { "raw": "{{base_url}}/api/contact/{{contact_id}}", "host": ["{{base_url}}"], "path": ["api", "contact", "{{contact_id}}"] }
+					}
+				},
+				{
+					"name": "Устгах",
+					"request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/contact/{{contact_id}}", "host": ["{{base_url}}"], "path": ["api", "contact", "{{contact_id}}"] } }
+				}
+			]
+		}
+	]
+}
