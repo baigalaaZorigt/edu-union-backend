@@ -53,8 +53,10 @@ gunicorn run:app               # production WSGI server (loads the module-level 
 - On Render/Heroku: build `pip install -r requirements.txt && python db.py`,
   start `gunicorn run:app --bind 0.0.0.0:$PORT` (see `render.yaml`).
 
-- `run.py`'s `create_app()` calls `init_db()` on startup, so the schema is always created;
-  it does **not** seed data.
+- `run.py`'s `create_app()` calls `ensure_seeded()` on startup: it always creates the schema
+  and **auto-seeds any empty table** (idempotent, cheap when already seeded). This is what
+  populates data on Render/Heroku, where `python db.py` is not run separately. Run `python db.py`
+  (`seed_all()`) locally to force a full re-seed.
 - `python db.py` runs `seed()` (loads `data/seed/admin_unit*.json`), `seed_union()`,
   `seed_school_category()`, `seed_salary_scale()`, `seed_education_degree()`, and `seed_users()`.
   All use `INSERT OR IGNORE` / empty-table guards, so re-running is safe.

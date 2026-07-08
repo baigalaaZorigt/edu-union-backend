@@ -15,7 +15,7 @@ import os
 
 from flask import Flask
 
-from db import init_db
+from db import ensure_seeded
 from helpers import register_error_handlers
 
 # --- client site ---
@@ -39,7 +39,7 @@ def create_app():
     app.register_blueprint(users_bp)
 
     register_error_handlers(app)  # 400/404/409 -> {"error": ...} JSON (бүх blueprint-д)
-    init_db()                     # схем үргэлж бэлэн байлгана (өгөгдөл seed хийхгүй)
+    ensure_seeded()               # схем + хоосон бол автоматаар seed (Render дээр ч ажиллана)
     return app
 
 

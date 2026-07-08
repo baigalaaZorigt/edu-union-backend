@@ -599,10 +599,44 @@ def seed_union():
     print("Union жишээ өгөгдөл нэмэгдлээ.")
 
 
-if __name__ == "__main__":
+def seed_all():
+    """Бүх домэйны seed-г дараалан ажиллуулна (`python db.py` үүнийг дуудна)."""
     seed()
     seed_union()
     seed_school_category()
     seed_salary_scale()
     seed_education_degree()
     seed_users()
+
+
+def ensure_seeded():
+    """Хоосон хүснэгтүүдийг л автоматаар seed хийнэ. Idempotent.
+
+    create_app() (run.py) эндээс дуудна — Render/Heroku зэрэг `python db.py`-г
+    тусад нь ажиллуулдаггүй орчинд өгөгдөл (ж: эрхийн жагсаалт) хоосон үлдэхээс
+    сэргийлнэ. Аль хэдийн seed хийсэн бол зөвхөн COUNT шалгаад өнгөрнө.
+    """
+    init_db()
+    conn = get_db()
+
+    def empty(table):
+        return conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] == 0
+
+    need_units = empty("admin_unit1")
+    need_ref = empty("school_category") or empty("education_degree") or empty("salary_scale")
+    need_users = empty("permission")
+    conn.close()
+
+    if need_units:
+        seed()
+        seed_union()
+    if need_ref:
+        seed_school_category()
+        seed_salary_scale()
+        seed_education_degree()
+    if need_users:
+        seed_users()
+
+
+if __name__ == "__main__":
+    seed_all()
