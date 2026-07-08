@@ -1,25 +1,26 @@
 """Нэвтрэлт ба эрхийн хяналт (authentication + authorization).
 
-Загвар — токенд суурилсан:
-  1. `/api/login` нь гарын үсэгтэй токен (itsdangerous) буцаана.
-  2. Дараагийн хүсэлт бүр `Authorization: Bearer <token>` толгойгоор ирнэ.
+Загвар — JWT токенд суурилсан:
+  1. `/api/login` нь JWT токен (PyJWT, HS256) буцаана.
+  2. Дараагийн хүсэлт бүр `Authorization: Bearer <jwt>` толгойгоор ирнэ.
   3. `require_auth()` (app.before_request) токен шалгаад, зам + HTTP методоос
      шаардагдах эрхийг (resource.action) гарган хэрэглэгчийн эрхтэй тулгана.
 
 Ингэснээр endpoint бүрд гараар decorator тавихгүйгээр бүх API эрхээс хамаарна.
-Токен нь итгэмжлэлгүй (stateless) — SECRET_KEY-ээр гарын үсэг зурж, хугацаатай.
+JWT нь итгэмжлэлгүй (stateless) — SECRET_KEY-ээр HS256-аар гарын үсэг зурж, exp-тэй.
 Production-д SECRET_KEY орчны хувьсагчийг заавал тохируулна уу.
 """
 import os
+from datetime import datetime, timedelta, timezone
+
+import jwt  # PyJWT
 from flask import request, abort, g
-from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 
 from db import get_db
 
 SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-key-CHANGE-IN-PRODUCTION")
+JWT_ALGORITHM = "HS256"
 TOKEN_MAX_AGE = 60 * 60 * 12  # 12 цаг хүчинтэй
-
-_serializer = URLSafeTimedSerializer(SECRET_KEY, salt="auth-token")
 
 # HTTP метод -> эрхийн үйлдэл (action)
 METHOD_ACTION = {
@@ -37,20 +38,27 @@ PUBLIC_PATHS = {"/api/login"}
 
 
 def make_token(user_id):
-    """Хэрэглэгчийн id-г агуулсан гарын үсэгтэй токен үүсгэнэ."""
-    return _serializer.dumps({"uid": user_id})
+    """Хэрэглэгчийн id-г агуулсан JWT токен үүсгэнэ (sub, iat, exp claim-тэй)."""
+    now = datetime.now(timezone.utc)
+    payload = {
+        "sub": str(user_id),                                  # subject — хэрэглэгчийн id
+        "iat": now,                                           # үүсгэсэн хугацаа
+        "exp": now + timedelta(seconds=TOKEN_MAX_AGE),        # дуусах хугацаа
+    }
+    return jwt.encode(payload, SECRET_KEY, algorithm=JWT_ALGORITHM)
 
 
 def _load_user(token):
-    """Токеныг шалгаж, идэвхтэй хэрэглэгчийн мөрийг буцаана (эс бөгөөс 401)."""
+    """JWT-г шалгаж, идэвхтэй хэрэглэгчийн мөрийг буцаана (эс бөгөөс 401)."""
     try:
-        data = _serializer.loads(token, max_age=TOKEN_MAX_AGE)
-    except SignatureExpired:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[JWT_ALGORITHM])
+        user_id = int(payload["sub"])
+    except jwt.ExpiredSignatureError:
         abort(401, description="Токены хугацаа дууссан — дахин нэвтэрнэ үү")
-    except BadSignature:
+    except (jwt.InvalidTokenError, KeyError, ValueError, TypeError):
         abort(401, description="Токен буруу байна")
     conn = get_db()
-    row = conn.execute("SELECT * FROM app_user WHERE id=?", (data["uid"],)).fetchone()
+    row = conn.execute("SELECT * FROM app_user WHERE id=?", (user_id,)).fetchone()
     conn.close()
     if not row or not row["is_active"]:
         abort(401, description="Хэрэглэгч олдсонгүй эсвэл идэвхгүй байна")

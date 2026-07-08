@@ -1,3 +1,3 @@
 Flask>=3.1,<4.0
-itsdangerous>=2.2         # токен гарын үсэг (auth.py) — Flask-тай ирдэг ч шууд ашигладаг
-gunicorn>=23.0           # production WSGI сервер (Render/Heroku): gunicorn run:app
+PyJWT>=2.8               # JWT токен (auth.py) — HS256 гарын үсэг
+gunicorn>=23.0          # production WSGI сервер (Render/Heroku): gunicorn run:app

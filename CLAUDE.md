@@ -72,9 +72,9 @@ gunicorn run:app               # production WSGI server (loads the module-level 
   blueprints — `admin_units` + `union` (client site) and `users` (admin site). Blueprints are
   plain route modules; they do **not** register their own error handlers.
 - **Auth is enforced globally in `auth.py`.** `run.py` registers `app.before_request(require_auth)`,
-  so **every request except `/api/login` requires a Bearer token** (`Authorization: Bearer <token>`)
-  → else 401. Tokens are stateless, signed with `itsdangerous` using `SECRET_KEY` (env; set it in
-  production), valid 12h. `/api/login` returns the token. **Authorization is derived, not hand-wired**:
+  so **every request except `/api/login` requires a Bearer token** (`Authorization: Bearer <jwt>`)
+  → else 401. Tokens are stateless **JWTs** (PyJWT, HS256) with `sub`/`iat`/`exp` claims, signed with
+  `SECRET_KEY` (env; set it in production), valid 12h. `/api/login` returns the token. **Authorization is derived, not hand-wired**:
   `require_auth()` maps the URL's first path segment → resource (au1/au2/au3 → `admin_unit`) and the
   HTTP method → action (GET→read, POST→create, PUT/PATCH→update, DELETE→delete), then requires the
   `resource.action` permission on the user's role → else 403. So **adding a new `/api/<resource>`
