@@ -6,6 +6,7 @@
 from flask import Blueprint, jsonify, request, abort
 
 from db import get_db
+from helpers import rows, require, json_body
 
 bp = Blueprint("union", __name__)
 
@@ -45,18 +46,6 @@ ORG_FIELDS = (
 
 
 # ----------------------------- Туслахууд -----------------------------
-def rows(r):
-    return [dict(x) for x in r]
-
-
-def require(data, fields):
-    if not data:
-        abort(400, description="JSON их бие шаардлагатай")
-    miss = [f for f in fields if not data.get(f)]
-    if miss:
-        abort(400, description="Дутуу талбар: " + ", ".join(miss))
-
-
 def _check_au(conn, data):
     """Хаягийн au1/au2/au3 код өгсөн бол засаг захиргааны нэгжид байгаа эсэхийг шалгана."""
     checks = (
@@ -91,11 +80,7 @@ def org_stats(conn, org_id):
     }
 
 
-@bp.errorhandler(400)
-@bp.errorhandler(404)
-@bp.errorhandler(409)
-def err(e):
-    return jsonify(error=e.description), e.code
+# 400/404/409 алдааны JSON хариу нь run.py дотор app-түвшинд төвлөрсөн.
 
 
 # ======================= horoo (Хороо) =======================
@@ -212,9 +197,7 @@ def create_org():
 
 @bp.route("/api/organization/<int:oid>", methods=["PUT"])
 def update_org(oid):
-    data = request.get_json(silent=True)
-    if not data:
-        abort(400, description="JSON их бие шаардлагатай")
+    data = json_body()
     _validate_org(data)
     fields = [f for f in ORG_FIELDS if f in data]
     if not fields:
@@ -301,9 +284,7 @@ def create_member():
 
 @bp.route("/api/member/<int:mid>", methods=["PUT"])
 def update_member(mid):
-    data = request.get_json(silent=True)
-    if not data:
-        abort(400, description="JSON их бие шаардлагатай")
+    data = json_body()
     fields = [f for f in MEMBER_FIELDS if f in data]
     if not fields:
         abort(400, description="Шинэчлэх талбар алга")
@@ -370,9 +351,7 @@ def create_contact():
 
 @bp.route("/api/contact/<int:cid>", methods=["PUT"])
 def update_contact(cid):
-    data = request.get_json(silent=True)
-    if not data:
-        abort(400, description="JSON их бие шаардлагатай")
+    data = json_body()
     if data.get("type") and data["type"] not in CONTACT_TYPES:
         abort(400, description="type нь: " + ", ".join(CONTACT_TYPES))
     allowed = ["type", "value", "note"]
@@ -485,9 +464,7 @@ def create_salary():
 
 @bp.route("/api/salary_request/<int:sid>", methods=["PUT"])
 def update_salary(sid):
-    data = request.get_json(silent=True)
-    if not data:
-        abort(400, description="JSON их бие шаардлагатай")
+    data = json_body()
     _validate_salary(data)
     conn = get_db()
     data = _apply_scale(conn, data)  # шатлал сонгосон бол sector/code/.../salary-г хуулна
@@ -563,9 +540,7 @@ def create_salary_scale():
 
 @bp.route("/api/salary_scale/<int:sid>", methods=["PUT"])
 def update_salary_scale(sid):
-    data = request.get_json(silent=True)
-    if not data:
-        abort(400, description="JSON их бие шаардлагатай")
+    data = json_body()
     fields = [f for f in SALARY_SCALE_FIELDS if f in data]
     if not fields:
         abort(400, description="Шинэчлэх талбар алга")
@@ -725,9 +700,7 @@ def create_member_education():
 
 @bp.route("/api/member_education/<int:eid>", methods=["PUT"])
 def update_member_education(eid):
-    data = request.get_json(silent=True)
-    if not data:
-        abort(400, description="JSON их бие шаардлагатай")
+    data = json_body()
     conn = get_db()
     _check_degree(conn, data)
     fields = [f for f in MEMBER_EDUCATION_FIELDS if f in data]

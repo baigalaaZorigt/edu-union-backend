@@ -141,6 +141,50 @@ CREATE INDEX IF NOT EXISTS idx_salreq_member ON salary_request(member_id);
 CREATE INDEX IF NOT EXISTS idx_medu_member ON member_education(member_id);
 """
 
+# ------------------------- Хэрэглэгчийн удирдлага (user management) -------------------------
+# permission (Эрх) — CRUD үйлдэл бүр нэг эрх (ж: 'user.create').
+# role (Дүр) нь role_permission-оор дамжуулан ОЛОН эрхтэй (M:N).
+# app_user (Хэрэглэгч) нь role_id-аар нэг дүр СОНГОЖ авах ба дүрийнхээ бүх эрхийг удамшуулна.
+SCHEMA_USER = """
+CREATE TABLE IF NOT EXISTS permission (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    code        TEXT NOT NULL UNIQUE,   -- нөөц.үйлдэл, ж: 'user.create'
+    name        TEXT NOT NULL,          -- Хүн уншихуйц нэр
+    resource    TEXT,                   -- Нөөц (user, role, member ...)
+    action      TEXT,                   -- create / read / update / delete
+    description TEXT                     -- Тайлбар (сонголтоор)
+);
+
+CREATE TABLE IF NOT EXISTS role (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    name        TEXT NOT NULL UNIQUE,   -- Дүрийн нэр (admin, manager ...)
+    description TEXT                     -- Тайлбар
+);
+
+CREATE TABLE IF NOT EXISTS role_permission (
+    role_id       INTEGER NOT NULL,     -- Аль дүр
+    permission_id INTEGER NOT NULL,     -- Аль эрх
+    PRIMARY KEY (role_id, permission_id),
+    FOREIGN KEY (role_id) REFERENCES role(id) ON DELETE CASCADE,
+    FOREIGN KEY (permission_id) REFERENCES permission(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS app_user (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    username      TEXT NOT NULL UNIQUE, -- Нэвтрэх нэр
+    password_hash TEXT NOT NULL,        -- Нууц үгийн hash (энгийн текстээр хадгалахгүй)
+    full_name     TEXT,                 -- Овог нэр
+    email         TEXT,                 -- И-мэйл
+    role_id       INTEGER,              -- Сонгосон дүр (FK) — эндээс эрхээ авна
+    is_active     INTEGER DEFAULT 1,    -- Идэвхтэй эсэх (0/1)
+    FOREIGN KEY (role_id) REFERENCES role(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_rp_role ON role_permission(role_id);
+CREATE INDEX IF NOT EXISTS idx_rp_perm ON role_permission(permission_id);
+CREATE INDEX IF NOT EXISTS idx_user_role ON app_user(role_id);
+"""
+
 # ------------------------- Лавлах хүснэгтүүд (reference) -------------------------
 # school_category — Боловсролын байгууллагын ангилал (бие даасан лавлах).
 SCHEMA_REF = """
@@ -208,6 +252,34 @@ SALARY_SCALE = [
     ("Шинжлэх ухаан", "ТҮШУУ-3", "Судлаач, мэргэжилтэн", 1559000),
     ("Шинжлэх ухаан", "ТҮШУУ-2", "Ажилтан", 1484000),
     ("Шинжлэх ухаан", "ТҮШУУ-1", "Туслах ажилтан", 1283000),
+]
+
+
+# Эрх үүсгэх нөөцүүд ба үйлдлүүд — эдгээрийн үржвэрээр CRUD эрхүүд seed хийгдэнэ.
+PERMISSION_RESOURCES = [
+    ("user", "Хэрэглэгч"),
+    ("role", "Дүр"),
+    ("permission", "Эрх"),
+    ("admin_unit", "Засаг захиргааны нэгж"),
+    ("holboo", "Холбоо"),
+    ("horoo", "Хороо"),
+    ("organization", "Байгууллага"),
+    ("member", "Гишүүн"),
+    ("salary_request", "Цалингийн хүсэлт"),
+    ("salary_scale", "Цалингийн шатлал"),
+]
+PERMISSION_ACTIONS = [
+    ("create", "нэмэх"),
+    ("read", "харах"),
+    ("update", "засах"),
+    ("delete", "устгах"),
+]
+
+# Анхдагч дүрүүд (нэр, тайлбар)
+DEFAULT_ROLES = [
+    ("admin", "Бүх эрхтэй систем администратор"),
+    ("manager", "Үйл ажиллагаа хариуцсан менежер"),
+    ("viewer", "Зөвхөн харах эрхтэй хэрэглэгч"),
 ]
 
 
@@ -305,6 +377,7 @@ def init_db():
     conn.executescript(SCHEMA)
     conn.executescript(SCHEMA_UNION)
     conn.executescript(SCHEMA_REF)
+    conn.executescript(SCHEMA_USER)
     _migrate(conn)
     conn.commit()
     conn.close()
@@ -354,8 +427,76 @@ def seed_school_category():
     print("Сургуулийн ангилал ачаалагдлаа:", n)
 
 
+def seed_users():
+    """Хэрэглэгчийн удирдлагын seed: CRUD эрхүүд, анхдагч дүрүүд, admin хэрэглэгч.
+
+    - permission: нөөц × үйлдэл бүрээр (INSERT OR IGNORE — давхардлыг алгасна)
+    - role: admin / manager / viewer
+    - role_permission: admin→бүх, viewer→бүх read, manager→үйл ажиллагааны CRUD
+    - app_user: анхны 'admin' хэрэглэгч (app_user хоосон үед л)
+    """
+    init_db()
+    conn = get_db()
+    cur = conn.cursor()
+
+    # 1) Эрхүүд (нөөц × үйлдэл)
+    perms = [
+        (f"{res}.{act}", f"{res_label} {act_label}", res, act)
+        for res, res_label in PERMISSION_RESOURCES
+        for act, act_label in PERMISSION_ACTIONS
+    ]
+    cur.executemany(
+        "INSERT OR IGNORE INTO permission(code, name, resource, action) VALUES (?,?,?,?)",
+        perms,
+    )
+
+    # 2) Дүрүүд
+    cur.executemany(
+        "INSERT OR IGNORE INTO role(name, description) VALUES (?, ?)", DEFAULT_ROLES)
+    conn.commit()
+
+    def role_id(name):
+        return cur.execute("SELECT id FROM role WHERE name=?", (name,)).fetchone()[0]
+
+    def assign(role_name, where_sql, params=()):
+        """Тухайн дүрд WHERE нөхцөлд тохирох бүх эрхийг оноож (давхардлыг алгасна)."""
+        cur.execute(
+            "INSERT OR IGNORE INTO role_permission(role_id, permission_id) "
+            f"SELECT ?, id FROM permission WHERE {where_sql}",
+            (role_id(role_name), *params),
+        )
+
+    # 3) Эрх оноох
+    assign("admin", "1=1")                       # бүх эрх
+    assign("viewer", "action = 'read'")          # зөвхөн харах
+    assign(                                       # менежер: үйл ажиллагааны CRUD
+        "manager",
+        "action IN ('create','read','update') AND resource IN "
+        "('holboo','horoo','organization','member','salary_request','salary_scale')",
+    )
+    conn.commit()
+
+    # 4) Анхны admin хэрэглэгч (зөвхөн хэрэглэгч огт байхгүй үед)
+    if cur.execute("SELECT COUNT(*) FROM app_user").fetchone()[0] == 0:
+        from werkzeug.security import generate_password_hash
+        cur.execute(
+            "INSERT INTO app_user(username, password_hash, full_name, role_id, is_active) "
+            "VALUES (?, ?, ?, ?, 1)",
+            ("admin", generate_password_hash("admin123", method="pbkdf2"),
+             "Систем администратор", role_id("admin")),
+        )
+        conn.commit()
+        print("Анхны хэрэглэгч үүслээ: admin / admin123 (нэвтэрсний дараа нууц үгээ солино уу)")
+
+    n_perm = cur.execute("SELECT COUNT(*) FROM permission").fetchone()[0]
+    n_role = cur.execute("SELECT COUNT(*) FROM role").fetchone()[0]
+    conn.close()
+    print(f"User management seed дууслаа: {n_perm} эрх, {n_role} дүр.")
+
+
 def _load_json(name):
-    with open(os.path.join(BASE_DIR, name), encoding="utf-8") as f:
+    # Seed JSON файлууд data/seed/ дотор байрлана.
+    with open(os.path.join(BASE_DIR, "data", "seed", name), encoding="utf-8") as f:
         return json.load(f)
 
 
@@ -464,3 +605,4 @@ if __name__ == "__main__":
     seed_school_category()
     seed_salary_scale()
     seed_education_degree()
+    seed_users()
