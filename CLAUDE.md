@@ -54,8 +54,9 @@ gunicorn run:app               # production WSGI server (loads the module-level 
 - On Render/Heroku: build `pip install -r requirements.txt && python db.py`,
   start `gunicorn run:app --bind 0.0.0.0:$PORT` (see `render.yaml`).
 
-- `run.py`'s `create_app()` calls `ensure_seeded()` on startup: it always creates the schema
-  and **auto-seeds any empty table** (idempotent, cheap when already seeded). This is what
+- `run.py`'s `create_app()` calls `ensure_seeded()` on startup: it always creates the schema,
+  **auto-seeds any empty table** (idempotent), and **always re-runs `seed_users()`** so newly added
+  `PERMISSION_RESOURCES` and the admin's grants stay complete (needed for auth to work). This is what
   populates data on Render/Heroku, where `python db.py` is not run separately. Run `python db.py`
   (`seed_all()`) locally to force a full re-seed.
 - `python db.py` runs `seed()` (loads `data/seed/admin_unit*.json`), `seed_union()`,
@@ -70,9 +71,18 @@ gunicorn run:app               # production WSGI server (loads the module-level 
 - **Two sites, one Flask app.** `run.py` builds the app via `create_app()` and registers three
   blueprints — `admin_units` + `union` (client site) and `users` (admin site). Blueprints are
   plain route modules; they do **not** register their own error handlers.
-- **Error handling is centralized.** `register_error_handlers(app)` in `run.py` maps 400/404/409
-  to `{"error": ...}` JSON for the whole app — including unmatched-URL 404s and aborts raised inside
-  any blueprint (Flask falls back to app-level handlers for blueprint errors).
+- **Auth is enforced globally in `auth.py`.** `run.py` registers `app.before_request(require_auth)`,
+  so **every request except `/api/login` requires a Bearer token** (`Authorization: Bearer <token>`)
+  → else 401. Tokens are stateless, signed with `itsdangerous` using `SECRET_KEY` (env; set it in
+  production), valid 12h. `/api/login` returns the token. **Authorization is derived, not hand-wired**:
+  `require_auth()` maps the URL's first path segment → resource (au1/au2/au3 → `admin_unit`) and the
+  HTTP method → action (GET→read, POST→create, PUT/PATCH→update, DELETE→delete), then requires the
+  `resource.action` permission on the user's role → else 403. So **adding a new `/api/<resource>`
+  route automatically needs `<resource>.{action}` permissions** — add the resource to
+  `PERMISSION_RESOURCES` in `db.py` (which is the cross-product source for the seeded CRUD permissions).
+- **Error handling is centralized.** `register_error_handlers(app)` in `run.py` maps
+  400/401/403/404/409 to `{"error": ...}` JSON for the whole app — including unmatched-URL 404s and
+  aborts raised inside any blueprint (Flask falls back to app-level handlers for blueprint errors).
 - **Shared helpers live in `helpers.py`.** `rows()` (Row→dict list), `require(data, fields)`
   (required-field check → 400), `json_body()` (parse JSON body or 400), and
   `register_error_handlers(target)`. All three route modules import these — do not re-define them.

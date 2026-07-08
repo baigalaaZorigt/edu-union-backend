@@ -10,6 +10,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 from db import get_db
 from helpers import rows, require, json_body
+from auth import make_token
 
 bp = Blueprint("users", __name__)
 
@@ -371,7 +372,7 @@ def delete_user(uid):
     return jsonify(deleted=uid)
 
 
-# ---- Нэвтрэлт шалгах (нууц үг зөв эсэхийг шалгах туслах endpoint) ----
+# ---- Нэвтрэлт (нээлттэй) — амжилттай бол Bearer токен буцаана ----
 @bp.route("/api/login", methods=["POST"])
 def login():
     data = request.get_json(silent=True)
@@ -390,4 +391,6 @@ def login():
     out = public_user(row)
     out["permissions"] = _role_perms(conn, row["role_id"]) if row["role_id"] else []
     conn.close()
+    # Дараагийн хүсэлтүүдэд ашиглах токен: Authorization: Bearer <token>
+    out["token"] = make_token(row["id"])
     return jsonify(out)

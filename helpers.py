@@ -32,9 +32,14 @@ def json_body():
 
 
 def register_error_handlers(target):
-    """app эсвэл Blueprint дээр 400/404/409 алдааг {"error": ...} JSON болгон буцаах
-    нэгдсэн боловсруулагчийг бүртгэнэ."""
+    """app эсвэл Blueprint дээр алдааг {"error": ...} JSON болгон буцаах нэгдсэн
+    боловсруулагчийг бүртгэнэ.
+
+    400 буруу хүсэлт / 401 нэвтрээгүй / 403 эрх хүрэлцэхгүй / 404 олдсонгүй / 409 давхцал.
+    """
     @target.errorhandler(400)
+    @target.errorhandler(401)
+    @target.errorhandler(403)
     @target.errorhandler(404)
     @target.errorhandler(409)
     def _handle(err):

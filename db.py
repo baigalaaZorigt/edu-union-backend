@@ -314,17 +314,24 @@ SALARY_SCALE = [
 
 
 # Эрх үүсгэх нөөцүүд ба үйлдлүүд — эдгээрийн үржвэрээр CRUD эрхүүд seed хийгдэнэ.
+# Энд байгаа resource бүр нь API замтай тохирно (auth.py эндээс эрхийг гаргана).
 PERMISSION_RESOURCES = [
     ("user", "Хэрэглэгч"),
     ("role", "Дүр"),
     ("permission", "Эрх"),
     ("admin_unit", "Засаг захиргааны нэгж"),
+    ("school_category", "Сургуулийн ангилал"),
     ("holboo", "Холбоо"),
     ("horoo", "Хороо"),
     ("organization", "Байгууллага"),
     ("member", "Гишүүн"),
+    ("member_education", "Гишүүний боловсрол"),
+    ("contact", "Холбоо барих"),
     ("salary_request", "Цалингийн хүсэлт"),
     ("salary_scale", "Цалингийн шатлал"),
+    ("education_degree", "Боловсролын зэрэг"),
+    ("position", "Албан тушаал"),
+    ("profession", "Мэргэжил"),
 ]
 PERMISSION_ACTIONS = [
     ("create", "нэмэх"),
@@ -709,7 +716,6 @@ def ensure_seeded():
     need_units = empty("admin_unit1")
     need_ref = (empty("school_category") or empty("education_degree")
                 or empty("salary_scale") or empty("position") or empty("profession"))
-    need_users = empty("permission")
     conn.close()
 
     if need_units:
@@ -721,8 +727,9 @@ def ensure_seeded():
         seed_education_degree()
         seed_position()
         seed_profession()
-    if need_users:
-        seed_users()
+    # Эрх/дүрийг ҮРГЭЛЖ синк хийнэ (idempotent): шинэ resource-ийн эрхүүд нэмэгдэж,
+    # admin бүх эрхээ авна. Анхны admin хэрэглэгч зөвхөн app_user хоосон үед л үүснэ.
+    seed_users()
 
 
 if __name__ == "__main__":

@@ -17,6 +17,7 @@ from flask import Flask
 
 from db import ensure_seeded
 from helpers import register_error_handlers
+from auth import require_auth, SECRET_KEY
 
 # --- client site ---
 from client.admin_units import bp as admin_units_bp
@@ -30,6 +31,10 @@ def create_app():
     """Flask апп үүсгэж, тохиргоо ба blueprint-уудыг холбоно."""
     app = Flask(__name__)
     app.json.ensure_ascii = False  # Кирилл үсгийг escape хийлгүй буцаах
+    app.secret_key = SECRET_KEY
+
+    # Нэвтрэлт + эрхийн хяналт: /api/login-аас бусад бүх хүсэлтэд токен + эрх шаардана
+    app.before_request(require_auth)
 
     # Client site — засаг захиргаа + үйлдвэрчний эвлэл
     app.register_blueprint(admin_units_bp)
@@ -38,7 +43,7 @@ def create_app():
     # Admin site — хэрэглэгчийн удирдлага
     app.register_blueprint(users_bp)
 
-    register_error_handlers(app)  # 400/404/409 -> {"error": ...} JSON (бүх blueprint-д)
+    register_error_handlers(app)  # 400/401/403/404/409 -> {"error": ...} JSON
     ensure_seeded()               # схем + хоосон бол автоматаар seed (Render дээр ч ажиллана)
     return app
 

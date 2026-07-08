@@ -1,13 +1,17 @@
 {
   "info": {
     "name": "edu-union-backend — Засаг захиргаа & Үйлдвэрчний эвлэл",
-    "description": "Flask + SQLite CRUD API. base_url хувьсагчийг Variables хэсгээс өөрчилнө (default http://127.0.0.1:5001).",
+    "description": "Flask + SQLite CRUD API. Бүх endpoint эрхээс хамаарна.\n1) 'Хэрэглэгч — App user' → 'Нэвтрэх (login)'-ийг эхлүүлнэ (admin/admin123). Токен автоматаар {{token}} хувьсагчид хадгалагдана.\n2) Бусад бүх хүсэлт Authorization: Bearer {{token}}-г автоматаар илгээнэ.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     {
       "key": "base_url",
       "value": "http://127.0.0.1:5001"
+    },
+    {
+      "key": "token",
+      "value": ""
     },
     {
       "key": "au1_code",
@@ -1988,8 +1992,24 @@
                 "api",
                 "login"
               ]
+            },
+            "auth": {
+              "type": "noauth"
             }
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var j = pm.response.json();",
+                  "if (j.token) { pm.collectionVariables.set('token', j.token); }",
+                  "pm.test('token авсан', function () { pm.expect(j.token).to.be.a('string'); });"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Жагсаалт",
@@ -2118,5 +2138,15 @@
         }
       ]
     }
-  ]
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  }
 }
