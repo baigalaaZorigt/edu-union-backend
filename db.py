@@ -199,6 +199,16 @@ CREATE TABLE IF NOT EXISTS education_degree (
     id   INTEGER PRIMARY KEY,
     name TEXT NOT NULL          -- Боловсролын зэрэг
 );
+
+CREATE TABLE IF NOT EXISTS position (
+    id   INTEGER PRIMARY KEY,
+    name TEXT NOT NULL          -- Албан тушаал
+);
+
+CREATE TABLE IF NOT EXISTS profession (
+    id   INTEGER PRIMARY KEY,
+    name TEXT NOT NULL          -- Мэргэжил
+);
 """
 
 # Сургуулийн ангиллын анхдагч өгөгдөл (Ангилал сургуулиуд.xlsx-аас)
@@ -230,6 +240,54 @@ EDUCATION_DEGREES = [
     (14, "Бүрэн дунд"),
     (15, "Тусгай дунд"),
     (16, "Бага боловсрол"),
+]
+
+# Албан тушаалын лавлах (боловсролын байгууллагын нийтлэг албан тушаалууд)
+POSITIONS = [
+    (1, "Захирал"),
+    (2, "Дэд захирал"),
+    (3, "Сургалтын менежер"),
+    (4, "Эрхлэгч"),
+    (5, "Ахлах багш"),
+    (6, "Багш"),
+    (7, "Дадлагажигч багш"),
+    (8, "Туслах багш"),
+    (9, "Нийгмийн ажилтан"),
+    (10, "Сэтгэл зүйч"),
+    (11, "Номын санч"),
+    (12, "Лаборант"),
+    (13, "Эмч"),
+    (14, "Сувилагч"),
+    (15, "Нягтлан бодогч"),
+    (16, "Нярав"),
+    (17, "Бичиг хэргийн ажилтан"),
+    (18, "Хүний нөөцийн мэргэжилтэн"),
+    (19, "Мэдээллийн технологийн мэргэжилтэн"),
+    (20, "Үйлчлэгч"),
+]
+
+# Мэргэжлийн лавлах (боловсролын салбарын нийтлэг мэргэжлүүд)
+PROFESSIONS = [
+    (1, "Бага ангийн багш"),
+    (2, "Математикийн багш"),
+    (3, "Физикийн багш"),
+    (4, "Химийн багш"),
+    (5, "Биологийн багш"),
+    (6, "Монгол хэл, уран зохиолын багш"),
+    (7, "Англи хэлний багш"),
+    (8, "Орос хэлний багш"),
+    (9, "Түүхийн багш"),
+    (10, "Газарзүйн багш"),
+    (11, "Мэдээллийн технологийн багш"),
+    (12, "Биеийн тамирын багш"),
+    (13, "Дуу хөгжмийн багш"),
+    (14, "Дүрслэх урлагийн багш"),
+    (15, "Цэцэрлэгийн багш"),
+    (16, "Нийгмийн ухааны багш"),
+    (17, "Эдийн засагч"),
+    (18, "Нягтлан бодогч"),
+    (19, "Инженер"),
+    (20, "Эмч"),
 ]
 
 # Цалингийн шатлалын анхдагч өгөгдөл (tsalin_husnegt.xlsx-аас): (salbar, kod, albn_tushaal, tsalin)
@@ -395,6 +453,30 @@ def seed_education_degree():
     n = conn.execute("SELECT COUNT(*) FROM education_degree").fetchone()[0]
     conn.close()
     print("Боловсролын зэрэг ачаалагдлаа:", n)
+
+
+def seed_position():
+    """Албан тушаалын лавлах өгөгдлийг ачаална (давхардлыг алгасна)."""
+    init_db()
+    conn = get_db()
+    conn.executemany(
+        "INSERT OR IGNORE INTO position(id, name) VALUES (?, ?)", POSITIONS)
+    conn.commit()
+    n = conn.execute("SELECT COUNT(*) FROM position").fetchone()[0]
+    conn.close()
+    print("Албан тушаал ачаалагдлаа:", n)
+
+
+def seed_profession():
+    """Мэргэжлийн лавлах өгөгдлийг ачаална (давхардлыг алгасна)."""
+    init_db()
+    conn = get_db()
+    conn.executemany(
+        "INSERT OR IGNORE INTO profession(id, name) VALUES (?, ?)", PROFESSIONS)
+    conn.commit()
+    n = conn.execute("SELECT COUNT(*) FROM profession").fetchone()[0]
+    conn.close()
+    print("Мэргэжил ачаалагдлаа:", n)
 
 
 def seed_salary_scale():
@@ -606,6 +688,8 @@ def seed_all():
     seed_school_category()
     seed_salary_scale()
     seed_education_degree()
+    seed_position()
+    seed_profession()
     seed_users()
 
 
@@ -623,7 +707,8 @@ def ensure_seeded():
         return conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] == 0
 
     need_units = empty("admin_unit1")
-    need_ref = empty("school_category") or empty("education_degree") or empty("salary_scale")
+    need_ref = (empty("school_category") or empty("education_degree")
+                or empty("salary_scale") or empty("position") or empty("profession"))
     need_users = empty("permission")
     conn.close()
 
@@ -634,6 +719,8 @@ def ensure_seeded():
         seed_school_category()
         seed_salary_scale()
         seed_education_degree()
+        seed_position()
+        seed_profession()
     if need_users:
         seed_users()
 

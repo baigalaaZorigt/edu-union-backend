@@ -1,455 +1,2122 @@
 {
-	"info": {
-		"name": "edu-union-backend — Засаг захиргаа & Үйлдвэрчний эвлэл",
-		"description": "Flask + SQLite CRUD API. base_url хувьсагчийг Variables хэсгээс өөрчилнө (default http://127.0.0.1:5001).",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-	},
-	"variable": [
-		{ "key": "base_url", "value": "http://127.0.0.1:5001" },
-		{ "key": "au1_code", "value": "099" },
-		{ "key": "au2_code", "value": "09901" },
-		{ "key": "au3_code", "value": "0990151" },
-		{ "key": "holboo_id", "value": "1" },
-		{ "key": "horoo_id", "value": "1" },
-		{ "key": "organization_id", "value": "1" },
-		{ "key": "member_id", "value": "1" },
-		{ "key": "contact_id", "value": "1" },
-		{ "key": "salary_request_id", "value": "1" },
-		{ "key": "salary_scale_id", "value": "1" },
-		{ "key": "school_category_id", "value": "1" },
-		{ "key": "member_education_id", "value": "1" },
-		{ "key": "education_degree_id", "value": "1" }
-	],
-	"item": [
-		{
-			"name": "Засаг захиргаа — Аймаг (au1)",
-			"item": [
-				{
-					"name": "Жагсаалт",
-					"request": { "method": "GET", "url": { "raw": "{{base_url}}/api/au1", "host": ["{{base_url}}"], "path": ["api", "au1"] } }
-				},
-				{
-					"name": "Нэгийг авах",
-					"request": { "method": "GET", "url": { "raw": "{{base_url}}/api/au1/{{au1_code}}", "host": ["{{base_url}}"], "path": ["api", "au1", "{{au1_code}}"] } }
-				},
-				{
-					"name": "Нэмэх",
-					"request": {
-						"method": "POST",
-						"header": [{ "key": "Content-Type", "value": "application/json" }],
-						"body": { "mode": "raw", "raw": "{\n  \"code\": \"099\",\n  \"name\": \"Туршилт аймаг\"\n}" },
-						"url": { "raw": "{{base_url}}/api/au1", "host": ["{{base_url}}"], "path": ["api", "au1"] }
-					}
-				},
-				{
-					"name": "Засах",
-					"request": {
-						"method": "PUT",
-						"header": [{ "key": "Content-Type", "value": "application/json" }],
-						"body": { "mode": "raw", "raw": "{\n  \"name\": \"Шинэчилсэн нэр\"\n}" },
-						"url": { "raw": "{{base_url}}/api/au1/{{au1_code}}", "host": ["{{base_url}}"], "path": ["api", "au1", "{{au1_code}}"] }
-					}
-				},
-				{
-					"name": "Устгах",
-					"request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/au1/{{au1_code}}", "host": ["{{base_url}}"], "path": ["api", "au1", "{{au1_code}}"] } }
-				}
-			]
-		},
-		{
-			"name": "Засаг захиргаа — Сум (au2)",
-			"item": [
-				{
-					"name": "Жагсаалт (аймгаар шүүх)",
-					"request": { "method": "GET", "url": { "raw": "{{base_url}}/api/au2?au1_code=011", "host": ["{{base_url}}"], "path": ["api", "au2"], "query": [{ "key": "au1_code", "value": "011" }] } }
-				},
-				{
-					"name": "Нэгийг авах",
-					"request": { "method": "GET", "url": { "raw": "{{base_url}}/api/au2/{{au2_code}}", "host": ["{{base_url}}"], "path": ["api", "au2", "{{au2_code}}"] } }
-				},
-				{
-					"name": "Нэмэх",
-					"request": {
-						"method": "POST",
-						"header": [{ "key": "Content-Type", "value": "application/json" }],
-						"body": { "mode": "raw", "raw": "{\n  \"au2_code\": \"09901\",\n  \"au2_name\": \"Туршилт сум\",\n  \"au1_code\": \"011\"\n}" },
-						"url": { "raw": "{{base_url}}/api/au2", "host": ["{{base_url}}"], "path": ["api", "au2"] }
-					}
-				},
-				{
-					"name": "Засах",
-					"request": {
-						"method": "PUT",
-						"header": [{ "key": "Content-Type", "value": "application/json" }],
-						"body": { "mode": "raw", "raw": "{\n  \"au2_name\": \"Шинэчилсэн сум\"\n}" },
-						"url": { "raw": "{{base_url}}/api/au2/{{au2_code}}", "host": ["{{base_url}}"], "path": ["api", "au2", "{{au2_code}}"] }
-					}
-				},
-				{
-					"name": "Устгах",
-					"request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/au2/{{au2_code}}", "host": ["{{base_url}}"], "path": ["api", "au2", "{{au2_code}}"] } }
-				}
-			]
-		},
-		{
-			"name": "Засаг захиргаа — Баг (au3)",
-			"item": [
-				{
-					"name": "Жагсаалт (сумаар шүүх)",
-					"request": { "method": "GET", "url": { "raw": "{{base_url}}/api/au3?au2_code=01101", "host": ["{{base_url}}"], "path": ["api", "au3"], "query": [{ "key": "au2_code", "value": "01101" }] } }
-				},
-				{
-					"name": "Нэгийг авах",
-					"request": { "method": "GET", "url": { "raw": "{{base_url}}/api/au3/{{au3_code}}", "host": ["{{base_url}}"], "path": ["api", "au3", "{{au3_code}}"] } }
-				},
-				{
-					"name": "Нэмэх",
-					"request": {
-						"method": "POST",
-						"header": [{ "key": "Content-Type", "value": "application/json" }],
-						"body": { "mode": "raw", "raw": "{\n  \"au3_code\": \"0990151\",\n  \"au3_name\": \"1-р баг\",\n  \"au1_code\": \"011\",\n  \"au2_code\": \"01101\"\n}" },
-						"url": { "raw": "{{base_url}}/api/au3", "host": ["{{base_url}}"], "path": ["api", "au3"] }
-					}
-				},
-				{
-					"name": "Засах",
-					"request": {
-						"method": "PUT",
-						"header": [{ "key": "Content-Type", "value": "application/json" }],
-						"body": { "mode": "raw", "raw": "{\n  \"au3_name\": \"Шинэчилсэн баг\"\n}" },
-						"url": { "raw": "{{base_url}}/api/au3/{{au3_code}}", "host": ["{{base_url}}"], "path": ["api", "au3", "{{au3_code}}"] }
-					}
-				},
-				{
-					"name": "Устгах",
-					"request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/au3/{{au3_code}}", "host": ["{{base_url}}"], "path": ["api", "au3", "{{au3_code}}"] } }
-				}
-			]
-		},
-		{
-			"name": "ҮЭ — Хороо (horoo)",
-			"item": [
-				{
-					"name": "Жагсаалт (холбоогоор шүүх)",
-					"request": { "method": "GET", "url": { "raw": "{{base_url}}/api/horoo?holboo_id={{holboo_id}}", "host": ["{{base_url}}"], "path": ["api", "horoo"], "query": [{ "key": "holboo_id", "value": "{{holboo_id}}" }] } }
-				},
-				{
-					"name": "Нэмэх",
-					"request": {
-						"method": "POST",
-						"header": [{ "key": "Content-Type", "value": "application/json" }],
-						"body": { "mode": "raw", "raw": "{\n  \"holboo_id\": 1,\n  \"name\": \"Шинэ хороо\"\n}" },
-						"url": { "raw": "{{base_url}}/api/horoo", "host": ["{{base_url}}"], "path": ["api", "horoo"] }
-					}
-				},
-				{
-					"name": "Засах",
-					"request": {
-						"method": "PUT",
-						"header": [{ "key": "Content-Type", "value": "application/json" }],
-						"body": { "mode": "raw", "raw": "{\n  \"name\": \"Шинэчилсэн хороо\"\n}" },
-						"url": { "raw": "{{base_url}}/api/horoo/{{horoo_id}}", "host": ["{{base_url}}"], "path": ["api", "horoo", "{{horoo_id}}"] }
-					}
-				},
-				{
-					"name": "Устгах",
-					"request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/horoo/{{horoo_id}}", "host": ["{{base_url}}"], "path": ["api", "horoo", "{{horoo_id}}"] } }
-				}
-			]
-		},
-		{
-			"name": "ҮЭ — Гишүүн байгууллага (organization)",
-			"item": [
-				{
-					"name": "Жагсаалт (хороогоор шүүх)",
-					"request": { "method": "GET", "url": { "raw": "{{base_url}}/api/organization?horoo_id={{horoo_id}}", "host": ["{{base_url}}"], "path": ["api", "organization"], "query": [{ "key": "horoo_id", "value": "{{horoo_id}}" }] } }
-				},
-				{
-					"name": "Нэгийг авах (статистик + холбоо барих)",
-					"request": { "method": "GET", "url": { "raw": "{{base_url}}/api/organization/{{organization_id}}", "host": ["{{base_url}}"], "path": ["api", "organization", "{{organization_id}}"] } }
-				},
-				{
-					"name": "Нэмэх (бүх талбар)",
-					"request": {
-						"method": "POST",
-						"header": [{ "key": "Content-Type", "value": "application/json" }],
-						"body": { "mode": "raw", "raw": "{\n  \"horoo_id\": 1,\n  \"name\": \"Шинэ сургууль\",\n  \"school_type\": \"МСҮТ\",\n  \"registration_number\": \"9923659\",\n  \"founded_date\": \"2023-01-31\",\n  \"activity_code\": \"8530\",\n  \"activity_name\": \"Дээд боловсрол олгох үйл ажиллагаа\",\n  \"parent_org\": \"АШУҮИС\",\n  \"au1_code\": \"011\",\n  \"au2_code\": \"01101\",\n  \"au3_code\": \"0110151\",\n  \"address_detail\": \"Ард Аюушийн гудамж\"\n}" },
-						"url": { "raw": "{{base_url}}/api/organization", "host": ["{{base_url}}"], "path": ["api", "organization"] }
-					}
-				},
-				{
-					"name": "Засах (хэсэгчилсэн)",
-					"request": {
-						"method": "PUT",
-						"header": [{ "key": "Content-Type", "value": "application/json" }],
-						"body": { "mode": "raw", "raw": "{\n  \"address_detail\": \"Шинэ хаяг 12\",\n  \"school_type\": \"Их сургууль\",\n  \"au3_code\": \"0110151\"\n}" },
-						"url": { "raw": "{{base_url}}/api/organization/{{organization_id}}", "host": ["{{base_url}}"], "path": ["api", "organization", "{{organization_id}}"] }
-					}
-				},
-				{
-					"name": "Устгах",
-					"request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/organization/{{organization_id}}", "host": ["{{base_url}}"], "path": ["api", "organization", "{{organization_id}}"] } }
-				}
-			]
-		},
-		{
-			"name": "ҮЭ — Гишүүн (member)",
-			"item": [
-				{
-					"name": "Жагсаалт (байгууллагаар шүүх)",
-					"request": { "method": "GET", "url": { "raw": "{{base_url}}/api/member?organization_id={{organization_id}}", "host": ["{{base_url}}"], "path": ["api", "member"], "query": [{ "key": "organization_id", "value": "{{organization_id}}" }] } }
-				},
-				{
-					"name": "Нэгийг авах",
-					"request": { "method": "GET", "url": { "raw": "{{base_url}}/api/member/{{member_id}}", "host": ["{{base_url}}"], "path": ["api", "member", "{{member_id}}"] } }
-				},
-				{
-					"name": "Нэмэх (бүрэн бүртгэл)",
-					"request": {
-						"method": "POST",
-						"header": [{ "key": "Content-Type", "value": "application/json" }],
-						"body": { "mode": "raw", "raw": "{\n  \"organization_id\": 1,\n  \"name\": \"Батын Болд\",\n  \"birth_date\": \"1985-04-12\",\n  \"gender\": \"эр\",\n  \"register_number\": \"УБ85041212\",\n  \"union_card_number\": \"ҮЭ-00123\",\n  \"union_joined_date\": \"2020-09-01\",\n  \"member_status\": \"идэвхтэй\",\n  \"position\": \"Ахлах багш\",\n  \"profession\": \"Багш\",\n  \"phone_fax\": \"99112233\",\n  \"au1_code\": \"011\",\n  \"au2_code\": \"01101\",\n  \"au3_code\": \"0110151\",\n  \"address_detail\": \"СБД 1-р хороо, 12-р байр\",\n  \"signature\": 1\n}" },
-						"url": { "raw": "{{base_url}}/api/member", "host": ["{{base_url}}"], "path": ["api", "member"] }
-					}
-				},
-				{
-					"name": "Засах (хэсэгчилсэн)",
-					"request": {
-						"method": "PUT",
-						"header": [{ "key": "Content-Type", "value": "application/json" }],
-						"body": { "mode": "raw", "raw": "{\n  \"member_status\": \"идэвхгүй\",\n  \"phone_fax\": \"77001122\",\n  \"au3_code\": \"0110151\",\n  \"address_detail\": \"Шинэ хаяг\",\n  \"signature\": 0\n}" },
-						"url": { "raw": "{{base_url}}/api/member/{{member_id}}", "host": ["{{base_url}}"], "path": ["api", "member", "{{member_id}}"] }
-					}
-				},
-				{
-					"name": "Устгах",
-					"request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/member/{{member_id}}", "host": ["{{base_url}}"], "path": ["api", "member", "{{member_id}}"] } }
-				}
-			]
-		},
-		{
-			"name": "ҮЭ — Гишүүний боловсрол (member_education)",
-			"item": [
-				{
-					"name": "Жагсаалт (гишүүнээр шүүх)",
-					"request": { "method": "GET", "url": { "raw": "{{base_url}}/api/member_education?member_id={{member_id}}", "host": ["{{base_url}}"], "path": ["api", "member_education"], "query": [{ "key": "member_id", "value": "{{member_id}}" }] } }
-				},
-				{
-					"name": "Нэгийг авах",
-					"request": { "method": "GET", "url": { "raw": "{{base_url}}/api/member_education/{{member_education_id}}", "host": ["{{base_url}}"], "path": ["api", "member_education", "{{member_education_id}}"] } }
-				},
-				{
-					"name": "Нэмэх (зэрэг лавлахаас сонгож)",
-					"request": {
-						"method": "POST",
-						"header": [{ "key": "Content-Type", "value": "application/json" }],
-						"body": { "mode": "raw", "raw": "{\n  \"member_id\": 1,\n  \"education_degree_id\": 9,\n  \"school\": \"МУИС\",\n  \"profession\": \"Математик\",\n  \"graduation_year\": \"2007\"\n}" },
-						"url": { "raw": "{{base_url}}/api/member_education", "host": ["{{base_url}}"], "path": ["api", "member_education"] }
-					}
-				},
-				{
-					"name": "Засах (хэсэгчилсэн)",
-					"request": {
-						"method": "PUT",
-						"header": [{ "key": "Content-Type", "value": "application/json" }],
-						"body": { "mode": "raw", "raw": "{\n  \"education_degree_id\": 5,\n  \"graduation_year\": \"2012\"\n}" },
-						"url": { "raw": "{{base_url}}/api/member_education/{{member_education_id}}", "host": ["{{base_url}}"], "path": ["api", "member_education", "{{member_education_id}}"] }
-					}
-				},
-				{
-					"name": "Устгах",
-					"request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/member_education/{{member_education_id}}", "host": ["{{base_url}}"], "path": ["api", "member_education", "{{member_education_id}}"] } }
-				}
-			]
-		},
-		{
-			"name": "ҮЭ — Холбоо барих (contact)",
-			"item": [
-				{
-					"name": "Жагсаалт (эзэмшигчээр шүүх)",
-					"request": { "method": "GET", "url": { "raw": "{{base_url}}/api/contact?owner_type=organization&owner_id={{organization_id}}", "host": ["{{base_url}}"], "path": ["api", "contact"], "query": [{ "key": "owner_type", "value": "organization" }, { "key": "owner_id", "value": "{{organization_id}}" }] } }
-				},
-				{
-					"name": "Нэмэх (байгууллагад)",
-					"request": {
-						"method": "POST",
-						"header": [{ "key": "Content-Type", "value": "application/json" }],
-						"body": { "mode": "raw", "raw": "{\n  \"owner_type\": \"organization\",\n  \"owner_id\": 1,\n  \"type\": \"утас\",\n  \"value\": \"99112233\",\n  \"note\": \"захиргаа\"\n}" },
-						"url": { "raw": "{{base_url}}/api/contact", "host": ["{{base_url}}"], "path": ["api", "contact"] }
-					}
-				},
-				{
-					"name": "Нэмэх (хороонд)",
-					"request": {
-						"method": "POST",
-						"header": [{ "key": "Content-Type", "value": "application/json" }],
-						"body": { "mode": "raw", "raw": "{\n  \"owner_type\": \"horoo\",\n  \"owner_id\": 1,\n  \"type\": \"и-мэйл\",\n  \"value\": \"horoo@example.mn\"\n}" },
-						"url": { "raw": "{{base_url}}/api/contact", "host": ["{{base_url}}"], "path": ["api", "contact"] }
-					}
-				},
-				{
-					"name": "Засах",
-					"request": {
-						"method": "PUT",
-						"header": [{ "key": "Content-Type", "value": "application/json" }],
-						"body": { "mode": "raw", "raw": "{\n  \"value\": \"77001122\",\n  \"note\": \"шинэ\"\n}" },
-						"url": { "raw": "{{base_url}}/api/contact/{{contact_id}}", "host": ["{{base_url}}"], "path": ["api", "contact", "{{contact_id}}"] }
-					}
-				},
-				{
-					"name": "Устгах",
-					"request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/contact/{{contact_id}}", "host": ["{{base_url}}"], "path": ["api", "contact", "{{contact_id}}"] } }
-				}
-			]
-		},
-		{
-			"name": "ҮЭ — Цалингийн хүсэлт (salary_request)",
-			"item": [
-				{
-					"name": "Жагсаалт (гишүүнээр / статусаар шүүх)",
-					"request": { "method": "GET", "url": { "raw": "{{base_url}}/api/salary_request?member_id={{member_id}}", "host": ["{{base_url}}"], "path": ["api", "salary_request"], "query": [{ "key": "member_id", "value": "{{member_id}}" }, { "key": "status", "value": "хүлээгдэж буй", "disabled": true }] } }
-				},
-				{
-					"name": "Нэгийг авах",
-					"request": { "method": "GET", "url": { "raw": "{{base_url}}/api/salary_request/{{salary_request_id}}", "host": ["{{base_url}}"], "path": ["api", "salary_request", "{{salary_request_id}}"] } }
-				},
-				{
-					"name": "Нэмэх (шатлал сонгож)",
-					"request": {
-						"method": "POST",
-						"header": [{ "key": "Content-Type", "value": "application/json" }],
-						"body": { "mode": "raw", "raw": "{\n  \"member_id\": 1,\n  \"salary_scale_id\": 3,\n  \"request_date\": \"2026-06-27\",\n  \"note\": \"Шатлалаас сонгосон — sector/code/position/salary автоматаар хуулагдана\"\n}" },
-						"url": { "raw": "{{base_url}}/api/salary_request", "host": ["{{base_url}}"], "path": ["api", "salary_request"] }
-					}
-				},
-				{
-					"name": "Нэмэх (гар аргаар)",
-					"request": {
-						"method": "POST",
-						"header": [{ "key": "Content-Type", "value": "application/json" }],
-						"body": { "mode": "raw", "raw": "{\n  \"member_id\": 1,\n  \"sector\": \"СӨБ ба ЕБС\",\n  \"code\": \"ТҮБД-3\",\n  \"position\": \"Бага ангийн багш\",\n  \"salary\": 2804760,\n  \"request_date\": \"2026-06-27\"\n}" },
-						"url": { "raw": "{{base_url}}/api/salary_request", "host": ["{{base_url}}"], "path": ["api", "salary_request"] }
-					}
-				},
-				{
-					"name": "Засах (статус / дүн)",
-					"request": {
-						"method": "PUT",
-						"header": [{ "key": "Content-Type", "value": "application/json" }],
-						"body": { "mode": "raw", "raw": "{\n  \"status\": \"зөвшөөрсөн\",\n  \"salary\": 2900000\n}" },
-						"url": { "raw": "{{base_url}}/api/salary_request/{{salary_request_id}}", "host": ["{{base_url}}"], "path": ["api", "salary_request", "{{salary_request_id}}"] }
-					}
-				},
-				{
-					"name": "Устгах",
-					"request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/salary_request/{{salary_request_id}}", "host": ["{{base_url}}"], "path": ["api", "salary_request", "{{salary_request_id}}"] } }
-				}
-			]
-		},
-		{
-			"name": "Лавлах — Цалингийн шатлал (salary_scale)",
-			"item": [
-				{
-					"name": "Жагсаалт (салбараар шүүх)",
-					"request": { "method": "GET", "url": { "raw": "{{base_url}}/api/salary_scale", "host": ["{{base_url}}"], "path": ["api", "salary_scale"], "query": [{ "key": "sector", "value": "СӨБ ба ЕБС", "disabled": true }] } }
-				},
-				{
-					"name": "Нэгийг авах",
-					"request": { "method": "GET", "url": { "raw": "{{base_url}}/api/salary_scale/{{salary_scale_id}}", "host": ["{{base_url}}"], "path": ["api", "salary_scale", "{{salary_scale_id}}"] } }
-				},
-				{
-					"name": "Нэмэх",
-					"request": {
-						"method": "POST",
-						"header": [{ "key": "Content-Type", "value": "application/json" }],
-						"body": { "mode": "raw", "raw": "{\n  \"sector\": \"Шинжлэх ухаан\",\n  \"code\": \"ТҮШУУ-8\",\n  \"position\": \"Шинэ зэрэг\",\n  \"salary\": 2500000\n}" },
-						"url": { "raw": "{{base_url}}/api/salary_scale", "host": ["{{base_url}}"], "path": ["api", "salary_scale"] }
-					}
-				},
-				{
-					"name": "Засах (хэсэгчилсэн)",
-					"request": {
-						"method": "PUT",
-						"header": [{ "key": "Content-Type", "value": "application/json" }],
-						"body": { "mode": "raw", "raw": "{\n  \"salary\": 2600000\n}" },
-						"url": { "raw": "{{base_url}}/api/salary_scale/{{salary_scale_id}}", "host": ["{{base_url}}"], "path": ["api", "salary_scale", "{{salary_scale_id}}"] }
-					}
-				},
-				{
-					"name": "Устгах",
-					"request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/salary_scale/{{salary_scale_id}}", "host": ["{{base_url}}"], "path": ["api", "salary_scale", "{{salary_scale_id}}"] } }
-				}
-			]
-		},
-		{
-			"name": "Лавлах — Боловсролын зэрэг (education_degree)",
-			"item": [
-				{
-					"name": "Жагсаалт",
-					"request": { "method": "GET", "url": { "raw": "{{base_url}}/api/education_degree", "host": ["{{base_url}}"], "path": ["api", "education_degree"] } }
-				},
-				{
-					"name": "Нэгийг авах",
-					"request": { "method": "GET", "url": { "raw": "{{base_url}}/api/education_degree/{{education_degree_id}}", "host": ["{{base_url}}"], "path": ["api", "education_degree", "{{education_degree_id}}"] } }
-				},
-				{
-					"name": "Нэмэх",
-					"request": {
-						"method": "POST",
-						"header": [{ "key": "Content-Type", "value": "application/json" }],
-						"body": { "mode": "raw", "raw": "{\n  \"name\": \"Шинэ зэрэг\"\n}" },
-						"url": { "raw": "{{base_url}}/api/education_degree", "host": ["{{base_url}}"], "path": ["api", "education_degree"] }
-					}
-				},
-				{
-					"name": "Засах",
-					"request": {
-						"method": "PUT",
-						"header": [{ "key": "Content-Type", "value": "application/json" }],
-						"body": { "mode": "raw", "raw": "{\n  \"name\": \"Шинэчилсэн зэрэг\"\n}" },
-						"url": { "raw": "{{base_url}}/api/education_degree/{{education_degree_id}}", "host": ["{{base_url}}"], "path": ["api", "education_degree", "{{education_degree_id}}"] }
-					}
-				},
-				{
-					"name": "Устгах",
-					"request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/education_degree/{{education_degree_id}}", "host": ["{{base_url}}"], "path": ["api", "education_degree", "{{education_degree_id}}"] } }
-				}
-			]
-		},
-		{
-			"name": "Лавлах — Сургуулийн ангилал (school_category)",
-			"item": [
-				{
-					"name": "Жагсаалт",
-					"request": { "method": "GET", "url": { "raw": "{{base_url}}/api/school_category", "host": ["{{base_url}}"], "path": ["api", "school_category"] } }
-				},
-				{
-					"name": "Нэгийг авах",
-					"request": { "method": "GET", "url": { "raw": "{{base_url}}/api/school_category/{{school_category_id}}", "host": ["{{base_url}}"], "path": ["api", "school_category", "{{school_category_id}}"] } }
-				},
-				{
-					"name": "Нэмэх",
-					"request": {
-						"method": "POST",
-						"header": [{ "key": "Content-Type", "value": "application/json" }],
-						"body": { "mode": "raw", "raw": "{\n  \"full_name\": \"Тусгай боловсрол\",\n  \"short_name\": \"ТБ\",\n  \"english_name\": \"Special Education\"\n}" },
-						"url": { "raw": "{{base_url}}/api/school_category", "host": ["{{base_url}}"], "path": ["api", "school_category"] }
-					}
-				},
-				{
-					"name": "Засах (хэсэгчилсэн)",
-					"request": {
-						"method": "PUT",
-						"header": [{ "key": "Content-Type", "value": "application/json" }],
-						"body": { "mode": "raw", "raw": "{\n  \"english_name\": \"Additional Education\"\n}" },
-						"url": { "raw": "{{base_url}}/api/school_category/{{school_category_id}}", "host": ["{{base_url}}"], "path": ["api", "school_category", "{{school_category_id}}"] }
-					}
-				},
-				{
-					"name": "Устгах",
-					"request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/school_category/{{school_category_id}}", "host": ["{{base_url}}"], "path": ["api", "school_category", "{{school_category_id}}"] } }
-				}
-			]
-		}
-	]
+  "info": {
+    "name": "edu-union-backend — Засаг захиргаа & Үйлдвэрчний эвлэл",
+    "description": "Flask + SQLite CRUD API. base_url хувьсагчийг Variables хэсгээс өөрчилнө (default http://127.0.0.1:5001).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:5001"
+    },
+    {
+      "key": "au1_code",
+      "value": "099"
+    },
+    {
+      "key": "au2_code",
+      "value": "09901"
+    },
+    {
+      "key": "au3_code",
+      "value": "0990151"
+    },
+    {
+      "key": "holboo_id",
+      "value": "1"
+    },
+    {
+      "key": "horoo_id",
+      "value": "1"
+    },
+    {
+      "key": "organization_id",
+      "value": "1"
+    },
+    {
+      "key": "member_id",
+      "value": "1"
+    },
+    {
+      "key": "contact_id",
+      "value": "1"
+    },
+    {
+      "key": "salary_request_id",
+      "value": "1"
+    },
+    {
+      "key": "salary_scale_id",
+      "value": "1"
+    },
+    {
+      "key": "school_category_id",
+      "value": "1"
+    },
+    {
+      "key": "member_education_id",
+      "value": "1"
+    },
+    {
+      "key": "education_degree_id",
+      "value": "1"
+    },
+    {
+      "key": "permission_id",
+      "value": "1"
+    },
+    {
+      "key": "role_id",
+      "value": "1"
+    },
+    {
+      "key": "user_id",
+      "value": "1"
+    },
+    {
+      "key": "position_id",
+      "value": "1"
+    },
+    {
+      "key": "profession_id",
+      "value": "1"
+    }
+  ],
+  "item": [
+    {
+      "name": "Засаг захиргаа — Аймаг (au1)",
+      "item": [
+        {
+          "name": "Жагсаалт",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/au1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "au1"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Нэгийг авах",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/au1/{{au1_code}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "au1",
+                "{{au1_code}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Нэмэх",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"099\",\n  \"name\": \"Туршилт аймаг\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/au1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "au1"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Засах",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Шинэчилсэн нэр\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/au1/{{au1_code}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "au1",
+                "{{au1_code}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Устгах",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/api/au1/{{au1_code}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "au1",
+                "{{au1_code}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Засаг захиргаа — Сум (au2)",
+      "item": [
+        {
+          "name": "Жагсаалт (аймгаар шүүх)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/au2?au1_code=011",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "au2"
+              ],
+              "query": [
+                {
+                  "key": "au1_code",
+                  "value": "011"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Нэгийг авах",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/au2/{{au2_code}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "au2",
+                "{{au2_code}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Нэмэх",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"au2_code\": \"09901\",\n  \"au2_name\": \"Туршилт сум\",\n  \"au1_code\": \"011\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/au2",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "au2"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Засах",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"au2_name\": \"Шинэчилсэн сум\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/au2/{{au2_code}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "au2",
+                "{{au2_code}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Устгах",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/api/au2/{{au2_code}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "au2",
+                "{{au2_code}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Засаг захиргаа — Баг (au3)",
+      "item": [
+        {
+          "name": "Жагсаалт (сумаар шүүх)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/au3?au2_code=01101",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "au3"
+              ],
+              "query": [
+                {
+                  "key": "au2_code",
+                  "value": "01101"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Нэгийг авах",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/au3/{{au3_code}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "au3",
+                "{{au3_code}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Нэмэх",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"au3_code\": \"0990151\",\n  \"au3_name\": \"1-р баг\",\n  \"au1_code\": \"011\",\n  \"au2_code\": \"01101\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/au3",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "au3"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Засах",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"au3_name\": \"Шинэчилсэн баг\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/au3/{{au3_code}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "au3",
+                "{{au3_code}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Устгах",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/api/au3/{{au3_code}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "au3",
+                "{{au3_code}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ҮЭ — Хороо (horoo)",
+      "item": [
+        {
+          "name": "Жагсаалт (холбоогоор шүүх)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/horoo?holboo_id={{holboo_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "horoo"
+              ],
+              "query": [
+                {
+                  "key": "holboo_id",
+                  "value": "{{holboo_id}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Нэмэх",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"holboo_id\": 1,\n  \"name\": \"Шинэ хороо\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/horoo",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "horoo"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Засах",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Шинэчилсэн хороо\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/horoo/{{horoo_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "horoo",
+                "{{horoo_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Устгах",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/api/horoo/{{horoo_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "horoo",
+                "{{horoo_id}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ҮЭ — Гишүүн байгууллага (organization)",
+      "item": [
+        {
+          "name": "Жагсаалт (хороогоор шүүх)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/organization?horoo_id={{horoo_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "organization"
+              ],
+              "query": [
+                {
+                  "key": "horoo_id",
+                  "value": "{{horoo_id}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Нэгийг авах (статистик + холбоо барих)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/organization/{{organization_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "organization",
+                "{{organization_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Нэмэх (бүх талбар)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"horoo_id\": 1,\n  \"name\": \"Шинэ сургууль\",\n  \"school_type\": \"МСҮТ\",\n  \"registration_number\": \"9923659\",\n  \"founded_date\": \"2023-01-31\",\n  \"activity_code\": \"8530\",\n  \"activity_name\": \"Дээд боловсрол олгох үйл ажиллагаа\",\n  \"parent_org\": \"АШУҮИС\",\n  \"au1_code\": \"011\",\n  \"au2_code\": \"01101\",\n  \"au3_code\": \"0110151\",\n  \"address_detail\": \"Ард Аюушийн гудамж\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/organization",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "organization"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Засах (хэсэгчилсэн)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"address_detail\": \"Шинэ хаяг 12\",\n  \"school_type\": \"Их сургууль\",\n  \"au3_code\": \"0110151\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/organization/{{organization_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "organization",
+                "{{organization_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Устгах",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/api/organization/{{organization_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "organization",
+                "{{organization_id}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ҮЭ — Гишүүн (member)",
+      "item": [
+        {
+          "name": "Жагсаалт (байгууллагаар шүүх)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/member?organization_id={{organization_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "member"
+              ],
+              "query": [
+                {
+                  "key": "organization_id",
+                  "value": "{{organization_id}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Нэгийг авах",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/member/{{member_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "member",
+                "{{member_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Нэмэх (бүрэн бүртгэл)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"organization_id\": 1,\n  \"name\": \"Батын Болд\",\n  \"birth_date\": \"1985-04-12\",\n  \"gender\": \"эр\",\n  \"register_number\": \"УБ85041212\",\n  \"union_card_number\": \"ҮЭ-00123\",\n  \"union_joined_date\": \"2020-09-01\",\n  \"member_status\": \"идэвхтэй\",\n  \"position\": \"Ахлах багш\",\n  \"profession\": \"Багш\",\n  \"phone_fax\": \"99112233\",\n  \"au1_code\": \"011\",\n  \"au2_code\": \"01101\",\n  \"au3_code\": \"0110151\",\n  \"address_detail\": \"СБД 1-р хороо, 12-р байр\",\n  \"signature\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/member",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "member"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Засах (хэсэгчилсэн)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"member_status\": \"идэвхгүй\",\n  \"phone_fax\": \"77001122\",\n  \"au3_code\": \"0110151\",\n  \"address_detail\": \"Шинэ хаяг\",\n  \"signature\": 0\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/member/{{member_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "member",
+                "{{member_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Устгах",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/api/member/{{member_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "member",
+                "{{member_id}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ҮЭ — Гишүүний боловсрол (member_education)",
+      "item": [
+        {
+          "name": "Жагсаалт (гишүүнээр шүүх)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/member_education?member_id={{member_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "member_education"
+              ],
+              "query": [
+                {
+                  "key": "member_id",
+                  "value": "{{member_id}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Нэгийг авах",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/member_education/{{member_education_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "member_education",
+                "{{member_education_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Нэмэх (зэрэг лавлахаас сонгож)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"member_id\": 1,\n  \"education_degree_id\": 9,\n  \"school\": \"МУИС\",\n  \"profession\": \"Математик\",\n  \"graduation_year\": \"2007\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/member_education",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "member_education"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Засах (хэсэгчилсэн)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"education_degree_id\": 5,\n  \"graduation_year\": \"2012\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/member_education/{{member_education_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "member_education",
+                "{{member_education_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Устгах",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/api/member_education/{{member_education_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "member_education",
+                "{{member_education_id}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ҮЭ — Холбоо барих (contact)",
+      "item": [
+        {
+          "name": "Жагсаалт (эзэмшигчээр шүүх)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/contact?owner_type=organization&owner_id={{organization_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "contact"
+              ],
+              "query": [
+                {
+                  "key": "owner_type",
+                  "value": "organization"
+                },
+                {
+                  "key": "owner_id",
+                  "value": "{{organization_id}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Нэмэх (байгууллагад)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"owner_type\": \"organization\",\n  \"owner_id\": 1,\n  \"type\": \"утас\",\n  \"value\": \"99112233\",\n  \"note\": \"захиргаа\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/contact",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "contact"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Нэмэх (хороонд)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"owner_type\": \"horoo\",\n  \"owner_id\": 1,\n  \"type\": \"и-мэйл\",\n  \"value\": \"horoo@example.mn\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/contact",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "contact"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Засах",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"value\": \"77001122\",\n  \"note\": \"шинэ\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/contact/{{contact_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "contact",
+                "{{contact_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Устгах",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/api/contact/{{contact_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "contact",
+                "{{contact_id}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ҮЭ — Цалингийн хүсэлт (salary_request)",
+      "item": [
+        {
+          "name": "Жагсаалт (гишүүнээр / статусаар шүүх)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/salary_request?member_id={{member_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "salary_request"
+              ],
+              "query": [
+                {
+                  "key": "member_id",
+                  "value": "{{member_id}}"
+                },
+                {
+                  "key": "status",
+                  "value": "хүлээгдэж буй",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Нэгийг авах",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/salary_request/{{salary_request_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "salary_request",
+                "{{salary_request_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Нэмэх (шатлал сонгож)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"member_id\": 1,\n  \"salary_scale_id\": 3,\n  \"request_date\": \"2026-06-27\",\n  \"note\": \"Шатлалаас сонгосон — sector/code/position/salary автоматаар хуулагдана\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/salary_request",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "salary_request"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Нэмэх (гар аргаар)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"member_id\": 1,\n  \"sector\": \"СӨБ ба ЕБС\",\n  \"code\": \"ТҮБД-3\",\n  \"position\": \"Бага ангийн багш\",\n  \"salary\": 2804760,\n  \"request_date\": \"2026-06-27\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/salary_request",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "salary_request"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Засах (статус / дүн)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"зөвшөөрсөн\",\n  \"salary\": 2900000\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/salary_request/{{salary_request_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "salary_request",
+                "{{salary_request_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Устгах",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/api/salary_request/{{salary_request_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "salary_request",
+                "{{salary_request_id}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Лавлах — Цалингийн шатлал (salary_scale)",
+      "item": [
+        {
+          "name": "Жагсаалт (салбараар шүүх)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/salary_scale",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "salary_scale"
+              ],
+              "query": [
+                {
+                  "key": "sector",
+                  "value": "СӨБ ба ЕБС",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Нэгийг авах",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/salary_scale/{{salary_scale_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "salary_scale",
+                "{{salary_scale_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Нэмэх",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sector\": \"Шинжлэх ухаан\",\n  \"code\": \"ТҮШУУ-8\",\n  \"position\": \"Шинэ зэрэг\",\n  \"salary\": 2500000\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/salary_scale",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "salary_scale"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Засах (хэсэгчилсэн)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"salary\": 2600000\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/salary_scale/{{salary_scale_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "salary_scale",
+                "{{salary_scale_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Устгах",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/api/salary_scale/{{salary_scale_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "salary_scale",
+                "{{salary_scale_id}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Лавлах — Боловсролын зэрэг (education_degree)",
+      "item": [
+        {
+          "name": "Жагсаалт",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/education_degree",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "education_degree"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Нэгийг авах",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/education_degree/{{education_degree_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "education_degree",
+                "{{education_degree_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Нэмэх",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Шинэ зэрэг\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/education_degree",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "education_degree"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Засах",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Шинэчилсэн зэрэг\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/education_degree/{{education_degree_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "education_degree",
+                "{{education_degree_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Устгах",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/api/education_degree/{{education_degree_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "education_degree",
+                "{{education_degree_id}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Лавлах — Албан тушаал (position)",
+      "item": [
+        {
+          "name": "Жагсаалт",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/position",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "position"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Нэгийг авах",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/position/{{position_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "position",
+                "{{position_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Нэмэх",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Шинэ албан тушаал\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/position",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "position"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Засах",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Шинэ албан тушаал (шинэчилсэн)\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/position/{{position_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "position",
+                "{{position_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Устгах",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/api/position/{{position_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "position",
+                "{{position_id}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Лавлах — Мэргэжил (profession)",
+      "item": [
+        {
+          "name": "Жагсаалт",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/profession",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "profession"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Нэгийг авах",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/profession/{{profession_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "profession",
+                "{{profession_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Нэмэх",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Шинэ мэргэжил\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/profession",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "profession"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Засах",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Шинэ мэргэжил (шинэчилсэн)\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/profession/{{profession_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "profession",
+                "{{profession_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Устгах",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/api/profession/{{profession_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "profession",
+                "{{profession_id}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Лавлах — Сургуулийн ангилал (school_category)",
+      "item": [
+        {
+          "name": "Жагсаалт",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/school_category",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "school_category"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Нэгийг авах",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/school_category/{{school_category_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "school_category",
+                "{{school_category_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Нэмэх",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"Тусгай боловсрол\",\n  \"short_name\": \"ТБ\",\n  \"english_name\": \"Special Education\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/school_category",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "school_category"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Засах (хэсэгчилсэн)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"english_name\": \"Additional Education\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/school_category/{{school_category_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "school_category",
+                "{{school_category_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Устгах",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/api/school_category/{{school_category_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "school_category",
+                "{{school_category_id}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Хэрэглэгч — Эрх (permission)",
+      "item": [
+        {
+          "name": "Жагсаалт",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/permission",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "permission"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Жагсаалт (нөөцөөр шүүх)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/permission?resource=member",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "permission"
+              ],
+              "query": [
+                {
+                  "key": "resource",
+                  "value": "member"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Нэгийг авах",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/permission/{{permission_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "permission",
+                "{{permission_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Нэмэх",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"report.export\",\n  \"name\": \"Тайлан татах\",\n  \"resource\": \"report\",\n  \"action\": \"read\",\n  \"description\": \"Тайланг татаж авах эрх\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/permission",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "permission"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Засах",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Тайлан татах (шинэчилсэн)\",\n  \"description\": \"Тайлбар шинэчлэв\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/permission/{{permission_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "permission",
+                "{{permission_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Устгах",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/api/permission/{{permission_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "permission",
+                "{{permission_id}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Хэрэглэгч — Дүр (role)",
+      "item": [
+        {
+          "name": "Жагсаалт (эрхүүдтэй нь)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/role",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "role"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Нэгийг авах (эрх + хэрэглэгчийн тоо)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/role/{{role_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "role",
+                "{{role_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Нэмэх (эрх зэрэг оноож)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"editor\",\n  \"description\": \"Гишүүн засварлагч\",\n  \"permission_ids\": [\n    29,\n    30,\n    31\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/role",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "role"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Засах (нэр / эрхийн жагсаалт солих)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Шинэчилсэн тайлбар\",\n  \"permission_ids\": [\n    29,\n    30,\n    31,\n    32\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/role/{{role_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "role",
+                "{{role_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Устгах",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/api/role/{{role_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "role",
+                "{{role_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Эрх нэмэх (нэгээр)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"permission_id\": 33\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/role/{{role_id}}/permission",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "role",
+                "{{role_id}}",
+                "permission"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Эрх хасах (нэгээр)",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/api/role/{{role_id}}/permission/{{permission_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "role",
+                "{{role_id}}",
+                "permission",
+                "{{permission_id}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Хэрэглэгч — App user (app_user)",
+      "item": [
+        {
+          "name": "Нэвтрэх (login)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Жагсаалт",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/user",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "user"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Жагсаалт (дүрээр шүүх)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/user?role_id={{role_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "user"
+              ],
+              "query": [
+                {
+                  "key": "role_id",
+                  "value": "{{role_id}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Нэгийг авах (удамшсан эрхтэй)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/user/{{user_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "user",
+                "{{user_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Нэмэх",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"bat\",\n  \"password\": \"pass123\",\n  \"full_name\": \"Бат\",\n  \"email\": \"bat@example.mn\",\n  \"role_id\": 2,\n  \"is_active\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/user",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "user"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Засах (дүр / нууц үг солих)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"Бат Болд\",\n  \"role_id\": 3,\n  \"password\": \"newpass123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/user/{{user_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "user",
+                "{{user_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Устгах",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/api/user/{{user_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "user",
+                "{{user_id}}"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
 }

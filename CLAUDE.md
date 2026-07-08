@@ -14,7 +14,8 @@ are in Mongolian (Cyrillic). The backend serves **two sites**, each in its own f
   - `union.py` — trade-union 4-level hierarchy:
     `holboo` (Холбоо) → `horoo` (Хороо) → `organization` (Гишүүн байгууллага) → `member` (Гишүүн),
     plus a polymorphic `contact` table, `salary_request`/`salary_scale`, `member_education`,
-    and the `education_degree` reference table.
+    and the `education_degree` / `position` (албан тушаал) / `profession` (мэргэжил)
+    reference tables (each a simple `id`+`name` lookup with full CRUD, seeded 16/20/20).
 - **`admin/`** — the admin site: access control.
   - `users.py` — `permission` → `role` (M:N via `role_permission`) → `app_user`, plus `/api/login`.
 

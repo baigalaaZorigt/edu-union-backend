@@ -636,6 +636,138 @@ def delete_education_degree(eid):
     return jsonify(deleted=eid)
 
 
+# ==================== position (Албан тушаал, лавлах) ====================
+@bp.route("/api/position", methods=["GET"])
+def list_position():
+    conn = get_db()
+    data = rows(conn.execute("SELECT * FROM position ORDER BY id").fetchall())
+    conn.close()
+    return jsonify(data)
+
+
+@bp.route("/api/position/<int:pid>", methods=["GET"])
+def get_position(pid):
+    conn = get_db()
+    row = conn.execute("SELECT * FROM position WHERE id=?", (pid,)).fetchone()
+    conn.close()
+    if not row:
+        abort(404, description="Албан тушаал олдсонгүй")
+    return jsonify(dict(row))
+
+
+@bp.route("/api/position", methods=["POST"])
+def create_position():
+    data = request.get_json(silent=True)
+    require(data, ["name"])
+    conn = get_db()
+    cols, vals = ["name"], [data["name"]]
+    if data.get("id") is not None:
+        cols.append("id")
+        vals.append(data["id"])
+    ph = ", ".join("?" * len(cols))
+    try:
+        cur = conn.execute(
+            f"INSERT INTO position({', '.join(cols)}) VALUES ({ph})", vals)
+        conn.commit()
+    except Exception:
+        conn.close()
+        abort(409, description="Энэ id аль хэдийн бүртгэгдсэн байна")
+    new_id = data.get("id") or cur.lastrowid
+    row = conn.execute("SELECT * FROM position WHERE id=?", (new_id,)).fetchone()
+    conn.close()
+    return jsonify(dict(row)), 201
+
+
+@bp.route("/api/position/<int:pid>", methods=["PUT"])
+def update_position(pid):
+    data = request.get_json(silent=True)
+    require(data, ["name"])
+    conn = get_db()
+    cur = conn.execute("UPDATE position SET name=? WHERE id=?", (data["name"], pid))
+    conn.commit()
+    conn.close()
+    if cur.rowcount == 0:
+        abort(404, description="Албан тушаал олдсонгүй")
+    return jsonify(id=pid, name=data["name"])
+
+
+@bp.route("/api/position/<int:pid>", methods=["DELETE"])
+def delete_position(pid):
+    conn = get_db()
+    cur = conn.execute("DELETE FROM position WHERE id=?", (pid,))
+    conn.commit()
+    conn.close()
+    if cur.rowcount == 0:
+        abort(404, description="Албан тушаал олдсонгүй")
+    return jsonify(deleted=pid)
+
+
+# ==================== profession (Мэргэжил, лавлах) ====================
+@bp.route("/api/profession", methods=["GET"])
+def list_profession():
+    conn = get_db()
+    data = rows(conn.execute("SELECT * FROM profession ORDER BY id").fetchall())
+    conn.close()
+    return jsonify(data)
+
+
+@bp.route("/api/profession/<int:pid>", methods=["GET"])
+def get_profession(pid):
+    conn = get_db()
+    row = conn.execute("SELECT * FROM profession WHERE id=?", (pid,)).fetchone()
+    conn.close()
+    if not row:
+        abort(404, description="Мэргэжил олдсонгүй")
+    return jsonify(dict(row))
+
+
+@bp.route("/api/profession", methods=["POST"])
+def create_profession():
+    data = request.get_json(silent=True)
+    require(data, ["name"])
+    conn = get_db()
+    cols, vals = ["name"], [data["name"]]
+    if data.get("id") is not None:
+        cols.append("id")
+        vals.append(data["id"])
+    ph = ", ".join("?" * len(cols))
+    try:
+        cur = conn.execute(
+            f"INSERT INTO profession({', '.join(cols)}) VALUES ({ph})", vals)
+        conn.commit()
+    except Exception:
+        conn.close()
+        abort(409, description="Энэ id аль хэдийн бүртгэгдсэн байна")
+    new_id = data.get("id") or cur.lastrowid
+    row = conn.execute("SELECT * FROM profession WHERE id=?", (new_id,)).fetchone()
+    conn.close()
+    return jsonify(dict(row)), 201
+
+
+@bp.route("/api/profession/<int:pid>", methods=["PUT"])
+def update_profession(pid):
+    data = request.get_json(silent=True)
+    require(data, ["name"])
+    conn = get_db()
+    cur = conn.execute("UPDATE profession SET name=? WHERE id=?", (data["name"], pid))
+    conn.commit()
+    conn.close()
+    if cur.rowcount == 0:
+        abort(404, description="Мэргэжил олдсонгүй")
+    return jsonify(id=pid, name=data["name"])
+
+
+@bp.route("/api/profession/<int:pid>", methods=["DELETE"])
+def delete_profession(pid):
+    conn = get_db()
+    cur = conn.execute("DELETE FROM profession WHERE id=?", (pid,))
+    conn.commit()
+    conn.close()
+    if cur.rowcount == 0:
+        abort(404, description="Мэргэжил олдсонгүй")
+    return jsonify(deleted=pid)
+
+
 # ================ member_education (Гишүүний боловсрол) ================
 def _check_degree(conn, data):
     """education_degree_id өгсөн бол лавлахад байгаа эсэхийг шалгана."""
