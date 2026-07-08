@@ -44,8 +44,14 @@ Only dependency is Flask (see `requirements.txt`).
 pip install -r requirements.txt
 
 python db.py                   # create schema + seed everything (idempotent)
-python run.py                  # run dev server on http://127.0.0.1:5001 (debug=True)
+python run.py                  # dev server on http://127.0.0.1:5001 (no reload)
+FLASK_DEBUG=1 python run.py    # dev server with auto-reload/debugger
+gunicorn run:app               # production WSGI server (loads the module-level `app`)
 ```
+
+- The dev server binds `PORT` (env) or 5001; `debug` is on only when `FLASK_DEBUG=1`.
+- On Render/Heroku: build `pip install -r requirements.txt && python db.py`,
+  start `gunicorn run:app --bind 0.0.0.0:$PORT` (see `render.yaml`).
 
 - `run.py`'s `create_app()` calls `init_db()` on startup, so the schema is always created;
   it does **not** seed data.

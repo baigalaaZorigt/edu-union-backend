@@ -1,0 +1,11 @@
+# Render.com дээр байршуулах тохиргоо (Infrastructure-as-Code / Blueprint).
+# Blueprint-аар үүсгэсэн үед автоматаар хэрэглэгдэнэ. Дашбоардаар гар аргаар
+# үүсгэсэн бол эдгээр командыг Settings дотор гараар оруулна уу (доор README-г үз).
+services:
+  - type: web
+    name: edu-union-backend
+    runtime: python
+    # requirements суулгаад, схем + жишээ өгөгдлийг seed хийнэ (admin/admin123 үүснэ)
+    buildCommand: "pip install -r requirements.txt && python db.py"
+    # production WSGI сервер; Render-ийн $PORT-д bind хийнэ
+    startCommand: "gunicorn run:app --bind 0.0.0.0:$PORT"

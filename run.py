@@ -1,12 +1,18 @@
 """Оруулах цэг — Flask апп үүсгэж, хоёр site-ийн blueprint-уудыг холбоно.
 
-    python run.py        # dev сервер http://127.0.0.1:5001 (debug=True)
+    python run.py                 # dev сервер (default порт 5001)
+    FLASK_DEBUG=1 python run.py   # auto-reload/debug-тэй dev сервер
+    gunicorn run:app              # production (Render г.м.) — `app` объектыг ачаална
+
+Порт нь PORT орчны хувьсагчаас (Render/Heroku тохируулна), эс бөгөөс 5001.
 
 Бүтэц:
   client/  — үйлчлүүлэгчийн site (засаг захиргаа + үйлдвэрчний эвлэлийн өгөгдөл)
   admin/   — удирдлагын site (хэрэглэгч / эрх / дүр)
   db.py, helpers.py — хоёр site-ийн хуваалцсан суурь (DB, туслахууд)
 """
+import os
+
 from flask import Flask
 
 from db import init_db
@@ -41,4 +47,10 @@ app = create_app()
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", debug=True, port=5001)
+    # Render/Heroku зэрэг платформ PORT-г тохируулна; локал дээр 5001.
+    # debug нь зөвхөн FLASK_DEBUG=1 үед асна (production-д унтраалттай байх ёстой).
+    app.run(
+        host="0.0.0.0",
+        port=int(os.environ.get("PORT", 5001)),
+        debug=os.environ.get("FLASK_DEBUG") == "1",
+    )
