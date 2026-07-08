@@ -577,6 +577,11 @@ def seed_users():
         conn.commit()
         print("Анхны хэрэглэгч үүслээ: admin / admin123 (нэвтэрсний дараа нууц үгээ солино уу)")
 
+    # 5) 'admin' хэрэглэгчийг ҮРГЭЛЖ 'admin' дүртэй холбоно. Дүр устгагдаад role_id
+    #    NULL болсон байсан ч сэргээнэ — default admin үргэлж бүх эрхтэй байхыг баталгаажуулна.
+    cur.execute("UPDATE app_user SET role_id=? WHERE username='admin'", (role_id("admin"),))
+    conn.commit()
+
     n_perm = cur.execute("SELECT COUNT(*) FROM permission").fetchone()[0]
     n_role = cur.execute("SELECT COUNT(*) FROM role").fetchone()[0]
     conn.close()
