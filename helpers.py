@@ -35,7 +35,8 @@ def register_error_handlers(target):
     """app эсвэл Blueprint дээр алдааг {"error": ...} JSON болгон буцаах нэгдсэн
     боловсруулагчийг бүртгэнэ.
 
-    400 буруу хүсэлт / 401 нэвтрээгүй / 403 эрх хүрэлцэхгүй / 404 олдсонгүй / 409 давхцал.
+    400 буруу хүсэлт / 401 нэвтрээгүй / 403 эрх хүрэлцэхгүй / 404 олдсонгүй /
+    409 давхцал / 413 хэт том хүсэлт (файл оруулах).
     """
     @target.errorhandler(400)
     @target.errorhandler(401)
@@ -44,5 +45,11 @@ def register_error_handlers(target):
     @target.errorhandler(409)
     def _handle(err):
         return jsonify(error=err.description), err.code
+
+    @target.errorhandler(413)
+    def _too_large(err):
+        # Werkzeug-ийн анхдагч тайлбар англи тул монголоор орлуулна.
+        return jsonify(error="Хүсэлт хэт том байна — PDF файл тус бүр 10 MB-аас "
+                             "хэтрэхгүй, нэг удаад илгээх нийт хэмжээ 50 MB"), 413
 
     return _handle

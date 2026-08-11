@@ -242,11 +242,16 @@ def delete_au3(au3_code):
 # ===================== school_category (Сургуулийн ангилал) =====================
 SCHOOL_CATEGORY_FIELDS = ("full_name", "short_name", "english_name")
 
+# Ангиллын id нь бүртгэлийн кодны ЭХНИЙ 2 ОРОН болно (1 -> "01"), тиймээс 1..99.
+# code-г хадгалахгүй — id-аас бодогдоно (эх сурвалж нэг байхын тулд).
+SCHOOL_CATEGORY_SELECT = "SELECT sc.*, printf('%02d', sc.id) AS code FROM school_category sc"
+MAX_SCHOOL_CATEGORY_ID = 99
+
 
 @bp.route("/api/school_category", methods=["GET"])
 def list_school_category():
     conn = get_db()
-    data = rows(conn.execute("SELECT * FROM school_category ORDER BY id").fetchall())
+    data = rows(conn.execute(SCHOOL_CATEGORY_SELECT + " ORDER BY sc.id").fetchall())
     conn.close()
     return jsonify(data)
 
@@ -254,7 +259,7 @@ def list_school_category():
 @bp.route("/api/school_category/<int:cid>", methods=["GET"])
 def get_school_category(cid):
     conn = get_db()
-    row = conn.execute("SELECT * FROM school_category WHERE id=?", (cid,)).fetchone()
+    row = conn.execute(SCHOOL_CATEGORY_SELECT + " WHERE sc.id=?", (cid,)).fetchone()
     conn.close()
     if not row:
         abort(404, description="Ангилал олдсонгүй")
@@ -265,11 +270,18 @@ def get_school_category(cid):
 def create_school_category():
     data = request.get_json(silent=True)
     require(data, ["full_name"])
-    # id заавал биш — өгвөл тогтсон утгаар, эс бөгөөс автоматаар оноогдоно
+    # id заавал биш — өгвөл тогтсон утгаар, эс бөгөөс автоматаар оноогдоно.
+    # id нь кодны эхний 2 орон тул 1..99 хооронд байх ёстой.
     cols, vals = [], []
     if data.get("id") is not None:
+        try:
+            cid = int(data["id"])
+        except (TypeError, ValueError):
+            abort(400, description="id тоо байх ёстой")
+        if not 1 <= cid <= MAX_SCHOOL_CATEGORY_ID:
+            abort(400, description="id нь 1-99 хооронд байна (код нь 2 орон тул)")
         cols.append("id")
-        vals.append(data["id"])
+        vals.append(cid)
     for f in SCHOOL_CATEGORY_FIELDS:
         cols.append(f)
         vals.append(data.get(f))
@@ -283,7 +295,7 @@ def create_school_category():
         conn.close()
         abort(409, description="Энэ id аль хэдийн бүртгэгдсэн байна")
     new_id = data.get("id") or cur.lastrowid
-    row = conn.execute("SELECT * FROM school_category WHERE id=?", (new_id,)).fetchone()
+    row = conn.execute(SCHOOL_CATEGORY_SELECT + " WHERE sc.id=?", (new_id,)).fetchone()
     conn.close()
     return jsonify(dict(row)), 201
 

@@ -43,9 +43,12 @@ CREATE TABLE IF NOT EXISTS holboo (
 );
 
 CREATE TABLE IF NOT EXISTS horoo (
-    id        INTEGER PRIMARY KEY AUTOINCREMENT,
-    holboo_id INTEGER NOT NULL,              -- Аль холбоонд харьяалагдах
-    name      TEXT NOT NULL,                 -- Хорооны нэр
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    holboo_id           INTEGER NOT NULL,    -- Аль холбоонд харьяалагдах
+    name                TEXT NOT NULL,       -- Хорооны нэр
+    type                TEXT,               -- Төрөл
+    registration_number TEXT,               -- Регистрийн дугаар (РД)
+    founded_date        TEXT,               -- Байгуулагдсан огноо (YYYY-MM-DD)
     FOREIGN KEY (holboo_id) REFERENCES holboo(id) ON DELETE CASCADE
 );
 
@@ -53,7 +56,10 @@ CREATE TABLE IF NOT EXISTS organization (
     id                  INTEGER PRIMARY KEY AUTOINCREMENT,
     horoo_id            INTEGER NOT NULL,    -- Аль хороонд харьяалагдах
     name                TEXT NOT NULL,       -- Байгууллагын нэр
-    school_type         TEXT,               -- Их сургууль / СӨБ / ЕБС / МСҮТ
+    school_category_id  INTEGER,            -- Сургуулийн ангилал (school_category.id) = 2 орон
+    org_code            TEXT,               -- Байгууллагын 3 оронтой код (гараас)
+    -- Ангилал(2) + org_code(3) = байгууллагын 5 оронтой код. Хадгалахгүй, уншихад
+    -- printf('%02d', school_category_id) || org_code гэж бодогдоно (client/union.py).
     registration_number TEXT,               -- Регистрийн дугаар
     founded_date        TEXT,               -- Үүсгэн байгуулагдсан огноо (YYYY-MM-DD)
     activity_code       TEXT,               -- Үйл ажиллагааны чиглэлийн код
@@ -63,34 +69,44 @@ CREATE TABLE IF NOT EXISTS organization (
     au2_code            TEXT,               -- Сум/дүүрэг (admin_unit2.au2_code)
     au3_code            TEXT,               -- Баг/хороо (admin_unit3.au3_code)
     address_detail      TEXT,               -- Дэлгэрэнгүй хаяг
-    FOREIGN KEY (horoo_id) REFERENCES horoo(id) ON DELETE CASCADE
+    FOREIGN KEY (horoo_id) REFERENCES horoo(id) ON DELETE CASCADE,
+    FOREIGN KEY (school_category_id) REFERENCES school_category(id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS member (
     id                INTEGER PRIMARY KEY AUTOINCREMENT,
     organization_id   INTEGER NOT NULL,      -- Аль гишүүн байгууллагад харьяалагдах (FK)
-    name              TEXT NOT NULL,         -- 1. Овог нэр
+    last_name         TEXT,                  -- 1. Овог
+    first_name        TEXT NOT NULL,         -- 1. Нэр
     birth_date        TEXT,                  -- 2. Төрсөн он (YYYY-MM-DD)
     gender            TEXT,                  -- 3. Хүйс ('эр' / 'эм')
     register_number   TEXT,                  -- 4. Регистрийн дугаар
-    union_card_number TEXT,                  -- 5. ҮЭ-ийн батламжийн дугаар
+    union_card_code   TEXT,                  -- 5а. Гараас авах 4 оронтой код
+    -- 5. ҮЭ-ийн батламжийн 9 оронтой дугаар. Гараар бичихгүй — байгууллагын
+    --    5 оронтой код + union_card_code(4) хосолж автоматаар бүрдэнэ.
+    union_card_number TEXT,
     union_joined_date TEXT,                  -- 6. ҮЭ-д элссэн он сар өдөр (YYYY-MM-DD)
     member_status     TEXT,                  -- 7. ҮЭ-ийн гишүүний статус
-    position          TEXT,                  -- 8. Эрхэлж байгаа ажил, албан тушаал
-    profession        TEXT,                  -- 9. Мэргэжил
-    phone_fax         TEXT,                  -- 11. Факс, утасны дугаарууд
+    position_id       INTEGER,               -- 8. Албан тушаал (position.id)
+    profession_id     INTEGER,               -- 9. Мэргэжил (profession.id)
+    salary_scale_id   INTEGER,               -- Цалингийн шатлал (salary_scale.id)
+    email             TEXT,                  -- И-мэйл
     au1_code          TEXT,                  -- Аймаг/нийслэл (admin_unit1.code)
     au2_code          TEXT,                  -- Сум/дүүрэг (admin_unit2.au2_code)
     au3_code          TEXT,                  -- Баг/хороо (admin_unit3.au3_code)
     address_detail    TEXT,                  -- 12. Оршин суугаа дэлгэрэнгүй хаяг
     signature         INTEGER DEFAULT 0,     -- Гарын үсэг байгаа эсэх (0/1)
-    FOREIGN KEY (organization_id) REFERENCES organization(id) ON DELETE CASCADE
+    FOREIGN KEY (organization_id) REFERENCES organization(id) ON DELETE CASCADE,
+    FOREIGN KEY (position_id) REFERENCES position(id) ON DELETE SET NULL,
+    FOREIGN KEY (profession_id) REFERENCES profession(id) ON DELETE SET NULL,
+    FOREIGN KEY (salary_scale_id) REFERENCES salary_scale(id) ON DELETE SET NULL
 );
 -- Боловсрол (#10) нь member_education хүснэгтэд олноор бүртгэгдэнэ.
+-- Утас/факс (#11) нь contact хүснэгтэд олноор бүртгэгдэнэ (owner_type='member').
 
 CREATE TABLE IF NOT EXISTS contact (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    owner_type TEXT NOT NULL,                -- 'horoo' эсвэл 'organization'
+    owner_type TEXT NOT NULL,                -- 'horoo' / 'organization' / 'member'
     owner_id   INTEGER NOT NULL,            -- Эзэмшигчийн id
     type       TEXT NOT NULL,               -- 'утас' / 'факс' / 'и-мэйл'
     value      TEXT NOT NULL,               -- 99112233, info@example.mn
@@ -133,12 +149,26 @@ CREATE TABLE IF NOT EXISTS member_education (
     FOREIGN KEY (education_degree_id) REFERENCES education_degree(id) ON DELETE SET NULL
 );
 
+-- Гишүүний хавсаргасан файл (батламж г.м.) — зөвхөн PDF, нэг гишүүнд ОЛОН файл.
+-- Файлын агуулга нь диск дээр (uploads/member/), энд зөвхөн мэдээлэл нь хадгалагдана.
+CREATE TABLE IF NOT EXISTS member_file (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    member_id   INTEGER NOT NULL,       -- Аль гишүүний файл
+    file_name   TEXT NOT NULL,          -- Хэрэглэгчийн оруулсан анхны нэр
+    stored_name TEXT NOT NULL UNIQUE,   -- Диск дээрх нэр (давхцахгүй, uuid.pdf)
+    size        INTEGER,                -- Хэмжээ (байт)
+    note        TEXT,                   -- Тайлбар (ж: "ҮЭ-ийн батламж")
+    uploaded_at TEXT,                   -- Оруулсан огноо (ISO)
+    FOREIGN KEY (member_id) REFERENCES member(id) ON DELETE CASCADE
+);
+
 CREATE INDEX IF NOT EXISTS idx_horoo_holboo ON horoo(holboo_id);
 CREATE INDEX IF NOT EXISTS idx_org_horoo ON organization(horoo_id);
 CREATE INDEX IF NOT EXISTS idx_member_org ON member(organization_id);
 CREATE INDEX IF NOT EXISTS idx_contact_owner ON contact(owner_type, owner_id);
 CREATE INDEX IF NOT EXISTS idx_salreq_member ON salary_request(member_id);
 CREATE INDEX IF NOT EXISTS idx_medu_member ON member_education(member_id);
+CREATE INDEX IF NOT EXISTS idx_mfile_member ON member_file(member_id);
 """
 
 # ------------------------- Хэрэглэгчийн удирдлага (user management) -------------------------
@@ -326,6 +356,7 @@ PERMISSION_RESOURCES = [
     ("organization", "Байгууллага"),
     ("member", "Гишүүн"),
     ("member_education", "Гишүүний боловсрол"),
+    ("member_file", "Гишүүний файл"),
     ("contact", "Холбоо барих"),
     ("salary_request", "Цалингийн хүсэлт"),
     ("salary_scale", "Цалингийн шатлал"),
@@ -362,11 +393,14 @@ _MIGRATIONS = {
     "member": [
         ("register_number", "TEXT"),
         ("union_card_number", "TEXT"),
+        ("union_card_code", "TEXT"),
         ("union_joined_date", "TEXT"),
         ("member_status", "TEXT"),
-        ("position", "TEXT"),
-        ("profession", "TEXT"),
-        ("phone_fax", "TEXT"),
+        ("last_name", "TEXT"),
+        ("position_id", "INTEGER"),
+        ("profession_id", "INTEGER"),
+        ("salary_scale_id", "INTEGER"),
+        ("email", "TEXT"),
         ("au1_code", "TEXT"),
         ("au2_code", "TEXT"),
         ("au3_code", "TEXT"),
@@ -376,9 +410,16 @@ _MIGRATIONS = {
         ("salary_scale_id", "INTEGER"),
     ],
     "organization": [
+        ("school_category_id", "INTEGER"),
+        ("org_code", "TEXT"),
         ("au1_code", "TEXT"),
         ("au2_code", "TEXT"),
         ("au3_code", "TEXT"),
+    ],
+    "horoo": [
+        ("type", "TEXT"),
+        ("registration_number", "TEXT"),
+        ("founded_date", "TEXT"),
     ],
 }
 
@@ -390,7 +431,8 @@ _RENAME_COLUMNS = {
                        ("albn_tushaal", "position"), ("tsalin", "salary")],
     "member": [("albn_tushaal", "position"), ("mergejil", "profession"),
                ("ue_batlamj_number", "union_card_number"),
-               ("ue_joined_date", "union_joined_date")],
+               ("ue_joined_date", "union_joined_date"),
+               ("name", "first_name")],
     "member_education": [("surguuli", "school"), ("mergejil", "profession"),
                          ("tugssun_on", "graduation_year")],
     "education_degree": [("ner", "name")],
@@ -399,14 +441,93 @@ _RENAME_COLUMNS = {
 }
 
 # Устгах баганууд (хэрэв байгаа бол): хүснэгт -> [багана, ...]
+# ЗӨВЛӨМЖ: утгыг нь шинэ бүтэц рүү зөөх бол _migrate_data()-д эхлээд бичих.
 _DROP_COLUMNS = {
-    "organization": ["org_type"],
-    "member": ["bolovsrol"],
+    "organization": ["org_type", "school_type"],
+    "member": ["bolovsrol", "position", "profession", "phone_fax"],
+}
+
+# Хуучин organization.school_type (чөлөөт текст) -> school_category.id
+_SCHOOL_TYPE_MAP = {
+    "СӨБ": 1,
+    "ЕБС": 2,
+    "МСҮТ": 3,
+    "МБС": 3,
+    "Их сургууль": 4,
+    "ИДС": 4,
 }
 
 
 def _cols(conn, table):
     return {r[1] for r in conn.execute(f"PRAGMA table_info({table})")}
+
+
+def _lookup_id(conn, table, name):
+    """Лавлах хүснэгтээс нэрээр id олно; байхгүй бол шинээр нэмж id-г нь буцаана."""
+    row = conn.execute(f"SELECT id FROM {table} WHERE name=?", (name,)).fetchone()
+    if row:
+        return row[0]
+    return conn.execute(f"INSERT INTO {table}(name) VALUES (?)", (name,)).lastrowid
+
+
+def _migrate_data(conn):
+    """Хуучин текст баганы утгыг шинэ бүтэц рүү зөөнө (баганыг устгахаас ӨМНӨ).
+
+    - member.name ("Батын Болд") -> last_name + first_name
+    - member.position / profession (текст) -> position_id / profession_id (лавлахын id)
+    - member.phone_fax -> contact (owner_type='member', type='утас')
+    - organization.school_type (текст) -> school_category_id
+    """
+    member_cols = _cols(conn, "member")
+
+    # 1) Овог+нэр салгах: зөвхөн хоосон last_name-тэй, зайтай нэрийг л хуваана
+    if "last_name" in member_cols:
+        for mid, full in conn.execute(
+                "SELECT id, first_name FROM member "
+                "WHERE last_name IS NULL AND first_name LIKE '% %'").fetchall():
+            last, _, first = full.strip().partition(" ")
+            conn.execute("UPDATE member SET last_name=?, first_name=? WHERE id=?",
+                         (last, first.strip(), mid))
+
+    # 2) Албан тушаал / мэргэжлийн текстийг лавлахын id болгох (байхгүйг нь лавлахад нэмнэ)
+    for col, table in (("position", "position"), ("profession", "profession")):
+        if col not in member_cols or f"{col}_id" not in member_cols:
+            continue
+        for mid, val in conn.execute(
+                f"SELECT id, {col} FROM member "
+                f"WHERE {col} IS NOT NULL AND {col} <> '' AND {col}_id IS NULL").fetchall():
+            conn.execute(f"UPDATE member SET {col}_id=? WHERE id=?",
+                         (_lookup_id(conn, table, val), mid))
+
+    # 3) Ганц phone_fax -> олон утас барих contact мөр
+    if "phone_fax" in member_cols:
+        for mid, phone in conn.execute(
+                "SELECT id, phone_fax FROM member "
+                "WHERE phone_fax IS NOT NULL AND phone_fax <> ''").fetchall():
+            exists = conn.execute(
+                "SELECT 1 FROM contact WHERE owner_type='member' AND owner_id=? AND value=?",
+                (mid, phone)).fetchone()
+            if not exists:
+                conn.execute(
+                    "INSERT INTO contact(owner_type, owner_id, type, value) "
+                    "VALUES ('member', ?, 'утас', ?)", (mid, phone))
+
+    # 4) school_type -> school_category_id (эхлээд тогтсон харгалзаа, дараа нь нэрээр)
+    org_cols = _cols(conn, "organization")
+    if "school_type" in org_cols and "school_category_id" in org_cols:
+        for oid, st in conn.execute(
+                "SELECT id, school_type FROM organization "
+                "WHERE school_type IS NOT NULL AND school_type <> '' "
+                "AND school_category_id IS NULL").fetchall():
+            cid = _SCHOOL_TYPE_MAP.get(st)
+            if cid is None:
+                row = conn.execute(
+                    "SELECT id FROM school_category WHERE short_name=? OR full_name=?",
+                    (st, st)).fetchone()
+                cid = row[0] if row else None
+            if cid is not None:
+                conn.execute("UPDATE organization SET school_category_id=? WHERE id=?",
+                             (cid, oid))
 
 
 def _migrate(conn):
@@ -429,7 +550,9 @@ def _migrate(conn):
             conn.execute(f"ALTER TABLE {table} RENAME COLUMN address TO address_detail")
         elif "address_detail" not in _cols(conn, table):
             conn.execute(f"ALTER TABLE {table} ADD COLUMN address_detail TEXT")
-    # 3) Хэрэглэхгүй болсон баганыг устгах
+    # 3) Хуучин баганы утгыг шинэ бүтэц рүү зөөх (устгахаас өмнө)
+    _migrate_data(conn)
+    # 4) Хэрэглэхгүй болсон баганыг устгах
     for table, drops in _DROP_COLUMNS.items():
         existing = _cols(conn, table)
         for name in drops:
@@ -650,30 +773,36 @@ def seed_union():
                 ("Боловсрол, шинжлэх ухааны үйлдвэрчний эвлэлийн холбоо",))
     holboo_id = cur.lastrowid
 
-    cur.execute("INSERT INTO horoo(holboo_id, name) VALUES (?, ?)",
-                (holboo_id, "Сүхбаатар дүүргийн хороо"))
+    cur.execute(
+        "INSERT INTO horoo(holboo_id, name, type, registration_number, founded_date) "
+        "VALUES (?,?,?,?,?)",
+        (holboo_id, "Сүхбаатар дүүргийн хороо", "Дүүргийн хороо",
+         "2811234", "2005-04-12"),
+    )
     horoo_id = cur.lastrowid
 
     cur.execute(
         """INSERT INTO organization
-           (horoo_id, name, school_type, registration_number,
+           (horoo_id, name, school_category_id, org_code, registration_number,
             founded_date, activity_code, activity_name, parent_org,
             au1_code, au2_code, address_detail)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
-        (horoo_id, "АШУҮИС-ийн харьяа сургууль", "Их сургууль",
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+        (horoo_id, "АШУҮИС-ийн харьяа сургууль", 4, "001",  # 04 + 001 -> 04001
          "9923659", "2023-01-31", "8530", "Дээд боловсрол олгох үйл ажиллагаа",
          "Анагаахын шинжлэх ухааны үндэсний их сургууль",
          "011", "01101", "Ард Аюушийн гудамж"),
     )
     org_id = cur.lastrowid
 
+    # union_card_number = байгууллагын 5 оронтой код (04001) + гишүүний 4 оронтой код
     cur.executemany(
-        "INSERT INTO member(organization_id, name, gender, birth_date) VALUES (?,?,?,?)",
+        "INSERT INTO member(organization_id, last_name, first_name, gender, birth_date, "
+        "union_card_code, union_card_number) VALUES (?,?,?,?,?,?,?)",
         [
-            (org_id, "Болд", "эр", "1980-05-10"),
-            (org_id, "Сараа", "эм", "1995-09-20"),
-            (org_id, "Дулмаа", "эм", "2000-03-15"),
-            (org_id, "Ганбат", "эр", "1975-12-01"),
+            (org_id, "Батын", "Болд", "эр", "1980-05-10", "0001", "040010001"),
+            (org_id, "Доржийн", "Сараа", "эм", "1995-09-20", "0002", "040010002"),
+            (org_id, "Цэрэнгийн", "Дулмаа", "эм", "2000-03-15", "0003", "040010003"),
+            (org_id, "Наранбаатарын", "Ганбат", "эр", "1975-12-01", "0004", "040010004"),
         ],
     )
 
@@ -694,14 +823,17 @@ def seed_union():
 
 
 def seed_all():
-    """Бүх домэйны seed-г дараалан ажиллуулна (`python db.py` үүнийг дуудна)."""
+    """Бүх домэйны seed-г дараалан ажиллуулна (`python db.py` үүнийг дуудна).
+
+    Лавлахууд эхэлнэ — seed_union() тэдгээрийн id-г (ж: school_category_id) заана.
+    """
     seed()
-    seed_union()
     seed_school_category()
     seed_salary_scale()
     seed_education_degree()
     seed_position()
     seed_profession()
+    seed_union()
     seed_users()
 
 
@@ -723,15 +855,16 @@ def ensure_seeded():
                 or empty("salary_scale") or empty("position") or empty("profession"))
     conn.close()
 
-    if need_units:
-        seed()
-        seed_union()
+    # Лавлахууд эхэлнэ — seed_union() тэдгээрийн id-г заадаг (school_category_id).
     if need_ref:
         seed_school_category()
         seed_salary_scale()
         seed_education_degree()
         seed_position()
         seed_profession()
+    if need_units:
+        seed()
+        seed_union()
     # Эрх/дүрийг ҮРГЭЛЖ синк хийнэ (idempotent): шинэ resource-ийн эрхүүд нэмэгдэж,
     # admin бүх эрхээ авна. Анхны admin хэрэглэгч зөвхөн app_user хоосон үед л үүснэ.
     seed_users()

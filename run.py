@@ -21,7 +21,7 @@ from auth import require_auth, SECRET_KEY
 
 # --- client site ---
 from client.admin_units import bp as admin_units_bp
-from client.union import bp as union_bp
+from client.union import bp as union_bp, MAX_FILE_SIZE
 
 # --- admin site ---
 from admin.users import bp as users_bp
@@ -32,6 +32,10 @@ def create_app():
     app = Flask(__name__)
     app.json.ensure_ascii = False  # Кирилл үсгийг escape хийлгүй буцаах
     app.secret_key = SECRET_KEY
+    # Хүсэлтийн нийт хэмжээний тааз. Файл ТУС БҮР 10 MB-аар хязгаарлагдана
+    # (client/union.py), энэ нь олон файлыг нэг дор илгээх боломж үлдээж, сервер
+    # рүү хэт том хүсэлт ирэхээс хамгаална (хэтэрвэл 413 -> {"error": ...}).
+    app.config["MAX_CONTENT_LENGTH"] = MAX_FILE_SIZE * 5
 
     # Нэвтрэлт + эрхийн хяналт: /api/login-аас бусад бүх хүсэлтэд токен + эрх шаардана
     app.before_request(require_auth)
