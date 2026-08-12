@@ -81,7 +81,7 @@
     },
     {
       "key": "school_category_id",
-      "value": "1"
+      "value": "11"
     },
     {
       "key": "permission_id",
@@ -652,7 +652,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"horoo_id\": 1,\n  \"name\": \"Шинэ сургууль\",\n  \"school_category_id\": 2,\n  \"org_code\": \"123\",\n  \"registration_number\": \"9923659\",\n  \"founded_date\": \"2023-01-31\",\n  \"activity_code\": \"8530\",\n  \"activity_name\": \"Дээд боловсрол олгох үйл ажиллагаа\",\n  \"parent_org\": \"АШУҮИС\",\n  \"au1_code\": \"011\",\n  \"au2_code\": \"01101\",\n  \"au3_code\": \"0110151\",\n  \"address_detail\": \"Ард Аюушийн гудамж\"\n}"
+              "raw": "{\n  \"horoo_id\": 1,\n  \"name\": \"Шинэ сургууль\",\n  \"school_category_id\": 12,\n  \"org_code\": \"123\",\n  \"registration_number\": \"9923659\",\n  \"state_reg_number\": \"9019001234\",\n  \"founded_date\": \"2023-01-31\",\n  \"activity_code\": \"8530\",\n  \"activity_name\": \"Дээд боловсрол олгох үйл ажиллагаа\",\n  \"parent_org\": \"АШУҮИС\",\n  \"au1_code\": \"011\",\n  \"au2_code\": \"01101\",\n  \"au3_code\": \"0110151\",\n  \"address_detail\": \"Ард Аюушийн гудамж\",\n  \"postal_address\": \"Улаанбаатар 14210, ШУТИС-14-р байр\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/api/organization",
@@ -678,7 +678,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Шинэчилсэн нэр\",\n  \"school_category_id\": 4,\n  \"org_code\": \"007\",\n  \"address_detail\": \"Шинэ хаяг\"\n}"
+              "raw": "{\n  \"name\": \"Шинэчилсэн нэр\",\n  \"school_category_id\": 14,\n  \"org_code\": \"007\",\n  \"state_reg_number\": \"9019005678\",\n  \"address_detail\": \"Шинэ хаяг\",\n  \"postal_address\": \"Улаанбаатар 15160\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/api/organization/{{organization_id}}",
@@ -740,6 +740,32 @@
           }
         },
         {
+          "name": "Жагсаалт (зөвхөн идэвхтэй)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/member?organization_id={{organization_id}}&is_active=1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "member"
+              ],
+              "query": [
+                {
+                  "key": "organization_id",
+                  "value": "{{organization_id}}"
+                },
+                {
+                  "key": "is_active",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
           "name": "Нэгийг авах (боловсрол + утас + файл)",
           "request": {
             "method": "GET",
@@ -768,7 +794,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"organization_id\": 1,\n  \"last_name\": \"Батын\",\n  \"first_name\": \"Дорж\",\n  \"birth_date\": \"1990-05-10\",\n  \"gender\": \"эр\",\n  \"register_number\": \"УБ90051012\",\n  \"union_card_code\": \"0007\",\n  \"union_joined_date\": \"2015-09-01\",\n  \"member_status\": \"идэвхтэй\",\n  \"position_id\": 6,\n  \"profession_id\": 2,\n  \"salary_scale_id\": 3,\n  \"email\": \"dorj@example.mn\",\n  \"au1_code\": \"011\",\n  \"au2_code\": \"01101\",\n  \"au3_code\": \"0110151\",\n  \"address_detail\": \"1-р хороо\",\n  \"signature\": 1\n}"
+              "raw": "{\n  \"organization_id\": 1,\n  \"last_name\": \"Батын\",\n  \"first_name\": \"Дорж\",\n  \"birth_date\": \"1990-05-10\",\n  \"gender\": \"эр\",\n  \"register_number\": \"УБ90051012\",\n  \"union_card_code\": \"0007\",\n  \"union_joined_date\": \"2015-09-01\",\n  \"member_status\": \"идэвхтэй\",\n  \"position_id\": 6,\n  \"profession_id\": 2,\n  \"salary_scale_id\": 3,\n  \"email\": \"dorj@example.mn\",\n  \"au1_code\": \"011\",\n  \"au2_code\": \"01101\",\n  \"au3_code\": \"0110151\",\n  \"address_detail\": \"1-р хороо\",\n  \"signature\": 1,\n  \"is_active\": 1\n}"
             },
             "url": {
               "raw": "{{base_url}}/api/member",
@@ -794,7 +820,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"position_id\": 5,\n  \"email\": \"shine@example.mn\",\n  \"union_card_code\": \"0042\"\n}"
+              "raw": "{\n  \"position_id\": 5,\n  \"email\": \"shine@example.mn\",\n  \"union_card_code\": \"0042\",\n  \"is_active\": 0\n}"
             },
             "url": {
               "raw": "{{base_url}}/api/member/{{member_id}}",

@@ -61,6 +61,7 @@ CREATE TABLE IF NOT EXISTS organization (
     -- Ангилал(2) + org_code(3) = байгууллагын 5 оронтой код. Хадгалахгүй, уншихад
     -- printf('%02d', school_category_id) || org_code гэж бодогдоно (client/union.py).
     registration_number TEXT,               -- Регистрийн дугаар
+    state_reg_number    TEXT,               -- Улсын бүртгэлийн дугаар
     founded_date        TEXT,               -- Үүсгэн байгуулагдсан огноо (YYYY-MM-DD)
     activity_code       TEXT,               -- Үйл ажиллагааны чиглэлийн код
     activity_name       TEXT,               -- Үндсэн үйл ажиллагааны чиглэл
@@ -69,6 +70,7 @@ CREATE TABLE IF NOT EXISTS organization (
     au2_code            TEXT,               -- Сум/дүүрэг (admin_unit2.au2_code)
     au3_code            TEXT,               -- Баг/хороо (admin_unit3.au3_code)
     address_detail      TEXT,               -- Дэлгэрэнгүй хаяг
+    postal_address      TEXT,               -- Шуудангийн хаяг
     FOREIGN KEY (horoo_id) REFERENCES horoo(id) ON DELETE CASCADE,
     FOREIGN KEY (school_category_id) REFERENCES school_category(id) ON DELETE SET NULL
 );
@@ -96,6 +98,7 @@ CREATE TABLE IF NOT EXISTS member (
     au3_code          TEXT,                  -- Баг/хороо (admin_unit3.au3_code)
     address_detail    TEXT,                  -- 12. Оршин суугаа дэлгэрэнгүй хаяг
     signature         INTEGER DEFAULT 0,     -- Гарын үсэг байгаа эсэх (0/1)
+    is_active         INTEGER DEFAULT 1,     -- Идэвхтэй гишүүн эсэх (0/1)
     FOREIGN KEY (organization_id) REFERENCES organization(id) ON DELETE CASCADE,
     FOREIGN KEY (position_id) REFERENCES position(id) ON DELETE SET NULL,
     FOREIGN KEY (profession_id) REFERENCES profession(id) ON DELETE SET NULL,
@@ -241,15 +244,16 @@ CREATE TABLE IF NOT EXISTS profession (
 );
 """
 
-# Сургуулийн ангиллын анхдагч өгөгдөл (Ангилал сургуулиуд.xlsx-аас)
+# Сургуулийн ангиллын анхдагч өгөгдөл (Ангилал сургуулиуд.xlsx-аас).
+# id нь бүртгэлийн кодны эхний 2 орон болдог тул 11-ээс эхэлнэ.
 SCHOOL_CATEGORIES = [
-    (1, "Сургуулийн өмнөх боловсрол", "СӨБ", "Early Childhood Education (Preschool)"),
-    (2, "Ерөнхий боловсрол", "ЕБС", "General Education (Primary and Secondary Education)"),
-    (3, "Мэргэжлийн боловсрол, сургалт", "МБС", "Technical and Vocational Education and Training (TVET)"),
-    (4, "Их, дээд боловсрол", "ИДС", "Higher Education (Universities and Colleges)"),
-    (5, "Шинжлэх ухаан", "ШУ", "Science / Research"),
-    (6, "Боловсрол, шинжлэх ухааны туслах үйлчилгээ", "БШУТҮ", "Support Services in Education and Science"),
-    (7, "Нэмэлт боловсрол", None, None),
+    (11, "Сургуулийн өмнөх боловсрол", "СӨБ", "Early Childhood Education (Preschool)"),
+    (12, "Ерөнхий боловсрол", "ЕБС", "General Education (Primary and Secondary Education)"),
+    (13, "Мэргэжлийн боловсрол, сургалт", "МБС", "Technical and Vocational Education and Training (TVET)"),
+    (14, "Их, дээд боловсрол", "ИДС", "Higher Education (Universities and Colleges)"),
+    (15, "Шинжлэх ухаан", "ШУ", "Science / Research"),
+    (16, "Боловсрол, шинжлэх ухааны туслах үйлчилгээ", "БШУТҮ", "Support Services in Education and Science"),
+    (17, "Нэмэлт боловсрол", None, None),
 ]
 
 # Боловсролын зэргийн ангилал (Боловсролын зэргийн ангилал.xlsx-аас)
@@ -405,6 +409,7 @@ _MIGRATIONS = {
         ("au2_code", "TEXT"),
         ("au3_code", "TEXT"),
         ("signature", "INTEGER DEFAULT 0"),
+        ("is_active", "INTEGER DEFAULT 1"),   # хуучин мөрүүд идэвхтэй гэж тооцогдоно
     ],
     "salary_request": [
         ("salary_scale_id", "INTEGER"),
@@ -412,6 +417,8 @@ _MIGRATIONS = {
     "organization": [
         ("school_category_id", "INTEGER"),
         ("org_code", "TEXT"),
+        ("state_reg_number", "TEXT"),
+        ("postal_address", "TEXT"),
         ("au1_code", "TEXT"),
         ("au2_code", "TEXT"),
         ("au3_code", "TEXT"),
@@ -449,13 +456,17 @@ _DROP_COLUMNS = {
 
 # Хуучин organization.school_type (чөлөөт текст) -> school_category.id
 _SCHOOL_TYPE_MAP = {
-    "СӨБ": 1,
-    "ЕБС": 2,
-    "МСҮТ": 3,
-    "МБС": 3,
-    "Их сургууль": 4,
-    "ИДС": 4,
+    "СӨБ": 11,
+    "ЕБС": 12,
+    "МСҮТ": 13,
+    "МБС": 13,
+    "Их сургууль": 14,
+    "ИДС": 14,
 }
+
+# Нэг удаа ажиллах өгөгдлийн шилжилтүүдийн хувилбар (PRAGMA user_version).
+#   1 — school_category.id 1..7 -> 11..17 (код нь 2 орон тул тэглэх шаардлагагүй болно)
+SCHEMA_VERSION = 1
 
 
 def _cols(conn, table):
@@ -470,6 +481,40 @@ def _lookup_id(conn, table, name):
     return conn.execute(f"INSERT INTO {table}(name) VALUES (?)", (name,)).lastrowid
 
 
+def _recompute_card_numbers(conn):
+    """Гишүүдийн 9 оронтой батламжийн дугаарыг байгууллагын кодоос дахин бодно."""
+    conn.execute(
+        "UPDATE member SET union_card_number = ("
+        "  SELECT printf('%02d', o.school_category_id) || o.org_code || member.union_card_code"
+        "    FROM organization o WHERE o.id = member.organization_id) "
+        "WHERE union_card_code IS NOT NULL")
+
+
+def _shift_school_category_ids(conn):
+    """school_category.id 1..7 -> 11..17 (нэг удаа; PRAGMA user_version-оор хамгаалагдана).
+
+    id нь бүртгэлийн кодны эхний 2 орон учир 11-ээс эхэлбэл тэглэх (01) шаардлагагүй.
+    FK зөрчихгүйн тулд: шинэ мөр нэмнэ -> байгууллагуудыг шинэ id рүү заана -> хуучныг устгана.
+    """
+    if conn.execute("PRAGMA user_version").fetchone()[0] >= 1:
+        return
+    for old in range(1, 8):
+        new = old + 10
+        row = conn.execute("SELECT * FROM school_category WHERE id=?", (old,)).fetchone()
+        if not row or conn.execute(
+                "SELECT 1 FROM school_category WHERE id=?", (new,)).fetchone():
+            continue
+        conn.execute(
+            "INSERT INTO school_category(id, full_name, short_name, english_name) "
+            "VALUES (?,?,?,?)",
+            (new, row["full_name"], row["short_name"], row["english_name"]))
+        conn.execute("UPDATE organization SET school_category_id=? WHERE school_category_id=?",
+                     (new, old))
+        conn.execute("DELETE FROM school_category WHERE id=?", (old,))
+    _recompute_card_numbers(conn)          # ангилал өөрчлөгдсөн тул дугаарууд шинэчлэгдэнэ
+    conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
+
+
 def _migrate_data(conn):
     """Хуучин текст баганы утгыг шинэ бүтэц рүү зөөнө (баганыг устгахаас ӨМНӨ).
 
@@ -477,7 +522,9 @@ def _migrate_data(conn):
     - member.position / profession (текст) -> position_id / profession_id (лавлахын id)
     - member.phone_fax -> contact (owner_type='member', type='утас')
     - organization.school_type (текст) -> school_category_id
+    - school_category.id 1..7 -> 11..17 (нэг удаа)
     """
+    _shift_school_category_ids(conn)   # ангиллын дугаарлалт эхэлж шинэчлэгдэнэ
     member_cols = _cols(conn, "member")
 
     # 1) Овог+нэр салгах: зөвхөн хоосон last_name-тэй, зайтай нэрийг л хуваана
@@ -784,25 +831,26 @@ def seed_union():
     cur.execute(
         """INSERT INTO organization
            (horoo_id, name, school_category_id, org_code, registration_number,
-            founded_date, activity_code, activity_name, parent_org,
-            au1_code, au2_code, address_detail)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
-        (horoo_id, "АШУҮИС-ийн харьяа сургууль", 4, "001",  # 04 + 001 -> 04001
-         "9923659", "2023-01-31", "8530", "Дээд боловсрол олгох үйл ажиллагаа",
+            state_reg_number, founded_date, activity_code, activity_name, parent_org,
+            au1_code, au2_code, address_detail, postal_address)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+        (horoo_id, "АШУҮИС-ийн харьяа сургууль", 14, "001",  # 14 + 001 -> 14001
+         "9923659", "9019001234", "2023-01-31", "8530",
+         "Дээд боловсрол олгох үйл ажиллагаа",
          "Анагаахын шинжлэх ухааны үндэсний их сургууль",
-         "011", "01101", "Ард Аюушийн гудамж"),
+         "011", "01101", "Ард Аюушийн гудамж", "Улаанбаатар 14210, ШУТИС-14-р байр"),
     )
     org_id = cur.lastrowid
 
-    # union_card_number = байгууллагын 5 оронтой код (04001) + гишүүний 4 оронтой код
+    # union_card_number = байгууллагын 5 оронтой код (14001) + гишүүний 4 оронтой код
     cur.executemany(
         "INSERT INTO member(organization_id, last_name, first_name, gender, birth_date, "
         "union_card_code, union_card_number) VALUES (?,?,?,?,?,?,?)",
         [
-            (org_id, "Батын", "Болд", "эр", "1980-05-10", "0001", "040010001"),
-            (org_id, "Доржийн", "Сараа", "эм", "1995-09-20", "0002", "040010002"),
-            (org_id, "Цэрэнгийн", "Дулмаа", "эм", "2000-03-15", "0003", "040010003"),
-            (org_id, "Наранбаатарын", "Ганбат", "эр", "1975-12-01", "0004", "040010004"),
+            (org_id, "Батын", "Болд", "эр", "1980-05-10", "0001", "140010001"),
+            (org_id, "Доржийн", "Сараа", "эм", "1995-09-20", "0002", "140010002"),
+            (org_id, "Цэрэнгийн", "Дулмаа", "эм", "2000-03-15", "0003", "140010003"),
+            (org_id, "Наранбаатарын", "Ганбат", "эр", "1975-12-01", "0004", "140010004"),
         ],
     )
 

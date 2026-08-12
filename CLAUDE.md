@@ -126,7 +126,7 @@ gunicorn run:app               # production WSGI server (loads the module-level 
 - **`member.member_status` is deliberately free text** (no lookup table, no enum) — `_validate_member()`
   only rejects a non-string / blank value with 400. Don't turn it into a reference table.
 - **Registration codes are composed, not typed.** `school_category.id` is the leading **2 digits**
-  (`printf('%02d', id)`, so ids are capped at 1–99 and `code` is derived, never stored) →
+  (`printf('%02d', id)`, so ids are capped at 1–99 and `code` is derived, never stored; the seeded categories are numbered **11–17** so no zero-padding is visible) →
   `+ organization.org_code` (**3 digits**, hand-entered) = the organization's **5-digit** `full_code`
   → `+ member.union_card_code` (**4 digits**, hand-entered) = `member.union_card_number`, **9 digits**.
   Only the hand-entered parts are writable: `union_card_number` is derived, and a request that sets

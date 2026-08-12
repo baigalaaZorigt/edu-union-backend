@@ -38,7 +38,7 @@ MEMBER_FIELDS = (
     "last_name", "first_name", "birth_date", "gender", "register_number",
     "union_card_code", "union_joined_date", "member_status",
     "position_id", "profession_id", "salary_scale_id", "email",
-    "au1_code", "au2_code", "au3_code", "address_detail", "signature",
+    "au1_code", "au2_code", "au3_code", "address_detail", "signature", "is_active",
 )
 
 # --- Бүртгэлийн кодын бүтэц ---
@@ -66,9 +66,10 @@ MEMBER_EDUCATION_FIELDS = ("education_degree_id", "school", "profession", "gradu
 
 # Байгууллагын бүх талбар (зөвхөн эдгээрийг л оруулж/засна)
 ORG_FIELDS = (
-    "name", "school_category_id", "org_code", "registration_number", "founded_date",
+    "name", "school_category_id", "org_code",
+    "registration_number", "state_reg_number", "founded_date",
     "activity_code", "activity_name", "parent_org",
-    "au1_code", "au2_code", "au3_code", "address_detail",
+    "au1_code", "au2_code", "au3_code", "address_detail", "postal_address",
 )
 
 # Гишүүнийг лавлах + байгууллагын кодтой нь хамт унших SELECT
@@ -158,7 +159,17 @@ def _validate_member(data):
 
     - member_status: лавлахгүй, гараас бичих ЧӨЛӨӨТ ТЕКСТ
     - union_card_code: яг 4 оронтой тоо (энэ нь union_card_number-ийн сүүлийн 4 орон)
+    - is_active / signature: зөвхөн 0 эсвэл 1 (true/false-ыг хөрвүүлнэ)
     """
+    for flag in ("is_active", "signature"):
+        if data.get(flag) is not None:
+            val = data[flag]
+            if isinstance(val, bool):
+                data[flag] = int(val)
+            elif val in (0, 1, "0", "1"):
+                data[flag] = int(val)
+            else:
+                abort(400, description=f"{flag} нь 0 эсвэл 1 байна")
     st = data.get("member_status")
     if st is not None and (not isinstance(st, str) or not st.strip()):
         abort(400, description="member_status зөвхөн текст байна (ж: 'идэвхтэй')")
@@ -465,13 +476,17 @@ def delete_org(oid):
 # ======================= member (Гишүүн) =======================
 @bp.route("/api/member", methods=["GET"])
 def list_member():
-    org_id = request.args.get("organization_id")
+    # ?organization_id= ба ?is_active= (0/1) шүүлтүүд — хосолж болно
+    cond, params = [], []
+    if request.args.get("organization_id"):
+        cond.append("m.organization_id=?")
+        params.append(request.args["organization_id"])
+    if request.args.get("is_active") is not None:
+        cond.append("m.is_active=?")
+        params.append(1 if request.args["is_active"] in ("1", "true", "True") else 0)
+    sql = MEMBER_SELECT + (" WHERE " + " AND ".join(cond) if cond else "") + " ORDER BY m.id"
     conn = get_db()
-    if org_id:
-        data = rows(conn.execute(
-            MEMBER_SELECT + " WHERE m.organization_id=? ORDER BY m.id", (org_id,)).fetchall())
-    else:
-        data = rows(conn.execute(MEMBER_SELECT + " ORDER BY m.id").fetchall())
+    data = rows(conn.execute(sql, params).fetchall())
     conn.close()
     return jsonify(data)
 
