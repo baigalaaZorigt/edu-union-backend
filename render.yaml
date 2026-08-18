@@ -10,8 +10,9 @@ services:
     # production WSGI сервер; Render-ийн $PORT-д bind хийнэ
     startCommand: "gunicorn run:app --bind 0.0.0.0:$PORT"
 
-    # ---- Гишүүний PDF хавсралт (uploads/) ----
-    # Одоогоор файлууд СЕРВЕРИЙН ДИСК дээр (uploads/member/) хадгалагдана. Render-ийн
+    # ---- Оруулсан файлууд (uploads/) ----
+    # Гишүүний PDF хавсралт (uploads/member/) ба порталын зураг/файл
+    # (uploads/content/) СЕРВЕРИЙН ДИСК дээр хадгалагдана. Render-ийн
     # энгийн файлын систем нь ТҮР ЗУУРЫНХ — redeploy/restart бүрт uploads/ ба
     # admin_units.db хоёул цэвэрлэгдэнэ. Байнга хадгалахын тулд доорхыг нээнэ үү
     # (Render-ийн Persistent Disk нь төлбөртэй instance шаарддаг, free plan дээр
@@ -23,6 +24,8 @@ services:
     #   sizeGB: 1
     # envVars:
     #   - key: UPLOAD_DIR
-    #     value: /var/data/uploads/member    # union.py үүнийг уншина
+    #     value: /var/data/uploads/member    # client/union.py үүнийг уншина
+    #   - key: CONTENT_UPLOAD_DIR
+    #     value: /var/data/uploads/content   # admin/content.py үүнийг уншина
     #   - key: SECRET_KEY                    # JWT гарын үсэг — production-д заавал
     #     generateValue: true

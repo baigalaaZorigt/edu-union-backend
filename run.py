@@ -8,7 +8,7 @@
 
 Бүтэц:
   client/  — үйлчлүүлэгчийн site (засаг захиргаа + үйлдвэрчний эвлэлийн өгөгдөл)
-  admin/   — удирдлагын site (хэрэглэгч / эрх / дүр)
+  admin/   — удирдлагын site (хэрэглэгч / эрх / дүр, порталын цэс ба контент)
   db.py, helpers.py — хоёр site-ийн хуваалцсан суурь (DB, туслахууд)
 """
 import os
@@ -25,6 +25,7 @@ from client.union import bp as union_bp, MAX_FILE_SIZE
 
 # --- admin site ---
 from admin.users import bp as users_bp
+from admin.content import bp as content_bp
 
 
 def create_app():
@@ -44,8 +45,9 @@ def create_app():
     app.register_blueprint(admin_units_bp)
     app.register_blueprint(union_bp)
 
-    # Admin site — хэрэглэгчийн удирдлага
+    # Admin site — хэрэглэгчийн удирдлага + порталын цэс/контент
     app.register_blueprint(users_bp)
+    app.register_blueprint(content_bp)
 
     register_error_handlers(app)  # 400/401/403/404/409 -> {"error": ...} JSON
     ensure_seeded()               # схем + хоосон бол автоматаар seed (Render дээр ч ажиллана)

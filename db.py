@@ -2,6 +2,7 @@
 import json
 import os
 import sqlite3
+from datetime import datetime, timezone
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "admin_units.db")
@@ -244,6 +245,66 @@ CREATE TABLE IF NOT EXISTS profession (
 );
 """
 
+# ------------------------- Портал: динамик цэс ба контент (menu/content) -------------------------
+# menu (Цэс) — порталын дээд цэс. type нь тухайн цэс дээр дарахад юу харагдахыг заана:
+#   page     — динамик контент хуудас (админ бүрэн удирдана; page бичлэгтэй холбогдоно)
+#   news/survey/poll/contact/home — кодод суусан функциональ хуудсууд (нэрлэх/нуух/эрэмбэлэх л боломжтой)
+#   external — зөвхөн external_url руу үсэрнэ
+# Гүн: цэс -> дэд цэс (2 түвшин). Дэд цэсний дэд цэс байхгүй (content.py-д шалгана).
+SCHEMA_CONTENT = """
+CREATE TABLE IF NOT EXISTS menu (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    parent_id    INTEGER,                     -- Дэд цэс бол эцэг цэсний id
+    title        TEXT NOT NULL,               -- Цэсэнд харагдах нэр (ж: "Ковид")
+    slug         TEXT NOT NULL UNIQUE,        -- URL хэсэг (ж: "covid")
+    type         TEXT NOT NULL DEFAULT 'page',-- page / news / survey / poll / contact / home / external
+    sort_order   INTEGER DEFAULT 0,           -- Эрэмбэ (нэг эцэг дотор)
+    is_visible   INTEGER DEFAULT 1,           -- Порталд харагдах эсэх (0/1)
+    external_url TEXT,                        -- type='external' үед заавал
+    created_at   TEXT,
+    updated_at   TEXT,
+    FOREIGN KEY (parent_id) REFERENCES menu(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS page (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    menu_id     INTEGER NOT NULL UNIQUE,      -- Аль цэсэнд харьяалагдах (нэг цэс = нэг хуудас)
+    title       TEXT,                         -- Хуудасны том гарчиг
+    body        TEXT,                         -- Rich text агуулга (HTML)
+    cover_image TEXT,                         -- Дээд талын том зураг (URL)
+    status      TEXT DEFAULT 'draft',         -- published / draft
+    updated_at  TEXT,
+    FOREIGN KEY (menu_id) REFERENCES menu(id) ON DELETE CASCADE
+);
+
+-- page_block — хуудасны агуулга нь ЭРЭМБЭТЭЙ БЛОКУУДААС бүрдэнэ (админ UI: "Блок нэмэх").
+-- type: text (текст) / image (зураг) / video (видео) / file (файл) / link (холбоос).
+-- Полиморф хүснэгт (contact-той ижил зарчим): төрлөөс хамаарч зөвхөн хэрэгтэй баганууд дүүрнэ.
+--   text  -> text
+--   image -> url, caption
+--   video -> url (YouTube), title
+--   file  -> url, name, mime_type, size
+--   link  -> url, title
+CREATE TABLE IF NOT EXISTS page_block (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    page_id    INTEGER NOT NULL,
+    type       TEXT NOT NULL,                 -- text / image / video / file / link
+    sort_order INTEGER DEFAULT 0,             -- Блокийн эрэмбэ (↑↓)
+    text       TEXT,                          -- type=text: rich text (HTML)
+    url        TEXT,                          -- image/video/file/link: холбоос (/api/upload-аас)
+    title      TEXT,                          -- video/link: гарчиг
+    caption    TEXT,                          -- image: тайлбар
+    name       TEXT,                          -- file: харагдах нэр
+    mime_type  TEXT,                          -- file: ж: application/pdf
+    size       INTEGER,                       -- file: байтаар
+    FOREIGN KEY (page_id) REFERENCES page(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_menu_parent ON menu(parent_id);
+CREATE INDEX IF NOT EXISTS idx_page_menu ON page(menu_id);
+CREATE INDEX IF NOT EXISTS idx_page_block_page ON page_block(page_id);
+"""
+
 # Сургуулийн ангиллын анхдагч өгөгдөл (Ангилал сургуулиуд.xlsx-аас).
 # id нь бүртгэлийн кодны эхний 2 орон болдог тул 11-ээс эхэлнэ.
 SCHOOL_CATEGORIES = [
@@ -367,6 +428,14 @@ PERMISSION_RESOURCES = [
     ("education_degree", "Боловсролын зэрэг"),
     ("position", "Албан тушаал"),
     ("profession", "Мэргэжил"),
+    # --- Портал: динамик цэс ба контент ---
+    ("menu", "Цэс"),
+    ("page", "Контент хуудас"),
+    ("page_block", "Хуудасны блок"),
+    ("page_image", "Хуудасны зураг"),
+    ("page_file", "Хуудасны файл"),
+    ("page_video", "Хуудасны видео"),
+    ("upload", "Файл байршуулах"),
 ]
 PERMISSION_ACTIONS = [
     ("create", "нэмэх"),
@@ -613,6 +682,7 @@ def init_db():
     conn.executescript(SCHEMA_UNION)
     conn.executescript(SCHEMA_REF)
     conn.executescript(SCHEMA_USER)
+    conn.executescript(SCHEMA_CONTENT)
     _migrate(conn)
     conn.commit()
     conn.close()
@@ -684,6 +754,55 @@ def seed_school_category():
     n = conn.execute("SELECT COUNT(*) FROM school_category").fetchone()[0]
     conn.close()
     print("Сургуулийн ангилал ачаалагдлаа:", n)
+
+
+# Порталын анхдагч цэсний бүтэц: (slug, эцгийн slug | None, нэр, type, external_url)
+# Дараалал нь sort_order болно. Гүн 2 түвшин (цэс -> дэд цэс).
+DEFAULT_MENUS = [
+    ("home",         None,    "Нүүр хуудас",     "home",     None),
+    ("about",        None,    "Бидний тухай",    "page",     None),
+    ("greeting",     "about", "Даргын мэндчилгээ", "page",   None),
+    ("introduction", "about", "Танилцуулга",     "page",     None),
+    ("vision",       "about", "Алсын хараа",     "page",     None),
+    ("activity",     None,    "Үйл ажиллагаа",   "page",     None),
+    ("news",         None,    "Мэдээ мэдээлэл",  "news",     None),
+    ("survey",       None,    "Судалгаа",        "survey",   None),
+    ("poll",         None,    "Санал асуулга",   "poll",     None),
+    ("contact",      None,    "Холбоо барих",    "contact",  None),
+]
+
+
+def seed_menu():
+    """Порталын анхдагч цэсний бүтцийг ачаална (menu хоосон үед л).
+
+    type='page' цэс бүрд хоосон `page` бичлэг дагалдана — админ нь зөвхөн
+    контентоо оруулахад л хангалттай болно.
+    """
+    init_db()
+    conn = get_db()
+    if conn.execute("SELECT COUNT(*) FROM menu").fetchone()[0]:
+        conn.close()
+        print("Цэс аль хэдийн ачаалагдсан — алгаслаа.")
+        return
+    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    ids = {}            # slug -> id
+    counters = {}       # эцгийн id (эсвэл None) -> sort_order тоолуур
+    for slug, parent_slug, title, mtype, url in DEFAULT_MENUS:
+        parent_id = ids.get(parent_slug) if parent_slug else None
+        counters[parent_id] = counters.get(parent_id, 0) + 1
+        cur = conn.execute(
+            "INSERT INTO menu(parent_id, title, slug, type, sort_order, is_visible, "
+            "external_url, created_at, updated_at) VALUES (?,?,?,?,?,1,?,?,?)",
+            (parent_id, title, slug, mtype, counters[parent_id], url, now, now))
+        ids[slug] = cur.lastrowid
+        if mtype == "page":
+            conn.execute(
+                "INSERT INTO page(menu_id, title, status, updated_at) VALUES (?,?,?,?)",
+                (cur.lastrowid, title, "draft", now))
+    conn.commit()
+    n = conn.execute("SELECT COUNT(*) FROM menu").fetchone()[0]
+    conn.close()
+    print("Порталын цэс ачаалагдлаа:", n)
 
 
 def seed_users():
@@ -882,6 +1001,7 @@ def seed_all():
     seed_position()
     seed_profession()
     seed_union()
+    seed_menu()
     seed_users()
 
 
@@ -901,6 +1021,7 @@ def ensure_seeded():
     need_units = empty("admin_unit1")
     need_ref = (empty("school_category") or empty("education_degree")
                 or empty("salary_scale") or empty("position") or empty("profession"))
+    need_menu = empty("menu")
     conn.close()
 
     # Лавлахууд эхэлнэ — seed_union() тэдгээрийн id-г заадаг (school_category_id).
@@ -913,6 +1034,8 @@ def ensure_seeded():
     if need_units:
         seed()
         seed_union()
+    if need_menu:
+        seed_menu()
     # Эрх/дүрийг ҮРГЭЛЖ синк хийнэ (idempotent): шинэ resource-ийн эрхүүд нэмэгдэж,
     # admin бүх эрхээ авна. Анхны admin хэрэглэгч зөвхөн app_user хоосон үед л үүснэ.
     seed_users()

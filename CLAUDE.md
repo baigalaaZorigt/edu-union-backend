@@ -20,8 +20,11 @@ are in Mongolian (Cyrillic). The backend serves **two sites**, each in its own f
     the lookups by id (`position_id`, `profession_id`, `salary_scale_id`); an `organization` refers
     to `school_category` by `school_category_id`. `member_file` holds PDF attachments (батламж) —
     metadata in SQLite, bytes on disk under `uploads/member/`.
-- **`admin/`** — the admin site: access control.
+- **`admin/`** — the admin site: access control + portal CMS.
   - `users.py` — `permission` → `role` (M:N via `role_permission`) → `app_user`, plus `/api/login`.
+  - `content.py` — the portal's dynamic menu & content: `menu` (Цэс, 2 levels deep, typed) →
+    `page` (Контент хуудас, one per `type='page'` menu) → `page_block` (ordered content blocks:
+    text / image / video / file / link), plus `/api/upload` for images and documents.
 
 ## Project layout
 
@@ -35,11 +38,14 @@ client/             # ── CLIENT SITE ──
                     #   (holboo — зөвхөн хүснэгт + seed; API маршрут байхгүй)
 admin/              # ── ADMIN SITE ──
   users.py          #   blueprint "users": /api/permission|role|user, /api/login
+  content.py        #   blueprint "content": /api/menu|page|page_block|page_image|
+                    #   page_file|page_video|upload  (порталын динамик цэс + контент)
 data/
   seed/             # JSON seed data loaded by db.py (admin_unit1|2|3.json)
   sources/          # original .xlsx sources (reference only, not read by code)
 docs/               # edu-union-backend.postman_collection.json (manual API reference)
 uploads/member/     # uploaded member PDFs (git-ignored; UPLOAD_DIR env overrides)
+uploads/content/    # portal images/documents (git-ignored; CONTENT_UPLOAD_DIR env overrides)
 admin_units.db      # SQLite database file (at repo root)
 ```
 
@@ -67,20 +73,30 @@ gunicorn run:app               # production WSGI server (loads the module-level 
   (`seed_all()`) locally to force a full re-seed.
 - `python db.py` runs `seed()` (loads `data/seed/admin_unit*.json`), the reference seeds
   (`seed_school_category()`, `seed_salary_scale()`, `seed_education_degree()`, `seed_position()`,
-  `seed_profession()`), then `seed_union()` and `seed_users()`. **References must be seeded before
+  `seed_profession()`), then `seed_union()`, `seed_menu()` (the portal's default menu tree) and
+  `seed_users()`. **References must be seeded before
   `seed_union()`** — its sample organization points at `school_category_id`, and the FK pragma
   rejects the insert otherwise. All use `INSERT OR IGNORE` / empty-table guards, so re-running is safe.
 - `seed_users()` creates the first admin account **only when `app_user` is empty**: `admin` / `admin123`.
-- No test suite or linter is configured. `docs/edu-union-backend.postman_collection.json` is the
-  reference for exercising the API endpoints manually.
+- No test suite or linter is configured — `docs/edu-union-backend.postman_collection.json` is the
+  de-facto test suite. It runs **top to bottom** (Postman Runner or
+  `newman run docs/edu-union-backend.postman_collection.json --env-var base_url=...`): 161 requests,
+  200 assertions, all green, and repeatable — three consecutive runs leave every table's row count
+  unchanged. **Keep it that way when adding requests:** run "0. Нэвтрэлт" first (it stores
+  `{{token}}`), have each folder's `Нэмэх` save the new id into a `{{new_*}}` variable, and point
+  that folder's `Засах`/`Устгах` at `{{new_*}}` only — never at a seeded row. `GET`s may read seed
+  rows (`{{au1_code}}`=011 etc.). A folder that creates N rows must delete all N. Pointing a `PUT`
+  at `/api/role/1` or a `DELETE` at `/api/user/1` wipes the admin's grants or the admin account
+  itself and every later request 403s.
 
 ## Architecture notes
 
-- **Two sites, one Flask app.** `run.py` builds the app via `create_app()` and registers three
-  blueprints — `admin_units` + `union` (client site) and `users` (admin site). Blueprints are
+- **Two sites, one Flask app.** `run.py` builds the app via `create_app()` and registers four
+  blueprints — `admin_units` + `union` (client site) and `users` + `content` (admin site). Blueprints are
   plain route modules; they do **not** register their own error handlers.
 - **Auth is enforced globally in `auth.py`.** `run.py` registers `app.before_request(require_auth)`,
-  so **every request except `/api/login` requires a Bearer token** (`Authorization: Bearer <jwt>`)
+  so **every request except `/api/login` and anything under `/uploads/` (`PUBLIC_PREFIXES`)
+  requires a Bearer token** (`Authorization: Bearer <jwt>`)
   → else 401. Tokens are stateless **JWTs** (PyJWT, HS256) with `sub`/`iat`/`exp` claims, signed with
   `SECRET_KEY` (env; set it in production), valid 12h. `/api/login` returns the token. **Authorization is derived, not hand-wired**:
   `require_auth()` maps the URL's first path segment → resource (au1/au2/au3 → `admin_unit`) and the
@@ -93,9 +109,9 @@ gunicorn run:app               # production WSGI server (loads the module-level 
   aborts raised inside any blueprint (Flask falls back to app-level handlers for blueprint errors).
 - **Shared helpers live in `helpers.py`.** `rows()` (Row→dict list), `require(data, fields)`
   (required-field check → 400), `json_body()` (parse JSON body or 400), and
-  `register_error_handlers(target)`. All three route modules import these — do not re-define them.
+  `register_error_handlers(target)`. All four route modules import these — do not re-define them.
 - **`db.py` is the single source of schema.** It defines `SCHEMA` (admin units), `SCHEMA_UNION`,
-  `SCHEMA_REF`, and `SCHEMA_USER` separately, all run inside `init_db()`. `get_db()` returns a
+  `SCHEMA_REF`, `SCHEMA_USER`, and `SCHEMA_CONTENT` separately, all run inside `init_db()`. `get_db()` returns a
   connection with `row_factory = sqlite3.Row` and `PRAGMA foreign_keys = ON` — foreign-key cascades
   only work because of that pragma, set per-connection. `_migrate()` patches older DBs in place
   (add/rename columns → `_migrate_data()` moves the old values → drop columns) since
@@ -139,6 +155,35 @@ gunicorn run:app               # production WSGI server (loads the module-level 
   `_check_ref()` (client/union.py) turns a bad id into a 400. Reads go through `MEMBER_SELECT` /
   `ORG_SELECT`, which LEFT JOIN the lookups so responses carry `position_name`, `profession_name`,
   `salary_scale_code`, `school_category_name`, etc. alongside the ids.
+- **Portal CMS** (`admin/content.py`) is menu-driven. `menu.type` decides what a menu shows:
+  `page` (fully dynamic content, admin-managed), `news`/`survey`/`poll`/`contact`/`home`
+  (built-in features — the admin may rename/hide/reorder them but not change what they do),
+  and `external` (jump to `external_url`, which is then required). Depth is capped at
+  **2 levels** (`_check_parent()` rejects a grandchild). `slug` is unique and auto-derived from
+  the title when omitted — `_slugify()` transliterates Cyrillic, `_unique_slug()` appends `-2`,
+  `-3` on collision. Creating (or switching a menu to) `type='page'` auto-creates its empty
+  `page` row via `_ensure_page()`. Deleting a menu cascades to sub-menus, `page` and blocks —
+  `delete_menu()` first collects the subtree's file URLs with a recursive CTE so the bytes on
+  disk go too.
+- **Page content is a list of ordered blocks, not fixed slots.** `page_block` is polymorphic
+  (same idea as `contact`): `type` ∈ `text`/`image`/`video`/`file`/`link`, and `BLOCK_FIELDS`
+  (read by `_public_block()`) decides which columns belong to each type — responses only carry
+  the relevant keys. The spec's `/api/page_image|page_file|page_video` routes are **thin typed
+  views over the same table** (`_list_typed()` / `_insert_block()`), so images, files and videos
+  share one `sort_order` sequence with the text blocks. `GET /api/page/<menu_id>` returns both
+  `blocks` (everything, in order) and the filtered `images`/`files`/`videos` arrays. Video blocks
+  echo their `url` as `youtube_url` for spec compatibility.
+- **`/api/page` route ids differ by method** (this is what the spec asks for):
+  `GET /api/page/<menu_id>` takes the **menu** id, `PUT /api/page/<id>` takes the **page** id.
+- **Portal uploads are two-step.** `POST /api/upload` (multipart, `file`) validates the extension
+  and size — images (jpg/jpeg/png/webp) ≤ 5 MB, documents (pdf/doc/docx/xls/xlsx) ≤ 20 MB — saves
+  to `CONTENT_UPLOAD_DIR` (`uploads/content/<uuid>.<ext>`) and returns `{url, name, mime_type,
+  size}`; the caller stores that `url` on a block or on `page.cover_image`. The bytes are served
+  back at `/uploads/content/<name>` **without a token** (a portal `<img src>` cannot send an
+  Authorization header) — that's what `PUBLIC_PREFIXES` in `auth.py` is for. Uploading still
+  needs `upload.create`. `_remove_upload()` deletes a file from disk when its block/cover is
+  deleted or replaced, and only ever touches paths under `UPLOAD_URL_PREFIX` (external URLs are
+  left alone). **On Render the disk is ephemeral** — same persistent-disk caveat as member PDFs.
 - **User management** (`admin/users.py`): a `role` has many `permission`s (M:N via `role_permission`);
   an `app_user` picks one `role_id` and inherits all its permissions. Passwords are hashed with
   `generate_password_hash(..., method="pbkdf2")` (scrypt is unavailable in this Python build).

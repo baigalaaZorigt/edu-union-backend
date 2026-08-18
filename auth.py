@@ -36,6 +36,11 @@ PATH_RESOURCE = {
 # Токен шаардахгүй нээлттэй замууд (нэвтрэлт)
 PUBLIC_PATHS = {"/api/login"}
 
+# Токен шаардахгүй нээлттэй угтваруудтай замууд.
+# /uploads/ — порталын <img src>/татах холбоос толгой дамжуулж чаддаггүй тул
+# байршуулсан зураг/файлыг нээлттэй үйлчилнэ (оруулах нь /api/upload — хамгаалалттай).
+PUBLIC_PREFIXES = ("/uploads/",)
+
 
 def make_token(user_id):
     """Хэрэглэгчийн id-г агуулсан JWT токен үүсгэнэ (sub, iat, exp claim-тэй)."""
@@ -95,6 +100,8 @@ def require_auth():
     if request.method == "OPTIONS":          # CORS preflight
         return
     if request.path in PUBLIC_PATHS:         # нэвтрэлт нээлттэй
+        return
+    if request.path.startswith(PUBLIC_PREFIXES):   # байршуулсан файл нээлттэй
         return
 
     # 1) Нэвтрэлт — Bearer токен
