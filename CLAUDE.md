@@ -189,6 +189,11 @@ gunicorn run:app               # production WSGI server (loads the module-level 
   `generate_password_hash(..., method="pbkdf2")` (scrypt is unavailable in this Python build).
   `public_user()` strips `password_hash` from every response. Seed permissions are the cross-product
   of `PERMISSION_RESOURCES × PERMISSION_ACTIONS` (CRUD per resource) in `db.py`.
+- **An `organization` carries its own primary contact details** — `phone1`, `phone2`, `email`,
+  `contact_name` are plain columns (the registration form fills them in directly). `contact` rows
+  still work for an organization and are the way to record a *third* phone, a fax, or a second
+  e-mail; the columns are the common case, the table is the overflow. `member` and `horoo` have
+  no such columns — they go through `contact` only.
 - **`contact` is polymorphic**: `owner_type` is `'horoo'`, `'organization'` or `'member'` (the value
   is also the table name), `owner_id` points into the matching table. This is how an owner gets
   **many** phones/faxes/emails — `member` has no single phone column. There is no FK on `contact`;

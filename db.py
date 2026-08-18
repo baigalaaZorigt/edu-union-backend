@@ -72,6 +72,12 @@ CREATE TABLE IF NOT EXISTS organization (
     au3_code            TEXT,               -- Баг/хороо (admin_unit3.au3_code)
     address_detail      TEXT,               -- Дэлгэрэнгүй хаяг
     postal_address      TEXT,               -- Шуудангийн хаяг
+    -- Байгууллагын үндсэн холбоо барих мэдээлэл (маягтад шууд дүүргэхэд зориулсан).
+    -- Үүнээс ИЛҮҮ олон утас/факс/и-мэйл хэрэгтэй бол contact хүснэгтийг ашиглана.
+    phone1              TEXT,               -- Утас 1
+    phone2              TEXT,               -- Утас 2
+    email               TEXT,               -- И-мэйл
+    contact_name        TEXT,               -- Холбогдох хүний нэр
     FOREIGN KEY (horoo_id) REFERENCES horoo(id) ON DELETE CASCADE,
     FOREIGN KEY (school_category_id) REFERENCES school_category(id) ON DELETE SET NULL
 );
@@ -484,6 +490,10 @@ _MIGRATIONS = {
         ("salary_scale_id", "INTEGER"),
     ],
     "organization": [
+        ("phone1", "TEXT"),
+        ("phone2", "TEXT"),
+        ("email", "TEXT"),
+        ("contact_name", "TEXT"),
         ("school_category_id", "INTEGER"),
         ("org_code", "TEXT"),
         ("state_reg_number", "TEXT"),
@@ -951,13 +961,15 @@ def seed_union():
         """INSERT INTO organization
            (horoo_id, name, school_category_id, org_code, registration_number,
             state_reg_number, founded_date, activity_code, activity_name, parent_org,
-            au1_code, au2_code, address_detail, postal_address)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            au1_code, au2_code, address_detail, postal_address,
+            phone1, phone2, email, contact_name)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (horoo_id, "АШУҮИС-ийн харьяа сургууль", 14, "001",  # 14 + 001 -> 14001
          "9923659", "9019001234", "2023-01-31", "8530",
          "Дээд боловсрол олгох үйл ажиллагаа",
          "Анагаахын шинжлэх ухааны үндэсний их сургууль",
-         "011", "01101", "Ард Аюушийн гудамж", "Улаанбаатар 14210, ШУТИС-14-р байр"),
+         "011", "01101", "Ард Аюушийн гудамж", "Улаанбаатар 14210, ШУТИС-14-р байр",
+         "70112233", "99112233", "info@example.mn", "Б.Болд"),
     )
     org_id = cur.lastrowid
 

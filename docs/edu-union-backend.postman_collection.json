@@ -1054,7 +1054,7 @@
       ],
       "body": {
        "mode": "raw",
-       "raw": "{\n  \"horoo_id\": 1,\n  \"name\": \"Шинэ сургууль\",\n  \"school_category_id\": 12,\n  \"org_code\": \"123\",\n  \"registration_number\": \"9923659\",\n  \"state_reg_number\": \"9019001234\",\n  \"founded_date\": \"2023-01-31\",\n  \"activity_code\": \"8530\",\n  \"activity_name\": \"Дээд боловсрол олгох үйл ажиллагаа\",\n  \"parent_org\": \"АШУҮИС\",\n  \"au1_code\": \"011\",\n  \"au2_code\": \"01101\",\n  \"au3_code\": \"0110151\",\n  \"address_detail\": \"Ард Аюушийн гудамж\",\n  \"postal_address\": \"Улаанбаатар 14210, ШУТИС-14-р байр\"\n}"
+       "raw": "{\n  \"horoo_id\": 1,\n  \"name\": \"Шинэ сургууль\",\n  \"school_category_id\": 12,\n  \"org_code\": \"123\",\n  \"registration_number\": \"9923659\",\n  \"state_reg_number\": \"9019001234\",\n  \"founded_date\": \"2023-01-31\",\n  \"activity_code\": \"8530\",\n  \"activity_name\": \"Дээд боловсрол олгох үйл ажиллагаа\",\n  \"parent_org\": \"АШУҮИС\",\n  \"au1_code\": \"011\",\n  \"au2_code\": \"01101\",\n  \"au3_code\": \"0110151\",\n  \"address_detail\": \"Ард Аюушийн гудамж\",\n  \"postal_address\": \"Улаанбаатар 14210, ШУТИС-14-р байр\",\n  \"phone1\": \"70112233\",\n  \"phone2\": \"99112233\",\n  \"email\": \"info@example.mn\",\n  \"contact_name\": \"Б.Болд\"\n}"
       },
       "url": {
        "raw": "{{base_url}}/api/organization",
@@ -1094,7 +1094,7 @@
       ],
       "body": {
        "mode": "raw",
-       "raw": "{\n  \"name\": \"Шинэчилсэн нэр\",\n  \"school_category_id\": 14,\n  \"org_code\": \"007\",\n  \"state_reg_number\": \"9019005678\",\n  \"address_detail\": \"Шинэ хаяг\",\n  \"postal_address\": \"Улаанбаатар 15160\"\n}"
+       "raw": "{\n  \"name\": \"Шинэчилсэн нэр\",\n  \"school_category_id\": 14,\n  \"org_code\": \"007\",\n  \"state_reg_number\": \"9019005678\",\n  \"address_detail\": \"Шинэ хаяг\",\n  \"postal_address\": \"Улаанбаатар 15160\",\n  \"phone2\": \"88001122\",\n  \"contact_name\": \"Д.Сараа\"\n}"
       },
       "url": {
        "raw": "{{base_url}}/api/organization/{{new_organization_id}}",
@@ -1115,7 +1115,8 @@
        "script": {
         "type": "text/javascript",
         "exec": [
-         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('холбоо барих талбар шинэчлэгдсэн', () => pm.expect(pm.response.json().fields).to.include('contact_name'));"
         ]
        }
       }

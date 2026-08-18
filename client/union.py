@@ -70,6 +70,7 @@ ORG_FIELDS = (
     "registration_number", "state_reg_number", "founded_date",
     "activity_code", "activity_name", "parent_org",
     "au1_code", "au2_code", "au3_code", "address_detail", "postal_address",
+    "phone1", "phone2", "email", "contact_name",
 )
 
 # Гишүүнийг лавлах + байгууллагын кодтой нь хамт унших SELECT
