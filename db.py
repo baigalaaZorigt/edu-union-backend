@@ -311,6 +311,111 @@ CREATE INDEX IF NOT EXISTS idx_page_menu ON page(menu_id);
 CREATE INDEX IF NOT EXISTS idx_page_block_page ON page_block(page_id);
 """
 
+# ─── Судалгаа / Санал асуулга (survey & poll) ───────────────────────────────
+# Нэг engine — form.type нь survey (судалгаа) эсвэл poll (санал асуулга).
+# Бүтэц:  form -> form_question -> form_option
+#         form -> form_document (poll-д хавсаргах PDF)
+#         form -> form_submission -> form_answer -> form_answer_option
+# Огноонууд "YYYY-MM-DD HH:MM:SS" (UTC) — SQLite-ийн DATE()-ээр өдрөөр бүлэглэнэ.
+SCHEMA_FORM = """
+CREATE TABLE IF NOT EXISTS form (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    type         TEXT NOT NULL DEFAULT 'survey',   -- survey / poll
+    title        TEXT NOT NULL,
+    description  TEXT,
+    status       TEXT NOT NULL DEFAULT 'draft',    -- draft / published / closed
+    start_at     TEXT,                             -- эхлэх хугацаа (хоосон = хязгааргүй)
+    end_at       TEXT,                             -- дуусах хугацаа
+    show_results INTEGER NOT NULL DEFAULT 1,       -- порталд үр дүнг харуулах эсэх
+    one_response INTEGER NOT NULL DEFAULT 1,       -- нэг хэрэглэгч нэг л удаа бөглөх
+    created_by   INTEGER,                          -- app_user.id
+    updated_by   INTEGER,
+    created_at   TEXT,
+    updated_at   TEXT,
+    deleted_at   TEXT,                             -- зөөлөн устгал (хариулттай маягт)
+    FOREIGN KEY (created_by) REFERENCES app_user(id) ON DELETE SET NULL,
+    FOREIGN KEY (updated_by) REFERENCES app_user(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS form_question (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    form_id       INTEGER NOT NULL,
+    question_type TEXT NOT NULL,                   -- single_choice/multiple_choice/scale/open_text
+    title         TEXT NOT NULL,                   -- асуултын текст
+    description   TEXT,                            -- нэмэлт тайлбар
+    is_required   INTEGER NOT NULL DEFAULT 0,
+    sort_order    INTEGER NOT NULL DEFAULT 0,
+    settings      TEXT,                            -- JSON текст (scale: {"min":1,"max":5})
+    created_at    TEXT,
+    updated_at    TEXT,
+    FOREIGN KEY (form_id) REFERENCES form(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS form_option (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    question_id INTEGER NOT NULL,
+    label       TEXT NOT NULL,
+    sort_order  INTEGER NOT NULL DEFAULT 0,
+    created_at  TEXT,
+    updated_at  TEXT,
+    FOREIGN KEY (question_id) REFERENCES form_question(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS form_document (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    form_id    INTEGER NOT NULL,
+    file_name  TEXT NOT NULL,                      -- анхны нэр (ж: labor-law-2026.pdf)
+    file_path  TEXT NOT NULL,                      -- /uploads/form/<uuid>.pdf
+    mime_type  TEXT,
+    file_size  INTEGER,
+    created_at TEXT,
+    FOREIGN KEY (form_id) REFERENCES form(id) ON DELETE CASCADE
+);
+
+-- Нэг маягтад өгсөн нэг илгээмж.
+-- UNIQUE индекс ТАВЬСАНГҮЙ — one_response=0 үед олон удаа бөглөх боломжтой байх ёстой
+-- тул давхцлыг код дээр (client/forms.py) form.one_response-оос хамааруулж шалгана.
+-- Портал НЭЭЛТТЭЙ (auth.py-ийн PUBLIC_PREFIXES) тул зочин ч бөглөж чадна —
+-- тэр үед user_id нь NULL. Спекийн V1-д IP/төхөөрөмжөөр давхардал хязгаарлахгүй.
+CREATE TABLE IF NOT EXISTS form_submission (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    form_id      INTEGER NOT NULL,
+    user_id      INTEGER,                          -- app_user.id; зочин бол NULL (FK тавиагүй)
+    submitted_at TEXT,
+    created_at   TEXT,
+    FOREIGN KEY (form_id) REFERENCES form(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS form_answer (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    submission_id INTEGER NOT NULL,
+    question_id   INTEGER NOT NULL,
+    text_value    TEXT,                            -- open_text
+    numeric_value REAL,                            -- scale
+    created_at    TEXT,
+    FOREIGN KEY (submission_id) REFERENCES form_submission(id) ON DELETE CASCADE,
+    FOREIGN KEY (question_id) REFERENCES form_question(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS form_answer_option (
+    id        INTEGER PRIMARY KEY AUTOINCREMENT,
+    answer_id INTEGER NOT NULL,
+    option_id INTEGER NOT NULL,
+    FOREIGN KEY (answer_id) REFERENCES form_answer(id) ON DELETE CASCADE,
+    FOREIGN KEY (option_id) REFERENCES form_option(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_form_question_form ON form_question(form_id);
+CREATE INDEX IF NOT EXISTS idx_form_option_question ON form_option(question_id);
+CREATE INDEX IF NOT EXISTS idx_form_document_form ON form_document(form_id);
+CREATE INDEX IF NOT EXISTS idx_form_submission_form ON form_submission(form_id, user_id);
+CREATE INDEX IF NOT EXISTS idx_form_answer_submission ON form_answer(submission_id);
+CREATE INDEX IF NOT EXISTS idx_form_answer_question ON form_answer(question_id);
+CREATE INDEX IF NOT EXISTS idx_form_answer_option_answer ON form_answer_option(answer_id);
+CREATE INDEX IF NOT EXISTS idx_form_answer_option_option ON form_answer_option(option_id);
+"""
+
+
 # Сургуулийн ангиллын анхдагч өгөгдөл (Ангилал сургуулиуд.xlsx-аас).
 # id нь бүртгэлийн кодны эхний 2 орон болдог тул 11-ээс эхэлнэ.
 SCHOOL_CATEGORIES = [
@@ -442,6 +547,13 @@ PERMISSION_RESOURCES = [
     ("page_file", "Хуудасны файл"),
     ("page_video", "Хуудасны видео"),
     ("upload", "Файл байршуулах"),
+    # --- Судалгаа / Санал асуулга (survey & poll) ---
+    ("form", "Судалгаа / Санал асуулга"),
+    ("form_question", "Маягтын асуулт"),
+    ("form_option", "Асуултын сонголт"),
+    ("form_document", "Маягтын PDF"),
+    ("form_submission", "Бөглөсөн хариулт"),
+    ("form_result", "Судалгааны үр дүн"),
 ]
 PERMISSION_ACTIONS = [
     ("create", "нэмэх"),
@@ -656,6 +768,38 @@ def _migrate_data(conn):
                              (cid, oid))
 
 
+def _relax_submission_user(conn):
+    """form_submission.user_id-г NOT NULL байснаас NULL зөвшөөрөх болгож сулруулна.
+
+    Портал нээлттэй болсноор зочин (нэвтрээгүй) хүн ч бөглөдөг болсон. SQLite
+    баганы NOT NULL хязгаарыг ALTER-аар авч чаддаггүй тул хүснэгтийг дахин барина.
+    DROP TABLE нь foreign_keys pragma асаалттай үед form_answer руу cascade хийчихдэг
+    тул үйлдлийн турш pragma-г унтраана (шинэ DB дээр энэ функц юу ч хийхгүй).
+    """
+    info = {r[1]: r for r in conn.execute("PRAGMA table_info(form_submission)")}
+    if "user_id" not in info or not info["user_id"][3]:   # notnull=0 бол хийх зүйлгүй
+        return
+    conn.commit()                       # PRAGMA нь гүйлгээний ГАДНА л үйлчилнэ
+    conn.execute("PRAGMA foreign_keys = OFF")
+    conn.executescript("""
+        CREATE TABLE form_submission_new (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            form_id      INTEGER NOT NULL,
+            user_id      INTEGER,
+            submitted_at TEXT,
+            created_at   TEXT,
+            FOREIGN KEY (form_id) REFERENCES form(id) ON DELETE CASCADE
+        );
+        INSERT INTO form_submission_new(id, form_id, user_id, submitted_at, created_at)
+            SELECT id, form_id, user_id, submitted_at, created_at FROM form_submission;
+        DROP TABLE form_submission;
+        ALTER TABLE form_submission_new RENAME TO form_submission;
+        CREATE INDEX IF NOT EXISTS idx_form_submission_form
+            ON form_submission(form_id, user_id);
+    """)
+    conn.execute("PRAGMA foreign_keys = ON")
+
+
 def _migrate(conn):
     # 0) Галиглал -> англи нэр солих (дутуу багана нэмэхээс ӨМНӨ)
     for table, renames in _RENAME_COLUMNS.items():
@@ -676,9 +820,11 @@ def _migrate(conn):
             conn.execute(f"ALTER TABLE {table} RENAME COLUMN address TO address_detail")
         elif "address_detail" not in _cols(conn, table):
             conn.execute(f"ALTER TABLE {table} ADD COLUMN address_detail TEXT")
-    # 3) Хуучин баганы утгыг шинэ бүтэц рүү зөөх (устгахаас өмнө)
+    # 3) form_submission.user_id-г NULL зөвшөөрөхөөр сулруулах (зочны бөглөлт)
+    _relax_submission_user(conn)
+    # 4) Хуучин баганы утгыг шинэ бүтэц рүү зөөх (устгахаас өмнө)
     _migrate_data(conn)
-    # 4) Хэрэглэхгүй болсон баганыг устгах
+    # 5) Хэрэглэхгүй болсон баганыг устгах
     for table, drops in _DROP_COLUMNS.items():
         existing = _cols(conn, table)
         for name in drops:
@@ -693,6 +839,7 @@ def init_db():
     conn.executescript(SCHEMA_REF)
     conn.executescript(SCHEMA_USER)
     conn.executescript(SCHEMA_CONTENT)
+    conn.executescript(SCHEMA_FORM)
     _migrate(conn)
     conn.commit()
     conn.close()

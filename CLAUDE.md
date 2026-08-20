@@ -25,6 +25,13 @@ are in Mongolian (Cyrillic). The backend serves **two sites**, each in its own f
   - `content.py` — the portal's dynamic menu & content: `menu` (Цэс, 2 levels deep, typed) →
     `page` (Контент хуудас, one per `type='page'` menu) → `page_block` (ordered content blocks:
     text / image / video / file / link), plus `/api/upload` for images and documents.
+  - `forms.py` — the admin half of the survey / poll engine (`/api/admin/...`).
+
+The survey / poll engine spans both sites and shares one domain core at the repo root:
+`forms_core.py` (validation, `public_*` shaping, result aggregation) is imported by
+`admin/forms.py` (`/api/admin/...` — build forms, questions, options, PDFs, read results)
+and `client/forms.py` (`/api/portal/...` — list, open, submit). See
+`survey_poll_backend_spec_v1.md` for the spec it implements.
 
 ## Project layout
 
@@ -32,20 +39,25 @@ are in Mongolian (Cyrillic). The backend serves **two sites**, each in its own f
 run.py              # entry point: create_app() + registers both sites' blueprints
 db.py               # single source of schema + seed (shared by both sites)
 helpers.py          # shared route helpers (rows, require, json_body, error handlers)
+forms_core.py       # survey/poll домэйний цөм (хоёр site хуваалцана)
 client/             # ── CLIENT SITE ──
   admin_units.py    #   blueprint "admin_units": /api/au1|au2|au3, /api/school_category
   union.py          #   blueprint "union": /api/horoo|organization|member|contact|salary*|...
                     #   (holboo — зөвхөн хүснэгт + seed; API маршрут байхгүй)
+  forms.py          #   blueprint "portal_forms": /api/portal/forms... (НЭЭЛТТЭЙ — токенгүй)
 admin/              # ── ADMIN SITE ──
   users.py          #   blueprint "users": /api/permission|role|user, /api/login
   content.py        #   blueprint "content": /api/menu|page|page_block|page_image|
                     #   page_file|page_video|upload  (порталын динамик цэс + контент)
+  forms.py          #   blueprint "admin_forms": /api/admin/forms|questions|options|
+                    #   documents, .../results  (судалгаа/санал асуулга барих + үр дүн)
 data/
   seed/             # JSON seed data loaded by db.py (admin_unit1|2|3.json)
   sources/          # original .xlsx sources (reference only, not read by code)
 docs/               # edu-union-backend.postman_collection.json (manual API reference)
 uploads/member/     # uploaded member PDFs (git-ignored; UPLOAD_DIR env overrides)
 uploads/content/    # portal images/documents (git-ignored; CONTENT_UPLOAD_DIR env overrides)
+uploads/form/       # poll PDFs (git-ignored; FORM_UPLOAD_DIR env overrides)
 admin_units.db      # SQLite database file (at repo root)
 ```
 
@@ -80,28 +92,42 @@ gunicorn run:app               # production WSGI server (loads the module-level 
 - `seed_users()` creates the first admin account **only when `app_user` is empty**: `admin` / `admin123`.
 - No test suite or linter is configured — `docs/edu-union-backend.postman_collection.json` is the
   de-facto test suite. It runs **top to bottom** (Postman Runner or
-  `newman run docs/edu-union-backend.postman_collection.json --env-var base_url=...`): 161 requests,
-  200 assertions, all green, and repeatable — three consecutive runs leave every table's row count
-  unchanged. **Keep it that way when adding requests:** run "0. Нэвтрэлт" first (it stores
+  `newman run docs/edu-union-backend.postman_collection.json --env-var base_url=...`): 219 requests,
+  315 assertions, and repeatable — three consecutive runs leave every table's row count
+  unchanged. (One known red on a *fresh* DB: `ҮЭ — Гишүүний боловсрол / Нэгийг авах` reads
+  `member_education_id`=1, but `seed_union()` creates no `member_education` row.) **Keep it that way when adding requests:** run "0. Нэвтрэлт" first (it stores
   `{{token}}`), have each folder's `Нэмэх` save the new id into a `{{new_*}}` variable, and point
-  that folder's `Засах`/`Устгах` at `{{new_*}}` only — never at a seeded row. `GET`s may read seed
+  that folder's `Засах`/`Устгах` at `{{new_*}}` only — never at a seeded row. The
+  `Судалгаа 1..8` folders additionally show the pattern for **public** endpoints: every
+  `/api/portal/` request carries `"auth": {"type": "noauth"}` so the run proves a guest can
+  submit without a token, and the cleanup folder deletes forms with `?hard=1` (a form with
+  answers is otherwise only soft-deleted, which would leave the row count changed). `GET`s may read seed
   rows (`{{au1_code}}`=011 etc.). A folder that creates N rows must delete all N. Pointing a `PUT`
   at `/api/role/1` or a `DELETE` at `/api/user/1` wipes the admin's grants or the admin account
   itself and every later request 403s.
 
 ## Architecture notes
 
-- **Two sites, one Flask app.** `run.py` builds the app via `create_app()` and registers four
-  blueprints — `admin_units` + `union` (client site) and `users` + `content` (admin site). Blueprints are
-  plain route modules; they do **not** register their own error handlers.
+- **Two sites, one Flask app.** `run.py` builds the app via `create_app()` and registers six
+  blueprints — `admin_units` + `union` + `portal_forms` (client site) and `users` + `content` +
+  `admin_forms` (admin site). Blueprints are plain route modules; they do **not** register their
+  own error handlers. **A new blueprint is invisible until it is registered here** — that is the
+  one step `CREATE TABLE`/route decorators cannot do for you.
+- **CORS is hand-rolled in `run.py`** (`add_cors_headers` via `app.after_request`) — no extra
+  dependency. `CORS_ORIGINS` (env, comma-separated) defaults to `*`; that is safe here because
+  auth is a Bearer token, never a cookie, so a wildcard grants no CSRF. `require_auth()` already
+  short-circuits `OPTIONS`, so preflights pass.
 - **Auth is enforced globally in `auth.py`.** `run.py` registers `app.before_request(require_auth)`,
-  so **every request except `/api/login` and anything under `/uploads/` (`PUBLIC_PREFIXES`)
-  requires a Bearer token** (`Authorization: Bearer <jwt>`)
+  so **every request except `/api/login` and anything under `/uploads/` or `/api/portal/`
+  (`PUBLIC_PREFIXES`) requires a Bearer token** (`Authorization: Bearer <jwt>`)
   → else 401. Tokens are stateless **JWTs** (PyJWT, HS256) with `sub`/`iat`/`exp` claims, signed with
   `SECRET_KEY` (env; set it in production), valid 12h. `/api/login` returns the token. **Authorization is derived, not hand-wired**:
   `require_auth()` maps the URL's first path segment → resource (au1/au2/au3 → `admin_unit`) and the
   HTTP method → action (GET→read, POST→create, PUT/PATCH→update, DELETE→delete), then requires the
-  `resource.action` permission on the user's role → else 403. So **adding a new `/api/<resource>`
+  `resource.action` permission on the user's role → else 403. For the survey/poll routes it first
+  strips the `admin`/`portal` site segment (`SITE_PREFIXES`), then lets **later** path segments
+  override both halves — `SUB_RESOURCE` (`.../questions/9/answers` → `form_result`) and
+  `SUB_ACTION` (`POST .../publish` → `update`, not `create`). So **adding a new `/api/<resource>`
   route automatically needs `<resource>.{action}` permissions** — add the resource to
   `PERMISSION_RESOURCES` in `db.py` (which is the cross-product source for the seeded CRUD permissions).
 - **Error handling is centralized.** `register_error_handlers(app)` in `run.py` maps
@@ -184,6 +210,32 @@ gunicorn run:app               # production WSGI server (loads the module-level 
   needs `upload.create`. `_remove_upload()` deletes a file from disk when its block/cover is
   deleted or replaced, and only ever touches paths under `UPLOAD_URL_PREFIX` (external URLs are
   left alone). **On Render the disk is ephemeral** — same persistent-disk caveat as member PDFs.
+- **The survey / poll engine is one `form` table, not two features.** `form.type` is `survey`
+  (судалгаа) or `poll` (санал асуулга — may carry PDFs); everything else — questions, options,
+  submissions, results — is shared. `form.status` walks `draft → published → closed`
+  (`POST .../publish` / `.../close`). Question types are fixed at four (`QUESTION_TYPES` in
+  `forms_core.py`): `single_choice` / `multiple_choice` (need `form_option` rows) plus `scale`
+  and `open_text`. `form_question.settings` is free-form JSON — `scale` gets `min`/`max`
+  validated into it, and any extra keys the frontend needs (`min_label`, `placeholder`, …) pass
+  through untouched.
+- **The portal side is fully public.** `/api/portal/` is in `PUBLIC_PREFIXES`, so a visitor lists,
+  opens and **submits** surveys with no token at all. When a token *is* sent, `_optional_user()`
+  loads it without ever aborting (a bad token just means "guest"), so a logged-in submission is
+  recorded under `form_submission.user_id` and `one_response` applies to it. **A guest submission
+  stores `user_id = NULL` and is never deduplicated** — spec V1 explicitly rules out anonymous-vote
+  and IP/device prevention. Don't put a UNIQUE index back on `(form_id, user_id)`: `one_response=0`
+  and guest rows both need duplicates.
+- **A form with answers is structurally frozen.** `_lock_if_answered()` (admin/forms.py) returns
+  409 when a form already has submissions and someone tries to delete a question, delete/add an
+  option, or change a question's type — old `form_answer_option` rows would otherwise lose meaning.
+  Renaming an option label is always allowed (it doesn't move any answer). Deleting a form with
+  answers **soft-deletes** it (`deleted_at`); `?hard=1` forces a real delete.
+- **Result percentages are per-question, not per-form.** `_choice_results()` divides by the number
+  of people who answered *that* question, so `multiple_choice` percentages sum past 100% by design.
+  `_scale_results()` fills gaps in the 1..N range with zero counts so charts have no holes.
+- **Poll PDFs mirror the member-PDF pattern**: validated (`.pdf` + `%PDF-` header, ≤20 MB, all
+  files checked before any is saved), bytes under `FORM_UPLOAD_DIR` (`uploads/form/<uuid>.pdf`),
+  metadata in `form_document`, served token-free from `/uploads/form/` for the portal's PDF viewer.
 - **User management** (`admin/users.py`): a `role` has many `permission`s (M:N via `role_permission`);
   an `app_user` picks one `role_id` and inherits all its permissions. Passwords are hashed with
   `generate_password_hash(..., method="pbkdf2")` (scrypt is unavailable in this Python build).

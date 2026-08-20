@@ -1,7 +1,7 @@
 {
  "info": {
   "name": "edu-union-backend — Засаг захиргаа, ҮЭ, Хэрэглэгчийн удирдлага",
-  "description": "edu-union-backend — Flask + SQLite JSON API-ийн бүрэн лавлах цуглуулга.\n\n## Хэрхэн ажиллуулах\n1. Сервер: `python run.py` (анхдагч http://127.0.0.1:5001).\n2. `base_url` хувьсагчийг серверийнхээ хаягаар тохируулна.\n3. **'0. Нэвтрэлт (login)'-ийг ЭХЭЛЖ ажиллуулна** — токен `{{token}}`-д хадгалагдаж, бусад бүх хүсэлт үүнийг Bearer толгойгоор автоматаар авна.\n4. Дараа нь Runner-ээр бүх цуглуулгыг дээрээс доош ажиллуулж болно.\n\n## Зарчим\n- Фолдер бүр **өөрийгөө цэвэрлэдэг**: `Нэмэх` шинэ бичлэг үүсгэж id-г нь `{{new_*}}` хувьсагчид хадгална, `Засах`/`Устгах` нь ЗӨВХӨН тэр бичлэгийг онилно. Тиймээс цуглуулгыг хэдэн ч удаа ажиллуулсан seed өгөгдөл (аймаг, лавлахууд, admin дүр/хэрэглэгч) хэвээр үлдэнэ.\n- `GET` хүсэлтүүд seed мөрүүдийг (ж: `{{au1_code}}`=011) уншина.\n- Хүсэлт бүрд статусын шалгалт (`pm.test`) байгаа тул Runner-т ногоон/улаанаар харагдана.\n\n## Файлтай хүсэлтүүд\n`ҮЭ — Гишүүний файл` болон `Портал 2 — Файл байршуулах` дотор Body → form-data → `file` мөрөнд компьютерээсээ файлаа СОНГОНО. Сонгоогүй үед тэдгээр хүсэлт алгасагдаж, дараагийнх нь анхдагч утгаар үргэлжилнэ.\n\n## Портал (цэс ба контент)\n`Портал 1..7` фолдерууд дараалан ажиллах бүтэн урсгал: цэс үүсгэх → файл байршуулах → контент засах → блок нэмэх/эрэмбэлэх → спекийн зураг/файл/видео маршрут → алдааны шалгалт → cascade устгал.",
+  "description": "edu-union-backend — Flask + SQLite JSON API-ийн бүрэн лавлах цуглуулга.\n\n## Хэрхэн ажиллуулах\n1. Сервер: `python run.py` (анхдагч http://127.0.0.1:5001).\n2. `base_url` хувьсагчийг серверийнхээ хаягаар тохируулна.\n3. **'0. Нэвтрэлт (login)'-ийг ЭХЭЛЖ ажиллуулна** — токен `{{token}}`-д хадгалагдаж, бусад бүх хүсэлт үүнийг Bearer толгойгоор автоматаар авна.\n4. Дараа нь Runner-ээр бүх цуглуулгыг дээрээс доош ажиллуулж болно.\n\n## Зарчим\n- Фолдер бүр **өөрийгөө цэвэрлэдэг**: `Нэмэх` шинэ бичлэг үүсгэж id-г нь `{{new_*}}` хувьсагчид хадгална, `Засах`/`Устгах` нь ЗӨВХӨН тэр бичлэгийг онилно. Тиймээс цуглуулгыг хэдэн ч удаа ажиллуулсан seed өгөгдөл (аймаг, лавлахууд, admin дүр/хэрэглэгч) хэвээр үлдэнэ.\n- `GET` хүсэлтүүд seed мөрүүдийг (ж: `{{au1_code}}`=011) уншина.\n- Хүсэлт бүрд статусын шалгалт (`pm.test`) байгаа тул Runner-т ногоон/улаанаар харагдана.\n\n## Файлтай хүсэлтүүд\n`ҮЭ — Гишүүний файл` болон `Портал 2 — Файл байршуулах` дотор Body → form-data → `file` мөрөнд компьютерээсээ файлаа СОНГОНО. Сонгоогүй үед тэдгээр хүсэлт алгасагдаж, дараагийнх нь анхдагч утгаар үргэлжилнэ.\n\n## Портал (цэс ба контент)\n`Портал 1..7` фолдерууд дараалан ажиллах бүтэн урсгал: цэс үүсгэх → файл байршуулах → контент засах → блок нэмэх/эрэмбэлэх → спекийн зураг/файл/видео маршрут → алдааны шалгалт → cascade устгал.\n\n## Судалгаа / Санал асуулга\n`Судалгаа 1..8` фолдерууд дараалан ажиллах бүтэн урсгал: маягт үүсгэх → асуулт барих → сонголт → PDF хавсаргах → **токенгүй** порталаас бөглөх → үр дүн/трэнд → алдааны шалгалт → бүрэн цэвэрлэгээ.\n\n`/api/portal/...` нь НЭЭЛТТЭЙ тул тэдгээр хүсэлт `noauth`-той явна — зочин хүн нэвтрэхгүйгээр судалгаа бөглөнө. Токен ирвэл бөглөлт хэрэглэгчийн нэр дээр бүртгэгдэж `one_response` үйлчилнэ.",
   "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
  },
  "auth": {
@@ -245,6 +245,86 @@
   },
   {
    "key": "new_member_file_id2",
+   "value": ""
+  },
+  {
+   "key": "survey_id",
+   "value": ""
+  },
+  {
+   "key": "poll_id",
+   "value": ""
+  },
+  {
+   "key": "sq1_id",
+   "value": ""
+  },
+  {
+   "key": "sq2_id",
+   "value": ""
+  },
+  {
+   "key": "sq3_id",
+   "value": ""
+  },
+  {
+   "key": "sq4_id",
+   "value": ""
+  },
+  {
+   "key": "sq1_opt1_id",
+   "value": ""
+  },
+  {
+   "key": "sq1_opt2_id",
+   "value": ""
+  },
+  {
+   "key": "sq2_opt1_id",
+   "value": ""
+  },
+  {
+   "key": "sq2_opt2_id",
+   "value": ""
+  },
+  {
+   "key": "pq1_id",
+   "value": ""
+  },
+  {
+   "key": "pq1_opt1_id",
+   "value": ""
+  },
+  {
+   "key": "new_form_question_id",
+   "value": ""
+  },
+  {
+   "key": "nq_opt1_id",
+   "value": ""
+  },
+  {
+   "key": "nq_opt2_id",
+   "value": ""
+  },
+  {
+   "key": "dup_question_id",
+   "value": ""
+  },
+  {
+   "key": "new_form_option_id",
+   "value": ""
+  },
+  {
+   "key": "form_document_id",
+   "value": ""
+  },
+  {
+   "key": "form_doc_url",
+   "value": ""
+  },
+  {
+   "key": "empty_form_id",
    "value": ""
   }
  ],
@@ -6030,6 +6110,2389 @@
         "exec": [
          "pm.test('статус 200', () => pm.response.to.have.status(200));",
          "pm.test('блок үлдээгүй', () => pm.expect(pm.response.json().length).to.eql(0));"
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Судалгаа 1 — Маягт (form)",
+   "description": "Судалгаа (survey) үүсгэх → жагсаалт/шүүлт → засах → нийтлэх. Асуултуудыг маягттай нь НЭГ хүсэлтээр үүсгэж, id-г нь дараагийн фолдеруудад дамжуулна.",
+   "item": [
+    {
+     "name": "Нэмэх (4 асуулттай судалгаа) → survey_id",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/admin/forms",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "forms"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"type\": \"survey\",\n  \"title\": \"Багшийн ажлын ачааллын судалгаа 2026\",\n  \"description\": \"Багш нарын ажлын бодит ачаалал, сургалтын хэрэгцээг тодорхойлно.\",\n  \"start_at\": \"2020-01-01\",\n  \"end_at\": \"2035-12-31\",\n  \"show_results\": true,\n  \"one_response\": true,\n  \"questions\": [\n    {\n      \"question_type\": \"single_choice\",\n      \"title\": \"Та ажлын ачааллаа хэрхэн үнэлэх вэ?\",\n      \"is_required\": true,\n      \"options\": [\n        {\n          \"label\": \"Хэт их\"\n        },\n        {\n          \"label\": \"Боломжийн\"\n        },\n        {\n          \"label\": \"Бага\"\n        }\n      ]\n    },\n    {\n      \"question_type\": \"multiple_choice\",\n      \"title\": \"Аль чиглэлийн сургалтад хамрагдмаар байна вэ?\",\n      \"is_required\": true,\n      \"options\": [\n        {\n          \"label\": \"Заах арга зүй\"\n        },\n        {\n          \"label\": \"Дижитал технологи\"\n        },\n        {\n          \"label\": \"Сэтгэл зүй\"\n        },\n        {\n          \"label\": \"Гадаад хэл\"\n        }\n      ]\n    },\n    {\n      \"question_type\": \"scale\",\n      \"title\": \"Ажлын орчноо 1–5 оноогоор үнэлнэ үү\",\n      \"is_required\": true,\n      \"settings\": {\n        \"min\": 1,\n        \"max\": 5,\n        \"min_label\": \"Муу\",\n        \"max_label\": \"Маш сайн\"\n      }\n    },\n    {\n      \"question_type\": \"open_text\",\n      \"title\": \"Танд хамгийн их тулгардаг асуудлыг товч бичнэ үү\",\n      \"settings\": {\n        \"placeholder\": \"Нэмэлт санал...\"\n      }\n    }\n  ]\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      },
+      "description": "Хугацааг 2020–2035 гэж өгсөн тул маягт үргэлж нээлттэй байна."
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "var j = pm.response.json();",
+         "pm.collectionVariables.set('survey_id', j.id);",
+         "var q = j.questions;",
+         "pm.collectionVariables.set('sq1_id', q[0].id);",
+         "pm.collectionVariables.set('sq2_id', q[1].id);",
+         "pm.collectionVariables.set('sq3_id', q[2].id);",
+         "pm.collectionVariables.set('sq4_id', q[3].id);",
+         "pm.collectionVariables.set('sq1_opt1_id', q[0].options[0].id);",
+         "pm.collectionVariables.set('sq1_opt2_id', q[0].options[1].id);",
+         "pm.collectionVariables.set('sq2_opt1_id', q[1].options[0].id);",
+         "pm.collectionVariables.set('sq2_opt2_id', q[1].options[1].id);",
+         "pm.test('ноорог төлөвтэй үүснэ', () => pm.expect(j.status).to.eql('draft'));",
+         "pm.test('4 асуулт', () => pm.expect(q.length).to.eql(4));",
+         "pm.test('scale-ийн нэмэлт settings хадгалагдсан', () => pm.expect(q[2].settings.min_label).to.eql('Муу'));",
+         "pm.test('open_text-д options талбар байхгүй', () => pm.expect(q[3].options).to.be.undefined);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Жагсаалт (шүүлт + хуудаслалт)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/admin/forms?type=survey&search=Багшийн&page=1&per_page=20",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "forms"
+       ],
+       "query": [
+        {
+         "key": "type",
+         "value": "survey"
+        },
+        {
+         "key": "search",
+         "value": "Багшийн"
+        },
+        {
+         "key": "page",
+         "value": "1"
+        },
+        {
+         "key": "per_page",
+         "value": "20"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('хуудаслалтын талбарууд', () => { pm.expect(j).to.have.property('total'); pm.expect(j).to.have.property('pages'); });",
+         "pm.test('шинэ маягт жагсаалтад байна', () => pm.expect(j.items.some(f => f.id === Number(pm.collectionVariables.get('survey_id')))).to.be.true);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Нэгийг авах (асуулт + сонголттой)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/admin/forms/{{survey_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "forms",
+        "{{survey_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('асуултууд эрэмбээрээ', () => pm.expect(j.questions[0].sort_order).to.be.below(j.questions[1].sort_order));",
+         "pm.test('хариултын тоо 0', () => pm.expect(j.total_responses).to.eql(0));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Засах (хэсэгчилсэн)",
+     "request": {
+      "method": "PUT",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/admin/forms/{{survey_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "forms",
+        "{{survey_id}}"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"description\": \"Шинэчилсэн тайлбар — 2026 оны судалгаа.\",\n  \"show_results\": true\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('тайлбар шинэчлэгдсэн', () => pm.expect(pm.response.json().description).to.include('Шинэчилсэн'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Нийтлэх (publish)",
+     "request": {
+      "method": "POST",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/admin/forms/{{survey_id}}/publish",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "forms",
+        "{{survey_id}}",
+        "publish"
+       ]
+      },
+      "description": "Асуултгүй маягтыг нийтэлж болохгүй — тиймээс асуултаа эхлээд нэмнэ."
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('published боллоо', () => pm.expect(j.status).to.eql('published'));",
+         "pm.test('бөглөх боломжтой', () => pm.expect(j.is_open).to.be.true);"
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Судалгаа 2 — Асуулт барих (form_question)",
+   "description": "Асуулт нэмэх / засах / хуулбарлах / эрэмбэлэх / устгах. ЭНЭ ФОЛДЕР ХАРИУЛТ ИРЭХЭЭС ӨМНӨ ажиллана — хариулттай маягтын бүтцийг өөрчлөхийг 409-өөр хориглодог.",
+   "item": [
+    {
+     "name": "Асуулт нэмэх (single_choice) → new_form_question_id",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/admin/forms/{{survey_id}}/questions",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "forms",
+        "{{survey_id}}",
+        "questions"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"question_type\": \"single_choice\",\n  \"title\": \"Цаашид ийм судалгаанд оролцох сонирхолтой юу?\",\n  \"is_required\": false,\n  \"options\": [\n    {\n      \"label\": \"Тийм\"\n    },\n    {\n      \"label\": \"Үгүй\"\n    }\n  ]\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "var j = pm.response.json();",
+         "pm.collectionVariables.set('new_form_question_id', j.id);",
+         "pm.collectionVariables.set('nq_opt1_id', j.options[0].id);",
+         "pm.collectionVariables.set('nq_opt2_id', j.options[1].id);",
+         "pm.test('2 сонголттой', () => pm.expect(j.options.length).to.eql(2));",
+         "pm.test('эрэмбэ автоматаар', () => pm.expect(j.sort_order).to.be.above(0));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Асуултын жагсаалт",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/admin/forms/{{survey_id}}/questions",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "forms",
+        "{{survey_id}}",
+        "questions"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('5 асуулт боллоо', () => pm.expect(pm.response.json().length).to.eql(5));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Нэгийг авах",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/admin/questions/{{new_form_question_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "questions",
+        "{{new_form_question_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('төрөл зөв', () => pm.expect(pm.response.json().question_type).to.eql('single_choice'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Засах (гарчиг + заавал болгох)",
+     "request": {
+      "method": "PUT",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/admin/questions/{{new_form_question_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "questions",
+        "{{new_form_question_id}}"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"title\": \"Дараагийн судалгаанд оролцох уу?\",\n  \"is_required\": true\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('заавал боллоо', () => pm.expect(j.is_required).to.be.true);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Хуулбарлах (duplicate) → dup_question_id",
+     "request": {
+      "method": "POST",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/admin/questions/{{new_form_question_id}}/duplicate",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "questions",
+        "{{new_form_question_id}}",
+        "duplicate"
+       ]
+      },
+      "description": "Сонголтуудтай нь хамт хуулж, төгсгөлд нь нэмнэ."
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "var j = pm.response.json();",
+         "pm.collectionVariables.set('dup_question_id', j.id);",
+         "pm.test('сонголтууд ч хуулагдсан', () => pm.expect(j.options.length).to.eql(2));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Эрэмбэ хадгалах (drag-drop)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/admin/forms/{{survey_id}}/questions/reorder",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "forms",
+        "{{survey_id}}",
+        "questions",
+        "reorder"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"questions\": [\n    {\n      \"id\": \"{{sq4_id}}\",\n      \"sort_order\": 1\n    },\n    {\n      \"id\": \"{{sq1_id}}\",\n      \"sort_order\": 2\n    },\n    {\n      \"id\": \"{{sq2_id}}\",\n      \"sort_order\": 3\n    },\n    {\n      \"id\": \"{{sq3_id}}\",\n      \"sort_order\": 4\n    }\n  ]\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('open_text эхэнд гарлаа', () => pm.expect(j[0].id).to.eql(Number(pm.collectionVariables.get('sq4_id'))));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Эрэмбийг буцаах (анхны байдалд)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/admin/forms/{{survey_id}}/questions/reorder",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "forms",
+        "{{survey_id}}",
+        "questions",
+        "reorder"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"questions\": [\n    {\n      \"id\": \"{{sq1_id}}\",\n      \"sort_order\": 1\n    },\n    {\n      \"id\": \"{{sq2_id}}\",\n      \"sort_order\": 2\n    },\n    {\n      \"id\": \"{{sq3_id}}\",\n      \"sort_order\": 3\n    },\n    {\n      \"id\": \"{{sq4_id}}\",\n      \"sort_order\": 4\n    }\n  ]\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Устгах (хуулбарласан асуулт)",
+     "request": {
+      "method": "DELETE",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/admin/questions/{{dup_question_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "questions",
+        "{{dup_question_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Судалгаа 3 — Сонголт (form_option)",
+   "description": "Нэг асуултын сонголтуудыг нэг нэгээр нь удирдах. Мөн хариулт ирэхээс ӨМНӨ.",
+   "item": [
+    {
+     "name": "Сонголт нэмэх → new_form_option_id",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/admin/questions/{{sq2_id}}/options",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "questions",
+        "{{sq2_id}}",
+        "options"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"label\": \"Судалгааны арга зүй\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "var j = pm.response.json();",
+         "pm.collectionVariables.set('new_form_option_id', j.id);",
+         "pm.test('label зөв', () => pm.expect(j.label).to.eql('Судалгааны арга зүй'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Сонголтын жагсаалт",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/admin/questions/{{sq2_id}}/options",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "questions",
+        "{{sq2_id}}",
+        "options"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('5 сонголт боллоо', () => pm.expect(pm.response.json().length).to.eql(5));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Засах (нэр солих)",
+     "request": {
+      "method": "PUT",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/admin/options/{{new_form_option_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "options",
+        "{{new_form_option_id}}"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"label\": \"Судалгаа, статистикийн арга зүй\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      },
+      "description": "Сонголтын нэр солих нь хариултад нөлөөлөхгүй тул үргэлж зөвшөөрөгдөнө."
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('нэр солигдсон', () => pm.expect(pm.response.json().label).to.include('статистик'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Устгах",
+     "request": {
+      "method": "DELETE",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/admin/options/{{new_form_option_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "options",
+        "{{new_form_option_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Судалгаа 4 — Санал асуулга + PDF (poll)",
+   "description": "Poll төрлийн маягт үүсгээд PDF хавсаргана. Body → form-data → 'file' мөрөнд компьютерээсээ PDF СОНГОНО. Сонгоогүй бол тэр хүсэлт алгасагдаж, дараагийнх нь үргэлжилнэ.",
+   "item": [
+    {
+     "name": "Нэмэх (санал асуулга) → poll_id",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/admin/forms",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "forms"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"type\": \"poll\",\n  \"title\": \"Хөдөлмөрийн тухай хуулийн төсөлд санал авах\",\n  \"description\": \"Төслийн PDF-тэй танилцаад саналаа өгнө үү.\",\n  \"one_response\": false,\n  \"questions\": [\n    {\n      \"question_type\": \"single_choice\",\n      \"title\": \"Та төслийг дэмжиж байна уу?\",\n      \"is_required\": true,\n      \"options\": [\n        {\n          \"label\": \"Дэмжиж байна\"\n        },\n        {\n          \"label\": \"Дэмжихгүй\"\n        },\n        {\n          \"label\": \"Түдгэлзэж байна\"\n        }\n      ]\n    }\n  ]\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      },
+      "description": "one_response=false — нэг хүн олон удаа санал өгч болно."
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "var j = pm.response.json();",
+         "pm.collectionVariables.set('poll_id', j.id);",
+         "pm.collectionVariables.set('pq1_id', j.questions[0].id);",
+         "pm.collectionVariables.set('pq1_opt1_id', j.questions[0].options[0].id);",
+         "pm.test('poll төрөлтэй', () => pm.expect(j.type).to.eql('poll'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "PDF хавсаргах → form_document_id",
+     "request": {
+      "method": "POST",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/admin/forms/{{poll_id}}/document",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "forms",
+        "{{poll_id}}",
+        "document"
+       ]
+      },
+      "body": {
+       "mode": "formdata",
+       "formdata": [
+        {
+         "key": "file",
+         "type": "file",
+         "src": [],
+         "description": "Хуулийн төслийн PDF (≤20 MB)"
+        }
+       ]
+      },
+      "description": "multipart/form-data. Зөвхөн .pdf + '%PDF-' толгойтой, 20 MB-аас бага файл."
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "if (pm.response.code === 201) {",
+         "  var j = pm.response.json();",
+         "  pm.collectionVariables.set('form_document_id', j[0].id);",
+         "  pm.collectionVariables.set('form_doc_url', j[0].url);",
+         "  pm.test('PDF хадгалагдсан', () => pm.expect(j[0].mime_type).to.eql('application/pdf'));",
+         "} else {",
+         "  pm.collectionVariables.set('form_document_id', '0');",
+         "  pm.collectionVariables.set('form_doc_url', '/uploads/form/none.pdf');",
+         "  console.log('PDF сонгоогүй тул алгаслаа (статус ' + pm.response.code + ')');",
+         "}"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Хавсралтын жагсаалт",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/admin/forms/{{poll_id}}/documents",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "forms",
+        "{{poll_id}}",
+        "documents"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('массив буцаана', () => pm.expect(pm.response.json()).to.be.an('array'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "PDF-г ТОКЕНГҮЙ үзэх (порталын PDF viewer)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}{{form_doc_url}}",
+       "host": [
+        "{{base_url}}{{form_doc_url}}"
+       ]
+      },
+      "auth": {
+       "type": "noauth"
+      },
+      "description": "/uploads/ нь PUBLIC_PREFIXES-д багтдаг тул токен шаардахгүй."
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('нээлттэй хандалт (200 эсвэл 404)', () => pm.expect([200, 404]).to.include(pm.response.code));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Нийтлэх (publish)",
+     "request": {
+      "method": "POST",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/admin/forms/{{poll_id}}/publish",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "forms",
+        "{{poll_id}}",
+        "publish"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('published', () => pm.expect(pm.response.json().status).to.eql('published'));"
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Судалгаа 5 — Портал: бөглөх (ТОКЕНГҮЙ)",
+   "description": "/api/portal/... нь PUBLIC_PREFIXES-д багтдаг тул хүсэлт бүр auth='noauth'-той — зочин хүн нэвтрэхгүйгээр судалгаа хараад бөглөнө. Токен ирвэл бөглөлт нэр дээр нь бүртгэгдэж one_response үйлчилнэ; зочны хувьд давхардлыг хязгаарлахгүй (спекийн V1).",
+   "item": [
+    {
+     "name": "Судалгааны жагсаалт (идэвхтэй)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/portal/forms?type=survey&active=1",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "portal",
+        "forms"
+       ],
+       "query": [
+        {
+         "key": "type",
+         "value": "survey"
+        },
+        {
+         "key": "active",
+         "value": "1"
+        }
+       ]
+      },
+      "auth": {
+       "type": "noauth"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('массив буцаана', () => pm.expect(j).to.be.an('array'));",
+         "pm.test('манай судалгаа орсон', () => pm.expect(j.some(f => f.id === Number(pm.collectionVariables.get('survey_id')))).to.be.true);",
+         "pm.test('ноорог харагдахгүй', () => pm.expect(j.every(f => f.status !== 'draft')).to.be.true);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Санал асуулгын жагсаалт (PDF-тэй нь)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/portal/forms?type=poll",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "portal",
+        "forms"
+       ],
+       "query": [
+        {
+         "key": "type",
+         "value": "poll"
+        }
+       ]
+      },
+      "auth": {
+       "type": "noauth"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('poll-д documents массив дагалдана', () => pm.expect(j[0].documents).to.be.an('array'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Маягт нээх (асуулт + сонголт)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/portal/forms/{{survey_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "portal",
+        "forms",
+        "{{survey_id}}"
+       ]
+      },
+      "auth": {
+       "type": "noauth"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('бөглөх боломжтой', () => pm.expect(j.can_submit).to.be.true);",
+         "pm.test('зочин хараахан бөглөөгүй', () => pm.expect(j.has_submitted).to.be.false);",
+         "pm.test('5 асуулт', () => pm.expect(j.questions.length).to.eql(5));",
+         "pm.test('scale-ийн min/max ирсэн', () => pm.expect(j.questions[2].settings.max).to.eql(5));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Дутуу илгээх → 400 (заавал асуулт)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/portal/forms/{{survey_id}}/submit",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "portal",
+        "forms",
+        "{{survey_id}}",
+        "submit"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"answers\": [\n    {\n      \"question_id\": \"{{sq4_id}}\",\n      \"text_value\": \"Зөвхөн нэмэлт санал\"\n    }\n  ]\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      },
+      "auth": {
+       "type": "noauth"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));",
+         "pm.test('дутуу асуултыг нэрлэнэ', () => pm.expect(pm.response.json().error).to.include('Заавал'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Бүрэн бөглөж илгээх → 201",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/portal/forms/{{survey_id}}/submit",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "portal",
+        "forms",
+        "{{survey_id}}",
+        "submit"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"answers\": [\n    {\n      \"question_id\": \"{{sq1_id}}\",\n      \"option_ids\": [\n        \"{{sq1_opt1_id}}\"\n      ]\n    },\n    {\n      \"question_id\": \"{{sq2_id}}\",\n      \"option_ids\": [\n        \"{{sq2_opt1_id}}\",\n        \"{{sq2_opt2_id}}\"\n      ]\n    },\n    {\n      \"question_id\": \"{{sq3_id}}\",\n      \"numeric_value\": 4\n    },\n    {\n      \"question_id\": \"{{sq4_id}}\",\n      \"text_value\": \"Бэлтгэл хийх цаг дутагдалтай.\"\n    },\n    {\n      \"question_id\": \"{{new_form_question_id}}\",\n      \"option_ids\": [\n        \"{{nq_opt1_id}}\"\n      ]\n    }\n  ]\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      },
+      "auth": {
+       "type": "noauth"
+      },
+      "description": "Заавал хариулах 4 асуулт (1, 2, 3, шинэ) + сонголттой нээлттэй асуулт. Бүх шалгалт ЭХЛЭЭД хийгдэж, дараа нь нэг гүйлгээгээр хадгалагдана."
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "var j = pm.response.json();",
+         "pm.test('баталгаажуулах мессеж', () => pm.expect(j.status).to.be.true);",
+         "pm.test('submission_id буцаана', () => pm.expect(j.submission_id).to.be.a('number'));",
+         "pm.test('нийт хариулт 1', () => pm.expect(j.total_responses).to.eql(1));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Дахин илгээх → 201 (зочныг хязгаарлахгүй)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/portal/forms/{{survey_id}}/submit",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "portal",
+        "forms",
+        "{{survey_id}}",
+        "submit"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"answers\": [\n    {\n      \"question_id\": \"{{sq1_id}}\",\n      \"option_ids\": [\n        \"{{sq1_opt2_id}}\"\n      ]\n    },\n    {\n      \"question_id\": \"{{sq2_id}}\",\n      \"option_ids\": [\n        \"{{sq2_opt2_id}}\"\n      ]\n    },\n    {\n      \"question_id\": \"{{sq3_id}}\",\n      \"numeric_value\": 5\n    },\n    {\n      \"question_id\": \"{{new_form_question_id}}\",\n      \"option_ids\": [\n        \"{{nq_opt1_id}}\"\n      ]\n    }\n  ]\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      },
+      "auth": {
+       "type": "noauth"
+      },
+      "description": "Зочны хувьд хэн болохыг тогтоох боломжгүй тул one_response үйлчлэхгүй (спекийн V1-д IP/төхөөрөмжийн хязгаарлалт шаардлагагүй)."
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "pm.test('нийт хариулт 2 боллоо', () => pm.expect(pm.response.json().total_responses).to.eql(2));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Санал асуулгад санал өгөх → 201",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/portal/forms/{{poll_id}}/submit",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "portal",
+        "forms",
+        "{{poll_id}}",
+        "submit"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"answers\": [\n    {\n      \"question_id\": \"{{pq1_id}}\",\n      \"option_ids\": [\n        \"{{pq1_opt1_id}}\"\n      ]\n    }\n  ]\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      },
+      "auth": {
+       "type": "noauth"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "pm.test('баталгаажуулах мессеж', () => pm.expect(pm.response.json().status).to.be.true);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Санал дахин өгөх → 201 (one_response=false)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/portal/forms/{{poll_id}}/submit",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "portal",
+        "forms",
+        "{{poll_id}}",
+        "submit"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"answers\": [\n    {\n      \"question_id\": \"{{pq1_id}}\",\n      \"option_ids\": [\n        \"{{pq1_opt1_id}}\"\n      ]\n    }\n  ]\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      },
+      "auth": {
+       "type": "noauth"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "pm.test('2 санал', () => pm.expect(pm.response.json().total_responses).to.eql(2));"
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Судалгаа 6 — Үр дүн (form_result)",
+   "description": "Тоо / хувь / scale-ийн дундаж / нээлттэй хариулт / өдрийн трэнд. Хувийн суурь нь тухайн АСУУЛТАД хариулсан хүн — тиймээс multiple_choice-ийн хувь 100%-иас давж болно.",
+   "item": [
+    {
+     "name": "Нэгтгэсэн үр дүн (график)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/admin/forms/{{survey_id}}/results",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "forms",
+        "{{survey_id}}",
+        "results"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('2 хариулт', () => pm.expect(j.total_responses).to.eql(2));",
+         "var q1 = j.questions.find(q => q.question_id === Number(pm.collectionVariables.get('sq1_id')));",
+         "pm.test('single_choice-д count + percent', () => { pm.expect(q1.results[0]).to.have.property('count'); pm.expect(q1.results[0]).to.have.property('percent'); });",
+         "var q3 = j.questions.find(q => q.question_id === Number(pm.collectionVariables.get('sq3_id')));",
+         "pm.test('scale-ийн дундаж 4.5', () => pm.expect(q3.average).to.eql(4.5));",
+         "pm.test('scale-ийн бүх утга (1..5) байна', () => pm.expect(q3.results.length).to.eql(5));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Нээлттэй асуултын хариултууд",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/admin/forms/{{survey_id}}/questions/{{sq4_id}}/answers?limit=50&offset=0",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "forms",
+        "{{survey_id}}",
+        "questions",
+        "{{sq4_id}}",
+        "answers"
+       ],
+       "query": [
+        {
+         "key": "limit",
+         "value": "50"
+        },
+        {
+         "key": "offset",
+         "value": "0"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('1 бичвэр хариулт', () => pm.expect(j.answers.length).to.eql(1));",
+         "pm.test('submitted_at дагалдана', () => pm.expect(j.answers[0]).to.have.property('submitted_at'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Өдрийн трэнд (dashboard)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/admin/forms/{{survey_id}}/results/trend",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "forms",
+        "{{survey_id}}",
+        "results",
+        "trend"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('items массив', () => pm.expect(j.items).to.be.an('array'));",
+         "pm.test('өдрийн нийлбэр 2', () => pm.expect(j.items.reduce((s, x) => s + x.total, 0)).to.eql(2));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Порталын үр дүн — бөглөөгүй зочинд хаалттай → 403",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/portal/forms/{{survey_id}}/results",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "portal",
+        "forms",
+        "{{survey_id}}",
+        "results"
+       ]
+      },
+      "auth": {
+       "type": "noauth"
+      },
+      "description": "show_results=true ч гэсэн маягт нээлттэй байхад зөвхөн бөглөсөн хүн харна (бусдын санал нөлөөлөхөөс сэргийлнэ)."
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 403', () => pm.response.to.have.status(403));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Хаах (close)",
+     "request": {
+      "method": "POST",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/admin/forms/{{survey_id}}/close",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "forms",
+        "{{survey_id}}",
+        "close"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('closed боллоо', () => pm.expect(pm.response.json().status).to.eql('closed'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Порталын үр дүн — хаагдсаны дараа нээлттэй → 200",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/portal/forms/{{survey_id}}/results",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "portal",
+        "forms",
+        "{{survey_id}}",
+        "results"
+       ]
+      },
+      "auth": {
+       "type": "noauth"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('үр дүн ирлээ', () => pm.expect(pm.response.json().total_responses).to.eql(2));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Хаагдсан маягтад илгээх → 400",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/portal/forms/{{survey_id}}/submit",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "portal",
+        "forms",
+        "{{survey_id}}",
+        "submit"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"answers\": [\n    {\n      \"question_id\": \"{{sq3_id}}\",\n      \"numeric_value\": 3\n    }\n  ]\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      },
+      "auth": {
+       "type": "noauth"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));"
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Судалгаа 7 — Алдааны шалгалт (сөрөг тест)",
+   "description": "Шалгалт бүр зөв алдаа буцааж байгааг батална. 'Асуултгүй маягт' тест нэг мөр үүсгэдэг тул түүнийг 8-р фолдер устгана.",
+   "item": [
+    {
+     "name": "буруу type → 400",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/admin/forms",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "forms"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"type\": \"quiz\",\n  \"title\": \"Буруу төрөл\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));",
+         "pm.test('type-ийн тухай алдаа', () => pm.expect(pm.response.json().error).to.include('type'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "буруу question_type → 400",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/admin/forms/{{poll_id}}/questions",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "forms",
+        "{{poll_id}}",
+        "questions"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"question_type\": \"rating\",\n  \"title\": \"Буруу төрөл\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "сонголтгүй single_choice → 400",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/admin/forms/{{poll_id}}/questions",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "forms",
+        "{{poll_id}}",
+        "questions"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"question_type\": \"single_choice\",\n  \"title\": \"Сонголтгүй асуулт\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "scale хүрээ буруу (min >= max) → 400",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/admin/forms/{{poll_id}}/questions",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "forms",
+        "{{poll_id}}",
+        "questions"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"question_type\": \"scale\",\n  \"title\": \"Буруу хүрээ\",\n  \"settings\": {\n    \"min\": 5,\n    \"max\": 2\n  }\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "end_at нь start_at-аас өмнө → 400",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/admin/forms",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "forms"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"title\": \"Буруу хугацаа\",\n  \"start_at\": \"2026-09-01\",\n  \"end_at\": \"2026-08-01\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Асуултгүй маягт үүсгэх → empty_form_id",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/admin/forms",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "forms"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"title\": \"Асуултгүй ноорог (тестийн)\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "pm.collectionVariables.set('empty_form_id', pm.response.json().id);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Асуултгүй маягтыг нийтлэх → 400",
+     "request": {
+      "method": "POST",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/admin/forms/{{empty_form_id}}/publish",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "forms",
+        "{{empty_form_id}}",
+        "publish"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));",
+         "pm.test('асуултгүйг заана', () => pm.expect(pm.response.json().error).to.include('Асуулт'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Хариулттай маягтын асуулт устгах → 409",
+     "request": {
+      "method": "DELETE",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/admin/questions/{{sq4_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "questions",
+        "{{sq4_id}}"
+       ]
+      },
+      "description": "Хариулт ирсэн маягтын БҮТЦИЙГ өөрчлөхийг хориглоно — өмнөх хариултууд утгаа алдахаас сэргийлнэ."
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 409', () => pm.response.to.have.status(409));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Хариулттай асуултад сонголт нэмэх → 409",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/admin/questions/{{sq1_id}}/options",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "questions",
+        "{{sq1_id}}",
+        "options"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"label\": \"Хожуу нэмсэн сонголт\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 409', () => pm.response.to.have.status(409));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "single_choice-д 2 сонголт → 400",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/portal/forms/{{poll_id}}/submit",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "portal",
+        "forms",
+        "{{poll_id}}",
+        "submit"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"answers\": [\n    {\n      \"question_id\": \"{{pq1_id}}\",\n      \"option_ids\": [\n        \"{{pq1_opt1_id}}\",\n        \"{{sq1_opt1_id}}\"\n      ]\n    }\n  ]\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      },
+      "auth": {
+       "type": "noauth"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "өөр асуултын сонголт → 400",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/portal/forms/{{poll_id}}/submit",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "portal",
+        "forms",
+        "{{poll_id}}",
+        "submit"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"answers\": [\n    {\n      \"question_id\": \"{{pq1_id}}\",\n      \"option_ids\": [\n        \"{{sq1_opt1_id}}\"\n      ]\n    }\n  ]\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      },
+      "auth": {
+       "type": "noauth"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));",
+         "pm.test('сонголтын харьяалал', () => pm.expect(pm.response.json().error).to.include('сонголт'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "байхгүй маягт → 404",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/portal/forms/999999",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "portal",
+        "forms",
+        "999999"
+       ]
+      },
+      "auth": {
+       "type": "noauth"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 404', () => pm.response.to.have.status(404));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "админ зам токенгүй → 401",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/admin/forms",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "forms"
+       ]
+      },
+      "auth": {
+       "type": "noauth"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 401', () => pm.response.to.have.status(401));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "портал зам токенгүй → 200 (нээлттэй)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/portal/forms",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "portal",
+        "forms"
+       ]
+      },
+      "auth": {
+       "type": "noauth"
+      },
+      "description": "Порталын хувьд токенгүй нь ХЭВИЙН — 401 буцаах ёсгүй."
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Судалгаа 8 — Цэвэрлэгээ (cascade шалгах)",
+   "description": "Энэ хэсэг үүсгэсэн БҮХ мөрийг устгана — маягт, асуулт, сонголт, PDF, илгээмж, хариулт. Хариулттай маягтыг анхдагчаар зөөлөн устгадаг тул ?hard=1 өгнө.",
+   "item": [
+    {
+     "name": "PDF хавсралт устгах",
+     "request": {
+      "method": "DELETE",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/admin/documents/{{form_document_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "documents",
+        "{{form_document_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('устсан эсвэл байгаагүй (200/404)', () => pm.expect([200, 404]).to.include(pm.response.code));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Асуултгүй ноорог маягтыг устгах",
+     "request": {
+      "method": "DELETE",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/admin/forms/{{empty_form_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "forms",
+        "{{empty_form_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('бүрмөсөн устсан', () => pm.expect(pm.response.json().soft).to.be.false);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Санал асуулгыг бүрмөсөн устгах (hard)",
+     "request": {
+      "method": "DELETE",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/admin/forms/{{poll_id}}?hard=1",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "forms",
+        "{{poll_id}}"
+       ],
+       "query": [
+        {
+         "key": "hard",
+         "value": "1"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('зөөлөн биш, бүрмөсөн', () => pm.expect(pm.response.json().soft).to.be.false);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Судалгааг бүрмөсөн устгах (hard)",
+     "request": {
+      "method": "DELETE",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/admin/forms/{{survey_id}}?hard=1",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "forms",
+        "{{survey_id}}"
+       ],
+       "query": [
+        {
+         "key": "hard",
+         "value": "1"
+        }
+       ]
+      },
+      "description": "?hard=1 өгөөгүй бол хариулттай тул зөвхөн deleted_at тавьж архивлана."
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('бүрмөсөн устсан', () => pm.expect(pm.response.json().soft).to.be.false);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Устсаныг шалгах → 404",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/admin/forms/{{survey_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "forms",
+        "{{survey_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 404', () => pm.response.to.have.status(404));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Асуулт нь cascade-аар устсан → 404",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/admin/questions/{{sq1_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "questions",
+        "{{sq1_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 404', () => pm.response.to.have.status(404));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Порталын жагсаалтаас ч арилсан",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/portal/forms",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "portal",
+        "forms"
+       ]
+      },
+      "auth": {
+       "type": "noauth"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "var sid = Number(pm.collectionVariables.get('survey_id'));",
+         "var pid = Number(pm.collectionVariables.get('poll_id'));",
+         "pm.test('судалгаа арилсан', () => pm.expect(j.some(f => f.id === sid)).to.be.false);",
+         "pm.test('санал асуулга арилсан', () => pm.expect(j.some(f => f.id === pid)).to.be.false);"
         ]
        }
       }

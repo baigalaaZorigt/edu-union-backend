@@ -15,6 +15,7 @@ from datetime import datetime, timedelta, timezone
 
 import jwt  # PyJWT
 from flask import request, abort, g
+from werkzeug.exceptions import HTTPException
 
 from db import get_db
 
@@ -31,15 +32,40 @@ METHOD_ACTION = {
 # URL замын эхний хэсэг -> эрхийн resource. Энд байхгүй бол хэсгийн нэрийг шууд авна.
 PATH_RESOURCE = {
     "au1": "admin_unit", "au2": "admin_unit", "au3": "admin_unit",
+    # Судалгаа/санал асуулга — спекийн олон тоот URL -> хүснэгтийн нэр
+    "forms": "form", "questions": "form_question", "options": "form_option",
+    "documents": "form_document",
 }
+
+# /api/<site>/... хэлбэрийн site угтварууд — эрхийг ДАРААГИЙН хэсгээс гаргана
+# (ж: /api/admin/forms -> form, /api/portal/forms -> form).
+SITE_PREFIXES = ("admin", "portal")
+
+# Дэд зам нь өөрийн resource-тэй үед (ж: /api/admin/forms/5/questions -> form_question).
+# Хамгийн сүүлд таарсан нь ялна: .../questions/9/answers -> form_result.
+SUB_RESOURCE = {
+    "questions": "form_question",
+    "options": "form_option",
+    "document": "form_document", "documents": "form_document",
+    "results": "form_result", "answers": "form_result",
+    "submit": "form_submission", "submissions": "form_submission",
+}
+
+# HTTP методоос гарах үйлдлийг дарж бичих дэд замууд
+# (ж: POST .../publish бол шинээр үүсгэх биш, төлөв ЗАСАХ үйлдэл).
+SUB_ACTION = {"publish": "update", "close": "update", "reorder": "update"}
 
 # Токен шаардахгүй нээлттэй замууд (нэвтрэлт)
 PUBLIC_PATHS = {"/api/login"}
 
 # Токен шаардахгүй нээлттэй угтваруудтай замууд.
-# /uploads/ — порталын <img src>/татах холбоос толгой дамжуулж чаддаггүй тул
-# байршуулсан зураг/файлыг нээлттэй үйлчилнэ (оруулах нь /api/upload — хамгаалалттай).
-PUBLIC_PREFIXES = ("/uploads/",)
+# /uploads/     — порталын <img src>/татах холбоос толгой дамжуулж чаддаггүй тул
+#                 байршуулсан зураг/файлыг нээлттэй үйлчилнэ (оруулах нь /api/upload —
+#                 хамгаалалттай).
+# /api/portal/  — порталын судалгаа / санал асуулга БҮХЭЛДЭЭ нээлттэй: зочин
+#                 нэвтрэхгүйгээр жагсаалтыг хараад бөглөж чадна. Токен ирвэл
+#                 _optional_user() түүнийг ачаалж, бөглөлтийг нэр дээр нь бүртгэнэ.
+PUBLIC_PREFIXES = ("/uploads/", "/api/portal/")
 
 
 def make_token(user_id):
@@ -88,11 +114,35 @@ def _required_permission():
     parts = request.path.strip("/").split("/")   # ж: ["api", "organization", "5"]
     if len(parts) < 2 or parts[0] != "api":
         return None
-    resource = PATH_RESOURCE.get(parts[1], parts[1])
     action = METHOD_ACTION.get(request.method)
     if not action:
         return None
+    parts = parts[1:]
+    if parts[0] in SITE_PREFIXES and len(parts) > 1:   # /api/admin/... , /api/portal/...
+        parts = parts[1:]
+    resource = PATH_RESOURCE.get(parts[0], parts[0])
+    for seg in parts[1:]:                # дэд зам resource/action-г дарж бичнэ
+        if seg in SUB_RESOURCE:
+            resource = SUB_RESOURCE[seg]
+        if seg in SUB_ACTION:
+            action = SUB_ACTION[seg]
     return f"{resource}.{action}"
+
+
+def _optional_user():
+    """Нээлттэй зам дээр токен ИРСЭН бол g.user-т ачаална (алдаа шидэхгүй).
+
+    Портал нээлттэй ч, нэвтэрсэн хэрэглэгчийн бөглөлтийг түүний нэр дээр бүртгэж,
+    `one_response` дүрмийг мөрдүүлэхийн тулд хэн болохыг мэдэх хэрэгтэй. Токен
+    буруу/хугацаа дууссан бол ЗОЧИН гэж үзнэ — нээлттэй зам хаагдах ёсгүй.
+    """
+    header = request.headers.get("Authorization", "")
+    if not header.startswith("Bearer "):
+        return
+    try:
+        g.user = _load_user(header[len("Bearer "):].strip())
+    except HTTPException:
+        pass
 
 
 def require_auth():
@@ -101,7 +151,8 @@ def require_auth():
         return
     if request.path in PUBLIC_PATHS:         # нэвтрэлт нээлттэй
         return
-    if request.path.startswith(PUBLIC_PREFIXES):   # байршуулсан файл нээлттэй
+    if request.path.startswith(PUBLIC_PREFIXES):   # нээлттэй зам (файл, портал)
+        _optional_user()                           # токен ирсэн бол хэн болохыг тэмдэглэнэ
         return
 
     # 1) Нэвтрэлт — Bearer токен
