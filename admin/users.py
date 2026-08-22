@@ -4,7 +4,11 @@
   permission (Эрх)  — CRUD үйлдэл бүр нэг эрх (ж: 'user.create')
   role (Дүр)        — role_permission-оор дамжуулан ОЛОН эрхтэй (M:N)
   app_user (Хэрэглэгч) — role_id-аар нэг дүр СОНГОЖ, дүрийнхээ бүх эрхийг удамшуулна
+  user_scope (Хамрах хүрээ) — тухайн хэрэглэгч АЛЬ өгөгдлийг харахыг заана (1:1)
 """
+import json
+from datetime import datetime, timezone
+
 from flask import Blueprint, jsonify, request, abort
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -15,6 +19,16 @@ from auth import make_token
 bp = Blueprint("users", __name__)
 
 ACTIONS = ("create", "read", "update", "delete")
+
+# --- Хамрах хүрээ (user_scope, user_scope_api_spec.md) ---
+# Сургуулийн төрлийн тогтвортой кодууд (бүтэн нэрийг frontend харуулна).
+SCHOOL_TYPES = ("general", "preschool", "higher", "vocational", "science", "rural")
+# "ХОН" — зөвхөн энэ төрөлд тодорхой сургуулиудыг (organization_ids) сонгоно,
+# бусад төрөлд ганц дүүрэг (district_au2_code) сонгоно.
+RURAL = "rural"
+SCOPE_FIELDS = ("school_type", "district_au2_code", "organization_ids", "organization_id")
+EMPTY_SCOPE = {"school_type": None, "district_au2_code": None,
+               "organization_ids": [], "organization_id": None}
 
 # Хэрэглэгчийн засаж/оруулж болох талбарууд (password, username-ээс бусад тусад нь).
 # Нэр нь овог/нэр гэж ТУСДАА хадгалагдана (member-тэй ижил зарчим).
@@ -39,6 +53,76 @@ def public_user(row):
     d = dict(row)
     d.pop("password_hash", None)
     return d
+
+
+def public_scope(row):
+    """user_scope мөрийг JSON-д тохирсон dict болгоно (мөр байхгүй бол None).
+
+    organization_ids нь DB-д JSON текстээр хадгалагддаг — гадагшаа ҮРГЭЛЖ массив.
+    """
+    if row is None:
+        return None
+    d = dict(row)
+    try:
+        ids = json.loads(d.get("organization_ids") or "[]")
+    except ValueError:
+        ids = []
+    d["organization_ids"] = ids if isinstance(ids, list) else []
+    return d
+
+
+def _load_scope(conn, uid):
+    return public_scope(
+        conn.execute("SELECT * FROM user_scope WHERE user_id=?", (uid,)).fetchone())
+
+
+def _require_user(conn, uid):
+    if not conn.execute("SELECT 1 FROM app_user WHERE id=?", (uid,)).fetchone():
+        conn.close()
+        abort(404, description="Хэрэглэгч олдсонгүй")
+
+
+def _validate_scope(conn, s):
+    """Хамрах хүрээний бизнес дүрмүүд (user_scope_api_spec.md §6). Зөрвөл 400."""
+    def bad(msg):
+        conn.close()
+        abort(400, description=msg)
+
+    st = s["school_type"]
+    if st is not None and st not in SCHOOL_TYPES:
+        bad("school_type буруу байна: " + ", ".join(SCHOOL_TYPES))
+
+    ids = s["organization_ids"]
+    if ids is None:
+        ids = s["organization_ids"] = []
+    if not isinstance(ids, list):
+        bad("organization_ids нь массив байх ёстой")
+    try:
+        ids = s["organization_ids"] = [int(x) for x in ids]
+    except (TypeError, ValueError):
+        bad("organization_ids нь бүхэл тооны массив байх ёстой")
+
+    if st == RURAL:
+        if s["district_au2_code"]:
+            bad("school_type='rural' үед district_au2_code сонгохгүй "
+                "(тодорхой сургуулиудыг organization_ids-ээр сонгоно)")
+    elif st is not None:
+        if not s["district_au2_code"]:
+            bad(f"school_type='{st}' үед district_au2_code заавал")
+        if ids:
+            bad(f"school_type='{st}' үед organization_ids хоосон байх ёстой")
+
+    if s["district_au2_code"] and not conn.execute(
+            "SELECT 1 FROM admin_unit2 WHERE au2_code=?", (s["district_au2_code"],)).fetchone():
+        bad("district_au2_code (дүүрэг) олдсонгүй")
+
+    for oid in ids:
+        if not conn.execute("SELECT 1 FROM organization WHERE id=?", (oid,)).fetchone():
+            bad(f"organization_ids: {oid} дугаартай байгууллага олдсонгүй")
+
+    if s["organization_id"] is not None and not conn.execute(
+            "SELECT 1 FROM organization WHERE id=?", (s["organization_id"],)).fetchone():
+        bad("organization_id (сургууль) олдсонгүй")
 
 
 def _role_perms(conn, rid):
@@ -311,6 +395,11 @@ def list_user():
             params.append(request.args[f])
     sql = USER_SELECT + (" WHERE " + " AND ".join(cond) if cond else "") + " ORDER BY u.id"
     data = [public_user(x) for x in conn.execute(sql, params).fetchall()]
+    # Хамрах хүрээг шууд хамт өгнө — хэрэглэгч бүрээр /scope дуудах шаардлагагүй
+    scopes = {r["user_id"]: public_scope(r)
+              for r in conn.execute("SELECT * FROM user_scope").fetchall()}
+    for u in data:
+        u["scope"] = scopes.get(u["id"])
     conn.close()
     return jsonify(data)
 
@@ -325,6 +414,7 @@ def get_user(uid):
     out = public_user(row)
     # Дүрээс удамшсан бодит эрхүүд
     out["permissions"] = _role_perms(conn, row["role_id"]) if row["role_id"] else []
+    out["scope"] = _load_scope(conn, uid)
     conn.close()
     return jsonify(out)
 
@@ -371,6 +461,11 @@ def update_user(uid):
     if not cols:
         conn.close()
         abort(400, description="Шинэчлэх талбар алга")
+    # Дүр СОЛИГДВОЛ хуучин хамрах хүрээ утгаа алддаг тул цэвэрлэнэ (спек §6)
+    if "role_id" in data:
+        old = conn.execute("SELECT role_id FROM app_user WHERE id=?", (uid,)).fetchone()
+        if old and old["role_id"] != data["role_id"]:
+            conn.execute("DELETE FROM user_scope WHERE user_id=?", (uid,))
     sets = ", ".join(f"{c}=?" for c in cols)
     cur = conn.execute(f"UPDATE app_user SET {sets} WHERE id=?", vals + [uid])
     conn.commit()
@@ -393,6 +488,62 @@ def delete_user(uid):
     return jsonify(deleted=uid)
 
 
+# ============ user_scope (Хамрах хүрээ) — user_scope_api_spec.md ============
+@bp.route("/api/user/<int:uid>/scope", methods=["GET"])
+def get_user_scope(uid):
+    conn = get_db()
+    _require_user(conn, uid)
+    out = _load_scope(conn, uid)
+    conn.close()
+    return jsonify(out)          # мөр байхгүй бол null
+
+
+@bp.route("/api/user/<int:uid>/scope", methods=["PUT", "PATCH"])
+def save_user_scope(uid):
+    """Хамрах хүрээг хадгална (upsert).
+
+    PUT   — БҮХЭЛД нь дарж бичнэ (илгээгээгүй талбар хоосон болно).
+    PATCH — зөвхөн илгээсэн талбарыг сольж, бусдыг нь хэвээр үлдээнэ.
+    """
+    data = json_body()
+    conn = get_db()
+    _require_user(conn, uid)
+    scope = dict(EMPTY_SCOPE)
+    if request.method == "PATCH":
+        scope.update({k: v for k, v in (_load_scope(conn, uid) or {}).items()
+                      if k in SCOPE_FIELDS})
+    for f in SCOPE_FIELDS:
+        if f in data:
+            scope[f] = data[f]
+    _validate_scope(conn, scope)
+    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    conn.execute(
+        "INSERT INTO user_scope(user_id, school_type, district_au2_code, "
+        "organization_ids, organization_id, updated_at) VALUES (?,?,?,?,?,?) "
+        "ON CONFLICT(user_id) DO UPDATE SET school_type=excluded.school_type, "
+        "district_au2_code=excluded.district_au2_code, "
+        "organization_ids=excluded.organization_ids, "
+        "organization_id=excluded.organization_id, updated_at=excluded.updated_at",
+        (uid, scope["school_type"], scope["district_au2_code"],
+         json.dumps(scope["organization_ids"]), scope["organization_id"], now))
+    conn.commit()
+    out = _load_scope(conn, uid)
+    conn.close()
+    return jsonify(out)
+
+
+@bp.route("/api/user/<int:uid>/scope", methods=["DELETE"])
+def delete_user_scope(uid):
+    conn = get_db()
+    _require_user(conn, uid)
+    cur = conn.execute("DELETE FROM user_scope WHERE user_id=?", (uid,))
+    conn.commit()
+    conn.close()
+    if cur.rowcount == 0:
+        abort(404, description="Хамрах хүрээ бүртгэгдээгүй байна")
+    return jsonify(deleted=uid)
+
+
 # ---- Нэвтрэлт (нээлттэй) — амжилттай бол Bearer токен буцаана ----
 @bp.route("/api/login", methods=["POST"])
 def login():
@@ -408,6 +559,7 @@ def login():
         abort(400, description="Хэрэглэгчийн эрх идэвхгүй байна")
     out = public_user(row)
     out["permissions"] = _role_perms(conn, row["role_id"]) if row["role_id"] else []
+    out["scope"] = _load_scope(conn, row["id"])
     conn.close()
     # Дараагийн хүсэлтүүдэд ашиглах токен: Authorization: Bearer <token>
     out["token"] = make_token(row["id"])

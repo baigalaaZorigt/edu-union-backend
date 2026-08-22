@@ -252,6 +252,10 @@
    "value": ""
   },
   {
+   "key": "new_scope_user_id",
+   "value": ""
+  },
+  {
    "key": "added_permission_id",
    "value": ""
   },
@@ -5916,6 +5920,834 @@
         "api",
         "user",
         "{{new_user_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Хэрэглэгч — Хамрах хүрээ (user_scope)",
+   "item": [
+    {
+     "name": "Бэлтгэл: хэрэглэгч үүсгэх → new_scope_user_id",
+     "request": {
+      "method": "POST",
+      "url": {
+       "raw": "{{base_url}}/api/user",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "user"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"username\": \"scope_user\",\n  \"password\": \"pass123\",\n  \"last_name\": \"Бат\",\n  \"first_name\": \"Баяр\",\n  \"role_id\": 2\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "pm.collectionVariables.set('new_scope_user_id', pm.response.json().id);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Хамрах хүрээ (хоосон үед null)",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/user/{{new_scope_user_id}}/scope",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "user",
+        "{{new_scope_user_id}}",
+        "scope"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('null буцаана', () => pm.expect(pm.response.json()).to.be.null);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Хадгалах: ХОН (rural + сургуулиуд)",
+     "request": {
+      "method": "PUT",
+      "url": {
+       "raw": "{{base_url}}/api/user/{{new_scope_user_id}}/scope",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "user",
+        "{{new_scope_user_id}}",
+        "scope"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"school_type\": \"rural\",\n  \"district_au2_code\": null,\n  \"organization_ids\": [\n    \"{{organization_id}}\"\n  ],\n  \"organization_id\": null\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('rural хадгалагдсан', () => pm.expect(j.school_type).to.eql('rural'));",
+         "pm.test('сургуулиуд массив', () => pm.expect(j.organization_ids).to.be.an('array').that.is.not.empty);",
+         "pm.test('updated_at бичигдсэн', () => pm.expect(j.updated_at).to.exist);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Хадгалах: ЕБС (нэг дүүрэг)",
+     "request": {
+      "method": "PUT",
+      "url": {
+       "raw": "{{base_url}}/api/user/{{new_scope_user_id}}/scope",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "user",
+        "{{new_scope_user_id}}",
+        "scope"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"school_type\": \"general\",\n  \"district_au2_code\": \"01110\",\n  \"organization_ids\": [],\n  \"organization_id\": null\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('дүүрэг хадгалагдсан', () => pm.expect(j.district_au2_code).to.eql('01110'));",
+         "pm.test('PUT нь бүхэлд нь дарж бичсэн', () => pm.expect(j.organization_ids).to.eql([]));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Хэсэгчилсэн засвар (PATCH — зөвхөн дүүрэг)",
+     "request": {
+      "method": "PATCH",
+      "url": {
+       "raw": "{{base_url}}/api/user/{{new_scope_user_id}}/scope",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "user",
+        "{{new_scope_user_id}}",
+        "scope"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"district_au2_code\": \"01119\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('дүүрэг солигдсон', () => pm.expect(j.district_au2_code).to.eql('01119'));",
+         "pm.test('school_type хэвээр', () => pm.expect(j.school_type).to.eql('general'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Буруу school_type → 400",
+     "request": {
+      "method": "PUT",
+      "url": {
+       "raw": "{{base_url}}/api/user/{{new_scope_user_id}}/scope",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "user",
+        "{{new_scope_user_id}}",
+        "scope"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"school_type\": \"blah\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "ЕБС боловч дүүрэггүй → 400",
+     "request": {
+      "method": "PUT",
+      "url": {
+       "raw": "{{base_url}}/api/user/{{new_scope_user_id}}/scope",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "user",
+        "{{new_scope_user_id}}",
+        "scope"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"school_type\": \"general\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "ЕБС боловч сургууль сонгосон → 400",
+     "request": {
+      "method": "PUT",
+      "url": {
+       "raw": "{{base_url}}/api/user/{{new_scope_user_id}}/scope",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "user",
+        "{{new_scope_user_id}}",
+        "scope"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"school_type\": \"general\",\n  \"district_au2_code\": \"01110\",\n  \"organization_ids\": [\n    \"{{organization_id}}\"\n  ]\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "ХОН боловч дүүрэг сонгосон → 400",
+     "request": {
+      "method": "PUT",
+      "url": {
+       "raw": "{{base_url}}/api/user/{{new_scope_user_id}}/scope",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "user",
+        "{{new_scope_user_id}}",
+        "scope"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"school_type\": \"rural\",\n  \"district_au2_code\": \"01110\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Байхгүй дүүрэг → 400",
+     "request": {
+      "method": "PUT",
+      "url": {
+       "raw": "{{base_url}}/api/user/{{new_scope_user_id}}/scope",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "user",
+        "{{new_scope_user_id}}",
+        "scope"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"school_type\": \"general\",\n  \"district_au2_code\": \"99999\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Байхгүй сургууль → 400",
+     "request": {
+      "method": "PUT",
+      "url": {
+       "raw": "{{base_url}}/api/user/{{new_scope_user_id}}/scope",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "user",
+        "{{new_scope_user_id}}",
+        "scope"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"organization_id\": 999999\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Байхгүй хэрэглэгчийн хүрээ → 404",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/user/999999/scope",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "user",
+        "999999",
+        "scope"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "[\n  \"pm.test('статус 404', () => pm.response.to.have.status(404));\"\n]",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     }
+    },
+    {
+     "name": "Хадгалах: Сургуулийн менежер (ганц сургууль)",
+     "request": {
+      "method": "PUT",
+      "url": {
+       "raw": "{{base_url}}/api/user/{{new_scope_user_id}}/scope",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "user",
+        "{{new_scope_user_id}}",
+        "scope"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"school_type\": null,\n  \"district_au2_code\": null,\n  \"organization_ids\": [],\n  \"organization_id\": \"{{organization_id}}\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('ганц сургууль хадгалагдсан', () => pm.expect(pm.response.json().organization_id).to.exist);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Жагсаалтад scope хамт ирэх",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/user",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "user"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "var u = j.find(x => x.id == pm.collectionVariables.get('new_scope_user_id'));",
+         "pm.test('scope embed хийгдсэн', () => pm.expect(u.scope).to.not.be.null);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Дэлгэрэнгүйд scope хамт ирэх",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/user/{{new_scope_user_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "user",
+        "{{new_scope_user_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('scope талбартай', () => pm.expect(pm.response.json()).to.have.property('scope'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Дүр солиход хүрээ цэвэрлэгдэх",
+     "request": {
+      "method": "PATCH",
+      "url": {
+       "raw": "{{base_url}}/api/user/{{new_scope_user_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "user",
+        "{{new_scope_user_id}}"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"role_id\": 3\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Шалгах: хүрээ устсан",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/user/{{new_scope_user_id}}/scope",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "user",
+        "{{new_scope_user_id}}",
+        "scope"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('null болсон', () => pm.expect(pm.response.json()).to.be.null);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Устгах (хүрээгүй үед) → 404",
+     "request": {
+      "method": "DELETE",
+      "url": {
+       "raw": "{{base_url}}/api/user/{{new_scope_user_id}}/scope",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "user",
+        "{{new_scope_user_id}}",
+        "scope"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "[\n  \"pm.test('статус 404', () => pm.response.to.have.status(404));\"\n]",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     }
+    },
+    {
+     "name": "Дахин хадгалаад устгах",
+     "request": {
+      "method": "PUT",
+      "url": {
+       "raw": "{{base_url}}/api/user/{{new_scope_user_id}}/scope",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "user",
+        "{{new_scope_user_id}}",
+        "scope"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"organization_id\": \"{{organization_id}}\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Устгах",
+     "request": {
+      "method": "DELETE",
+      "url": {
+       "raw": "{{base_url}}/api/user/{{new_scope_user_id}}/scope",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "user",
+        "{{new_scope_user_id}}",
+        "scope"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Цэвэрлэгээ: хэрэглэгч устгах",
+     "request": {
+      "method": "DELETE",
+      "url": {
+       "raw": "{{base_url}}/api/user/{{new_scope_user_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "user",
+        "{{new_scope_user_id}}"
        ]
       }
      },

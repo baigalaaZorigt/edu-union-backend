@@ -26,7 +26,8 @@ are in Mongolian (Cyrillic). The backend serves **two sites**, each in its own f
     to `school_category` by `school_category_id`. `member_file` holds PDF attachments (батламж) —
     metadata in SQLite, bytes on disk under `uploads/member/`.
 - **`admin/`** — the admin site: access control + portal CMS.
-  - `users.py` — `permission` → `role` (M:N via `role_permission`) → `app_user`, plus `/api/login`.
+  - `users.py` — `permission` → `role` (M:N via `role_permission`) → `app_user`, plus `/api/login`
+    and `user_scope` (Хамрах хүрээ — which *data* a user may see, 1:1 with `app_user`).
   - `content.py` — the portal's dynamic menu & content: `menu` (Цэс, 2 levels deep, typed) →
     `page` (Контент хуудас, one per `type='page'` menu) → `page_block` (ordered content blocks:
     text / image / video / file / link), plus `/api/upload` for images and documents.
@@ -97,8 +98,8 @@ gunicorn run:app               # production WSGI server (loads the module-level 
 - `seed_users()` creates the first admin account **only when `app_user` is empty**: `admin` / `admin123`.
 - No test suite or linter is configured — `docs/edu-union-backend.postman_collection.json` is the
   de-facto test suite. It runs **top to bottom** (Postman Runner or
-  `newman run docs/edu-union-backend.postman_collection.json --env-var base_url=...`): 270 requests,
-  413 assertions, and repeatable — three consecutive runs leave every table's row count
+  `newman run docs/edu-union-backend.postman_collection.json --env-var base_url=...`): 291 requests,
+  444 assertions, and repeatable — three consecutive runs leave every table's row count
   unchanged. (One known red on a *fresh* DB: `ҮЭ — Гишүүний боловсрол / Нэгийг авах` reads
   `member_education_id`=1, but `seed_union()` creates no `member_education` row.) **Keep it that way when adding requests:** run "0. Нэвтрэлт" first (it stores
   `{{token}}`), have each folder's `Нэмэх` save the new id into a `{{new_*}}` variable, and point
@@ -286,6 +287,22 @@ gunicorn run:app               # production WSGI server (loads the module-level 
   `generate_password_hash(..., method="pbkdf2")` (scrypt is unavailable in this Python build).
   `public_user()` strips `password_hash` from every response. Seed permissions are the cross-product
   of `PERMISSION_RESOURCES × PERMISSION_ACTIONS` (CRUD per resource) in `db.py`.
+- **`user_scope` answers "which data", the role answers "which action"** (`user_scope_api_spec.md`).
+  One row per `app_user` (`user_id` is the PK, `ON DELETE CASCADE`), reached at
+  `GET|PUT|PATCH|DELETE /api/user/<id>/scope` and embedded as `scope` in `GET /api/user`,
+  `GET /api/user/<id>` and `/api/login`, so the frontend never has to fan out per user.
+  Two shapes share the table: a **Зөвлөх/Мэргэжилтэн** picks a `school_type` (`SCHOOL_TYPES` in
+  `admin/users.py`: general/preschool/higher/vocational/science/rural) plus either
+  `organization_ids` (only when `school_type='rural'` — ХОН) or `district_au2_code` (every other
+  type); a **Сургуулийн менежер** picks a single `organization_id`. `_validate_scope()` enforces
+  that split → 400, and checks the district against `admin_unit2` and every id against
+  `organization`. `organization_ids` is stored as a JSON string but is **always a list** in JSON
+  (`public_scope()`). `PUT` overwrites the whole row, `PATCH` merges. Changing a user's `role_id`
+  **deletes their scope row** — an old scope would otherwise be silently reused by a new role.
+  No new permission: the routes sit under `/api/user/...`, so `user.read` / `user.update` /
+  `user.delete` already cover them.
+  **Not yet done** (spec §8, deliberately a separate job): using the scope to *filter*
+  `GET /api/member` / `GET /api/organization` for the logged-in user.
 - **An `organization` carries its own primary contact details** — `phone1`, `phone2`, `email`,
   `contact_name` are plain columns (the registration form fills them in directly). `contact` rows
   still work for an organization and are the way to record a *third* phone, a fax, or a second

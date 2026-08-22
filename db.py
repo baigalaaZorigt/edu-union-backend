@@ -236,6 +236,22 @@ CREATE TABLE IF NOT EXISTS app_user (
     FOREIGN KEY (structure_id) REFERENCES structure(id) ON DELETE SET NULL
 );
 
+-- Хэрэглэгчийн ХАМРАХ ХҮРЭЭ (user_scope) — user_scope_api_spec.md.
+-- Дүр нь "юу хийж болох"-ыг заадаг бол энэ нь "АЛЬ өгөгдлийг харах"-ыг заана.
+-- Нэг хэрэглэгчид НЭГ мөр (user_id нь PRIMARY KEY тул 1:1).
+--   Зөвлөх/Мэргэжилтэн: school_type + (rural бол organization_ids, эс бөгөөс
+--                       district_au2_code)
+--   Сургуулийн менежер: organization_id (яг нэг сургууль)
+CREATE TABLE IF NOT EXISTS user_scope (
+    user_id           INTEGER PRIMARY KEY,   -- Аль хэрэглэгч (1:1)
+    school_type       TEXT,                  -- general/preschool/higher/vocational/science/rural
+    district_au2_code TEXT,                  -- УБ-ын дүүрэг (admin_unit2.au2_code)
+    organization_ids  TEXT DEFAULT '[]',     -- JSON массив (зөвхөн school_type='rural')
+    organization_id   INTEGER,               -- Менежерийн харьяалагдах ганц сургууль
+    updated_at        TEXT,
+    FOREIGN KEY (user_id) REFERENCES app_user(id) ON DELETE CASCADE
+);
+
 CREATE INDEX IF NOT EXISTS idx_rp_role ON role_permission(role_id);
 CREATE INDEX IF NOT EXISTS idx_rp_perm ON role_permission(permission_id);
 CREATE INDEX IF NOT EXISTS idx_user_role ON app_user(role_id);
