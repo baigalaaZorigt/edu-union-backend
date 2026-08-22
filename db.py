@@ -98,6 +98,7 @@ CREATE TABLE IF NOT EXISTS member (
     union_card_number TEXT,
     union_joined_date TEXT,                  -- 6. ҮЭ-д элссэн он сар өдөр (YYYY-MM-DD)
     member_status     TEXT,                  -- 7. ҮЭ-ийн гишүүний статус
+    status            TEXT,                  -- Бүртгэлийн төлөв (чөлөөт текст)
     position_id       INTEGER,               -- 8. Албан тушаал (position.id)
     profession_id     INTEGER,               -- 9. Мэргэжил (profession.id)
     salary_scale_id   INTEGER,               -- Цалингийн шатлал (salary_scale.id)
@@ -695,6 +696,7 @@ _MIGRATIONS = {
         ("union_card_code", "TEXT"),
         ("union_joined_date", "TEXT"),
         ("member_status", "TEXT"),
+        ("status", "TEXT"),
         ("last_name", "TEXT"),
         ("position_id", "INTEGER"),
         ("profession_id", "INTEGER"),
@@ -958,6 +960,7 @@ _ORG_COLUMNS = [
     "state_reg_number", "founded_date", "activity_code", "activity_name", "parent_org",
     "au1_code", "au2_code", "au3_code", "address_detail", "postal_address",
     "phone1", "phone2", "email", "contact_name", "structure_id",
+    "created_at", "updated_at",
 ]
 
 
@@ -997,6 +1000,8 @@ def _drop_org_horoo(conn):
             email               TEXT,
             contact_name        TEXT,
             structure_id        INTEGER,
+            created_at          TEXT,
+            updated_at          TEXT,
             FOREIGN KEY (school_category_id) REFERENCES school_category(id) ON DELETE SET NULL,
             FOREIGN KEY (structure_id) REFERENCES structure(id) ON DELETE SET NULL
         );
@@ -1041,6 +1046,42 @@ def _migrate(conn):
                 conn.execute(f"ALTER TABLE {table} DROP COLUMN {name}")
 
 
+# --- created_at / updated_at: БҮХ хүснэгтэд ---
+# Хүснэгт бүрт багана нэмээд, INSERT/UPDATE бүрд автоматаар бөглөх trigger тавина.
+# Ингэснээр аль ч маршрут (одоогийн ба ирээдүйн) нэмэлт код бичихгүйгээр
+# огноогоо авна. PRAGMA recursive_triggers анхдагчаараа OFF тул trigger дотор
+# хийсэн UPDATE нь trigger-ийг дахин ажиллуулахгүй (давталт үүсэхгүй).
+_TS_SKIP = {"sqlite_sequence"}
+# menu/page/form зэрэг хүснэгтэд код нь өөрөө ISO огноо бичдэг — түүнтэй ижил хэлбэр.
+_TS_NOW = "strftime('%Y-%m-%dT%H:%M:%S+00:00','now')"
+
+
+def _ensure_timestamps(conn):
+    """Хүснэгт бүрт created_at/updated_at багана ба тэдгээрийн trigger-ийг бэлтгэнэ.
+
+    Хуучин мөрүүд NULL хэвээр үлдэнэ (жинхэнэ огноог нь мэдэх аргагүй) — зөвхөн
+    эндээс хойшхи INSERT/UPDATE тэмдэглэгдэнэ.
+    """
+    tables = [r[0] for r in conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")]
+    for t in tables:
+        if t in _TS_SKIP:
+            continue
+        cols = _cols(conn, t)
+        for col in ("created_at", "updated_at"):
+            if col not in cols:
+                conn.execute(f"ALTER TABLE {t} ADD COLUMN {col} TEXT")
+        # INSERT: код нь өөрөө утга өгсөн бол түүнийг нь хүндэтгэнэ (COALESCE)
+        conn.execute(
+            f"CREATE TRIGGER IF NOT EXISTS trg_{t}_created AFTER INSERT ON {t} BEGIN "
+            f"  UPDATE {t} SET created_at = COALESCE(NEW.created_at, {_TS_NOW}), "
+            f"                 updated_at = COALESCE(NEW.updated_at, {_TS_NOW}) "
+            f"   WHERE rowid = NEW.rowid; END")
+        conn.execute(
+            f"CREATE TRIGGER IF NOT EXISTS trg_{t}_updated AFTER UPDATE ON {t} BEGIN "
+            f"  UPDATE {t} SET updated_at = {_TS_NOW} WHERE rowid = NEW.rowid; END")
+
+
 def init_db():
     conn = get_db()
     conn.executescript(SCHEMA)
@@ -1050,6 +1091,7 @@ def init_db():
     conn.executescript(SCHEMA_CONTENT)
     conn.executescript(SCHEMA_FORM)
     _migrate(conn)
+    _ensure_timestamps(conn)     # бүх хүснэгтэд created_at/updated_at + trigger
     conn.commit()
     conn.close()
 

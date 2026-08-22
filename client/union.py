@@ -36,7 +36,7 @@ HOROO_FIELDS = ("name", "type", "registration_number", "founded_date")
 # union_card_number энд БАЙХГҮЙ — тэр нь union_card_code-оос автоматаар бүрдэнэ.
 MEMBER_FIELDS = (
     "last_name", "first_name", "birth_date", "gender", "register_number",
-    "union_card_code", "union_joined_date", "member_status",
+    "union_card_code", "union_joined_date", "member_status", "status",
     "position_id", "profession_id", "salary_scale_id", "email",
     "au1_code", "au2_code", "au3_code", "address_detail", "signature", "is_active",
 )
@@ -180,7 +180,7 @@ def _check_card_unique(conn, card_number, member_id=None):
 def _validate_member(data):
     """Гишүүний JSON-ы энгийн шалгалт (DB холболт нээхээс ӨМНӨ дуудна).
 
-    - member_status: лавлахгүй, гараас бичих ЧӨЛӨӨТ ТЕКСТ
+    - member_status / status: лавлахгүй, гараас бичих ЧӨЛӨӨТ ТЕКСТ
     - union_card_code: яг 4 оронтой тоо (энэ нь union_card_number-ийн сүүлийн 4 орон)
     - is_active / signature: зөвхөн 0 эсвэл 1 (true/false-ыг хөрвүүлнэ)
     """
@@ -193,9 +193,10 @@ def _validate_member(data):
                 data[flag] = int(val)
             else:
                 abort(400, description=f"{flag} нь 0 эсвэл 1 байна")
-    st = data.get("member_status")
-    if st is not None and (not isinstance(st, str) or not st.strip()):
-        abort(400, description="member_status зөвхөн текст байна (ж: 'идэвхтэй')")
+    for field in ("member_status", "status"):
+        st = data.get(field)
+        if st is not None and (not isinstance(st, str) or not st.strip()):
+            abort(400, description=f"{field} зөвхөн текст байна (ж: 'идэвхтэй')")
     # union_card_number гараар бичигдэхгүй — union_card_code(4)-оос автоматаар бүрдэнэ
     if "union_card_number" in data:
         abort(400, description=(

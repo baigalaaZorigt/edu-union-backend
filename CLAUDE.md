@@ -98,8 +98,8 @@ gunicorn run:app               # production WSGI server (loads the module-level 
 - `seed_users()` creates the first admin account **only when `app_user` is empty**: `admin` / `admin123`.
 - No test suite or linter is configured — `docs/edu-union-backend.postman_collection.json` is the
   de-facto test suite. It runs **top to bottom** (Postman Runner or
-  `newman run docs/edu-union-backend.postman_collection.json --env-var base_url=...`): 291 requests,
-  444 assertions, and repeatable — three consecutive runs leave every table's row count
+  `newman run docs/edu-union-backend.postman_collection.json --env-var base_url=...`): 315 requests,
+  535 assertions, and repeatable — three consecutive runs leave every table's row count
   unchanged. (One known red on a *fresh* DB: `ҮЭ — Гишүүний боловсрол / Нэгийг авах` reads
   `member_education_id`=1, but `seed_union()` creates no `member_education` row.) **Keep it that way when adding requests:** run "0. Нэвтрэлт" first (it stores
   `{{token}}`), have each folder's `Нэмэх` save the new id into a `{{new_*}}` variable, and point
@@ -174,8 +174,22 @@ gunicorn run:app               # production WSGI server (loads the module-level 
   PDF back under its original name. `run.py` caps the whole request at `MAX_FILE_SIZE * 5` → 413.
   **On Render the disk is ephemeral** — attach a persistent disk and point `UPLOAD_DIR` at it, or
   uploads vanish on redeploy.
-- **`member.member_status` is deliberately free text** (no lookup table, no enum) — `_validate_member()`
-  only rejects a non-string / blank value with 400. Don't turn it into a reference table.
+- **`member.member_status` and `member.status` are deliberately free text** (no lookup table, no
+  enum) — `_validate_member()` only rejects a non-string / blank value with 400. Don't turn them
+  into reference tables. They are three different things and all three are kept:
+  `member_status` (ҮЭ-ийн гишүүний статус), `status` (бүртгэлийн төлөв) and the `is_active` 0/1 flag.
+- **Every table carries `created_at` / `updated_at`, filled by SQLite triggers.**
+  `_ensure_timestamps()` (db.py) runs at the end of `init_db()`: it walks `sqlite_master`, adds
+  both columns wherever they are missing, and creates `trg_<table>_created` (AFTER INSERT) and
+  `trg_<table>_updated` (AFTER UPDATE) for each one. That is why **no route sets them** — a new
+  table or a new handler is stamped automatically. Two consequences worth knowing:
+  `PRAGMA recursive_triggers` is OFF by default, which is what stops the trigger's own `UPDATE`
+  from re-firing it; and the INSERT trigger uses `COALESCE(NEW.created_at, …)`, so the places that
+  already write their own timestamps (`menu`, `page`, `form`, `user_scope`, `member_file`) keep
+  winning. Rows that existed **before** the migration stay `NULL` — their real dates are unknown.
+  A table rebuilt by a migration (`_drop_org_horoo`, `_relax_submission_user`) loses its triggers
+  with the `DROP TABLE`; `_ensure_timestamps()` runs afterwards and puts them back, which is also
+  why `_ORG_COLUMNS` lists the two columns — otherwise the rebuild would drop the values.
 - **Registration codes are composed, not typed.** `school_category.id` is the leading **2 digits**
   (`printf('%02d', id)`, so ids are capped at 1–99 and `code` is derived, never stored; the seeded categories are numbered **11–17** so no zero-padding is visible) →
   `+ organization.org_code` (**3 digits**, hand-entered) = the organization's **5-digit** `full_code`

@@ -168,7 +168,8 @@ def validate_form(conn, data, current=None):
 # ----------------------------- form_question / form_option -----------------------------
 def public_option(row):
     return {"id": row["id"], "question_id": row["question_id"],
-            "label": row["label"], "sort_order": row["sort_order"]}
+            "label": row["label"], "sort_order": row["sort_order"],
+            "created_at": row["created_at"], "updated_at": row["updated_at"]}
 
 
 def public_question(row, options=None):
@@ -181,6 +182,8 @@ def public_question(row, options=None):
         "is_required": bool(row["is_required"]),
         "sort_order": row["sort_order"],
         "settings": load_settings(row["settings"]),
+        "created_at": row["created_at"],
+        "updated_at": row["updated_at"],
     }
     if row["question_type"] in CHOICE_TYPES:
         out["options"] = options or []

@@ -189,7 +189,8 @@ def _tree(flat):
 def _public_block(row):
     """Блокийг төрөлдөө хамаарах талбаруудаар нь цэвэрхэн буцаана."""
     out = {"id": row["id"], "page_id": row["page_id"],
-           "type": row["type"], "sort_order": row["sort_order"]}
+           "type": row["type"], "sort_order": row["sort_order"],
+           "created_at": row["created_at"], "updated_at": row["updated_at"]}
     for f in BLOCK_FIELDS.get(row["type"], ()):
         out[f] = row[f]
     if row["type"] == "video":

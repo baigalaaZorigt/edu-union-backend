@@ -362,6 +362,14 @@
   {
    "key": "empty_form_id",
    "value": ""
+  },
+  {
+   "key": "new_ts_id",
+   "value": ""
+  },
+  {
+   "key": "ts_created",
+   "value": ""
   }
  ],
  "item": [
@@ -1495,7 +1503,7 @@
       ],
       "body": {
        "mode": "raw",
-       "raw": "{\n  \"organization_id\": \"{{new_member_org_id}}\",\n  \"last_name\": \"Батын\",\n  \"first_name\": \"Дорж\",\n  \"birth_date\": \"1990-05-10\",\n  \"gender\": \"эр\",\n  \"register_number\": \"УБ90051012\",\n  \"union_card_code\": \"0007\",\n  \"union_joined_date\": \"2015-09-01\",\n  \"member_status\": \"идэвхтэй\",\n  \"position_id\": 6,\n  \"profession_id\": 2,\n  \"salary_scale_id\": 3,\n  \"email\": \"dorj@example.mn\",\n  \"au1_code\": \"011\",\n  \"au2_code\": \"01101\",\n  \"au3_code\": \"0110151\",\n  \"address_detail\": \"1-р хороо\",\n  \"signature\": 1,\n  \"is_active\": 1\n}"
+       "raw": "{\n  \"organization_id\": \"{{new_member_org_id}}\",\n  \"last_name\": \"Батын\",\n  \"first_name\": \"Дорж\",\n  \"birth_date\": \"1990-05-10\",\n  \"gender\": \"эр\",\n  \"register_number\": \"УБ90051012\",\n  \"union_card_code\": \"0007\",\n  \"union_joined_date\": \"2015-09-01\",\n  \"member_status\": \"идэвхтэй\",\n  \"position_id\": 6,\n  \"profession_id\": 2,\n  \"salary_scale_id\": 3,\n  \"email\": \"dorj@example.mn\",\n  \"au1_code\": \"011\",\n  \"au2_code\": \"01101\",\n  \"au3_code\": \"0110151\",\n  \"address_detail\": \"1-р хороо\",\n  \"signature\": 1,\n  \"is_active\": 1,\n  \"status\": \"идэвхтэй\"\n}"
       },
       "url": {
        "raw": "{{base_url}}/api/member",
@@ -1517,7 +1525,9 @@
          "pm.test('статус 201', () => pm.response.to.have.status(201));",
          "var j = pm.response.json();",
          "pm.collectionVariables.set('new_member_id', j.id);",
-         "pm.test('new_member_id хадгалагдсан', () => pm.expect(j.id).to.exist);"
+         "pm.test('new_member_id хадгалагдсан', () => pm.expect(j.id).to.exist);",
+         "pm.test('status хадгалагдсан', () => pm.expect(pm.response.json().status).to.eql('идэвхтэй'));",
+         "pm.test('created_at/updated_at бичигдсэн', () => { var j = pm.response.json(); pm.expect(j.created_at).to.be.a('string'); pm.expect(j.updated_at).to.be.a('string'); });"
         ]
        }
       }
@@ -1535,7 +1545,7 @@
       ],
       "body": {
        "mode": "raw",
-       "raw": "{\n  \"position_id\": 5,\n  \"email\": \"shine@example.mn\",\n  \"union_card_code\": \"0042\",\n  \"is_active\": 0\n}"
+       "raw": "{\n  \"position_id\": 5,\n  \"email\": \"shine@example.mn\",\n  \"union_card_code\": \"0042\",\n  \"is_active\": 0,\n  \"status\": \"чөлөөтэй\"\n}"
       },
       "url": {
        "raw": "{{base_url}}/api/member/{{new_member_id}}",
@@ -6748,6 +6758,783 @@
         "api",
         "user",
         "{{new_scope_user_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Огноо — created_at / updated_at (бүх жагсаалт)",
+   "item": [
+    {
+     "name": "member жагсаалт — огноотой",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/member",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('массив', () => pm.expect(j).to.be.an('array'));",
+         "if (j.length) { pm.test('created_at багана', () => pm.expect(j[0]).to.have.property('created_at'));",
+         "  pm.test('updated_at багана', () => pm.expect(j[0]).to.have.property('updated_at')); }"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "organization жагсаалт — огноотой",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/organization",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "organization"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('массив', () => pm.expect(j).to.be.an('array'));",
+         "if (j.length) { pm.test('created_at багана', () => pm.expect(j[0]).to.have.property('created_at'));",
+         "  pm.test('updated_at багана', () => pm.expect(j[0]).to.have.property('updated_at')); }"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "horoo жагсаалт — огноотой",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/horoo",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "horoo"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('массив', () => pm.expect(j).to.be.an('array'));",
+         "if (j.length) { pm.test('created_at багана', () => pm.expect(j[0]).to.have.property('created_at'));",
+         "  pm.test('updated_at багана', () => pm.expect(j[0]).to.have.property('updated_at')); }"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "contact жагсаалт — огноотой",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/contact",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "contact"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('массив', () => pm.expect(j).to.be.an('array'));",
+         "if (j.length) { pm.test('created_at багана', () => pm.expect(j[0]).to.have.property('created_at'));",
+         "  pm.test('updated_at багана', () => pm.expect(j[0]).to.have.property('updated_at')); }"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "member_education жагсаалт — огноотой",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/member_education",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member_education"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('массив', () => pm.expect(j).to.be.an('array'));",
+         "if (j.length) { pm.test('created_at багана', () => pm.expect(j[0]).to.have.property('created_at'));",
+         "  pm.test('updated_at багана', () => pm.expect(j[0]).to.have.property('updated_at')); }"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "member_reward жагсаалт — огноотой",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/member_reward",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member_reward"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('массив', () => pm.expect(j).to.be.an('array'));",
+         "if (j.length) { pm.test('created_at багана', () => pm.expect(j[0]).to.have.property('created_at'));",
+         "  pm.test('updated_at багана', () => pm.expect(j[0]).to.have.property('updated_at')); }"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "salary_request жагсаалт — огноотой",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/salary_request",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "salary_request"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('массив', () => pm.expect(j).to.be.an('array'));",
+         "if (j.length) { pm.test('created_at багана', () => pm.expect(j[0]).to.have.property('created_at'));",
+         "  pm.test('updated_at багана', () => pm.expect(j[0]).to.have.property('updated_at')); }"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "salary_scale жагсаалт — огноотой",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/salary_scale",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "salary_scale"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('массив', () => pm.expect(j).to.be.an('array'));",
+         "if (j.length) { pm.test('created_at багана', () => pm.expect(j[0]).to.have.property('created_at'));",
+         "  pm.test('updated_at багана', () => pm.expect(j[0]).to.have.property('updated_at')); }"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "education_degree жагсаалт — огноотой",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/education_degree",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "education_degree"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('массив', () => pm.expect(j).to.be.an('array'));",
+         "if (j.length) { pm.test('created_at багана', () => pm.expect(j[0]).to.have.property('created_at'));",
+         "  pm.test('updated_at багана', () => pm.expect(j[0]).to.have.property('updated_at')); }"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "position жагсаалт — огноотой",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/position",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "position"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('массив', () => pm.expect(j).to.be.an('array'));",
+         "if (j.length) { pm.test('created_at багана', () => pm.expect(j[0]).to.have.property('created_at'));",
+         "  pm.test('updated_at багана', () => pm.expect(j[0]).to.have.property('updated_at')); }"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "profession жагсаалт — огноотой",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/profession",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "profession"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('массив', () => pm.expect(j).to.be.an('array'));",
+         "if (j.length) { pm.test('created_at багана', () => pm.expect(j[0]).to.have.property('created_at'));",
+         "  pm.test('updated_at багана', () => pm.expect(j[0]).to.have.property('updated_at')); }"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "reward_type жагсаалт — огноотой",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/reward_type",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "reward_type"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('массив', () => pm.expect(j).to.be.an('array'));",
+         "if (j.length) { pm.test('created_at багана', () => pm.expect(j[0]).to.have.property('created_at'));",
+         "  pm.test('updated_at багана', () => pm.expect(j[0]).to.have.property('updated_at')); }"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "structure жагсаалт — огноотой",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/structure",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "structure"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('массив', () => pm.expect(j).to.be.an('array'));",
+         "if (j.length) { pm.test('created_at багана', () => pm.expect(j[0]).to.have.property('created_at'));",
+         "  pm.test('updated_at багана', () => pm.expect(j[0]).to.have.property('updated_at')); }"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "school_category жагсаалт — огноотой",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/school_category",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "school_category"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('массив', () => pm.expect(j).to.be.an('array'));",
+         "if (j.length) { pm.test('created_at багана', () => pm.expect(j[0]).to.have.property('created_at'));",
+         "  pm.test('updated_at багана', () => pm.expect(j[0]).to.have.property('updated_at')); }"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "au1 жагсаалт — огноотой",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/au1",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "au1"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('массив', () => pm.expect(j).to.be.an('array'));",
+         "if (j.length) { pm.test('created_at багана', () => pm.expect(j[0]).to.have.property('created_at'));",
+         "  pm.test('updated_at багана', () => pm.expect(j[0]).to.have.property('updated_at')); }"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "au2 жагсаалт — огноотой",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/au2",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "au2"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('массив', () => pm.expect(j).to.be.an('array'));",
+         "if (j.length) { pm.test('created_at багана', () => pm.expect(j[0]).to.have.property('created_at'));",
+         "  pm.test('updated_at багана', () => pm.expect(j[0]).to.have.property('updated_at')); }"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "au3 жагсаалт — огноотой",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/au3",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "au3"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('массив', () => pm.expect(j).to.be.an('array'));",
+         "if (j.length) { pm.test('created_at багана', () => pm.expect(j[0]).to.have.property('created_at'));",
+         "  pm.test('updated_at багана', () => pm.expect(j[0]).to.have.property('updated_at')); }"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "permission жагсаалт — огноотой",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/permission",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "permission"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('массив', () => pm.expect(j).to.be.an('array'));",
+         "if (j.length) { pm.test('created_at багана', () => pm.expect(j[0]).to.have.property('created_at'));",
+         "  pm.test('updated_at багана', () => pm.expect(j[0]).to.have.property('updated_at')); }"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "role жагсаалт — огноотой",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/role",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "role"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('массив', () => pm.expect(j).to.be.an('array'));",
+         "if (j.length) { pm.test('created_at багана', () => pm.expect(j[0]).to.have.property('created_at'));",
+         "  pm.test('updated_at багана', () => pm.expect(j[0]).to.have.property('updated_at')); }"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "user жагсаалт — огноотой",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/user",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "user"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('массив', () => pm.expect(j).to.be.an('array'));",
+         "if (j.length) { pm.test('created_at багана', () => pm.expect(j[0]).to.have.property('created_at'));",
+         "  pm.test('updated_at багана', () => pm.expect(j[0]).to.have.property('updated_at')); }"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "menu жагсаалт — огноотой",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/menu",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "menu"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('массив', () => pm.expect(j).to.be.an('array'));",
+         "if (j.length) { pm.test('created_at багана', () => pm.expect(j[0]).to.have.property('created_at'));",
+         "  pm.test('updated_at багана', () => pm.expect(j[0]).to.have.property('updated_at')); }"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Шинэ мөр — огноо автоматаар бичигдэх → new_ts_id",
+     "request": {
+      "method": "POST",
+      "url": {
+       "raw": "{{base_url}}/api/structure",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "structure"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"code\": \"TS-99\",\n  \"name\": \"Огнооны тест\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "var j = pm.response.json();",
+         "pm.collectionVariables.set('new_ts_id', j.id);",
+         "pm.collectionVariables.set('ts_created', j.created_at);",
+         "pm.test('created_at бичигдсэн', () => pm.expect(j.created_at).to.be.a('string'));",
+         "pm.test('эхэндээ updated_at = created_at', () => pm.expect(j.updated_at).to.eql(j.created_at));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Засахад updated_at шинэчлэгдэх",
+     "request": {
+      "method": "PUT",
+      "url": {
+       "raw": "{{base_url}}/api/structure/{{new_ts_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "structure",
+        "{{new_ts_id}}"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"name\": \"Огнооны тест (зассан)\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('created_at хэвээр', () => pm.expect(j.created_at).to.eql(pm.collectionVariables.get('ts_created')));",
+         "pm.test('updated_at >= created_at', () => pm.expect(j.updated_at >= j.created_at).to.be.true);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Цэвэрлэгээ",
+     "request": {
+      "method": "DELETE",
+      "url": {
+       "raw": "{{base_url}}/api/structure/{{new_ts_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "structure",
+        "{{new_ts_id}}"
        ]
       }
      },
