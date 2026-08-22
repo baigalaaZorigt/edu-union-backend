@@ -88,6 +88,10 @@
    "value": "1"
   },
   {
+   "key": "structure_id",
+   "value": "1"
+  },
+  {
    "key": "school_category_id",
    "value": "11"
   },
@@ -185,6 +189,18 @@
   },
   {
    "key": "new_neg_horoo_id",
+   "value": ""
+  },
+  {
+   "key": "new_structure_id",
+   "value": ""
+  },
+  {
+   "key": "new_struct_org_id",
+   "value": ""
+  },
+  {
+   "key": "new_struct_user_id",
    "value": ""
   },
   {
@@ -1150,7 +1166,7 @@
       ],
       "body": {
        "mode": "raw",
-       "raw": "{\n  \"name\": \"Шинэ сургууль\",\n  \"school_category_id\": 12,\n  \"org_code\": \"123\",\n  \"registration_number\": \"9923659\",\n  \"state_reg_number\": \"9019001234\",\n  \"founded_date\": \"2023-01-31\",\n  \"activity_code\": \"8530\",\n  \"activity_name\": \"Дээд боловсрол олгох үйл ажиллагаа\",\n  \"parent_org\": \"АШУҮИС\",\n  \"au1_code\": \"011\",\n  \"au2_code\": \"01101\",\n  \"au3_code\": \"0110151\",\n  \"address_detail\": \"Ард Аюушийн гудамж\",\n  \"postal_address\": \"Улаанбаатар 14210, ШУТИС-14-р байр\",\n  \"phone1\": \"70112233\",\n  \"phone2\": \"99112233\",\n  \"email\": \"info@example.mn\",\n  \"contact_name\": \"Б.Болд\"\n}"
+       "raw": "{\n  \"name\": \"Шинэ сургууль\",\n  \"school_category_id\": 12,\n  \"org_code\": \"123\",\n  \"registration_number\": \"9923659\",\n  \"state_reg_number\": \"9019001234\",\n  \"founded_date\": \"2023-01-31\",\n  \"activity_code\": \"8530\",\n  \"activity_name\": \"Дээд боловсрол олгох үйл ажиллагаа\",\n  \"parent_org\": \"АШУҮИС\",\n  \"au1_code\": \"011\",\n  \"au2_code\": \"01101\",\n  \"au3_code\": \"0110151\",\n  \"address_detail\": \"Ард Аюушийн гудамж\",\n  \"postal_address\": \"Улаанбаатар 14210, ШУТИС-14-р байр\",\n  \"phone1\": \"70112233\",\n  \"phone2\": \"99112233\",\n  \"email\": \"info@example.mn\",\n  \"contact_name\": \"Б.Болд\",\n  \"structure_id\": 3\n}"
       },
       "url": {
        "raw": "{{base_url}}/api/organization",
@@ -1173,7 +1189,8 @@
          "var j = pm.response.json();",
          "pm.collectionVariables.set('new_organization_id', j.id);",
          "pm.test('ангилал хадгалагдсан', () => pm.expect(j.school_category_id).to.eql(12));",
-         "pm.test('5 оронтой код', () => pm.expect(j.full_code).to.eql('12123'));"
+         "pm.test('5 оронтой код', () => pm.expect(j.full_code).to.eql('12123'));",
+         "pm.test('бүтцийн удирдлага хадгалагдсан', () => { var j = pm.response.json(); pm.expect(j.structure_id).to.eql(3); pm.expect(j.structure_name).to.be.a('string'); });"
         ]
        }
       }
@@ -4437,6 +4454,588 @@
    ]
   },
   {
+   "name": "Лавлах — Бүтцийн удирдлага (structure)",
+   "item": [
+    {
+     "name": "Жагсаалт",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/structure",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "structure"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('кодтой ирнэ', () => pm.expect(j[0]).to.have.property('code'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Нэгийг авах",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/structure/{{structure_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "structure",
+        "{{structure_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('code талбартай', () => pm.expect(pm.response.json()).to.have.property('code'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Нэмэх → new_structure_id",
+     "request": {
+      "method": "POST",
+      "url": {
+       "raw": "{{base_url}}/api/structure",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "structure"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"code\": \"ST-99\",\n  \"name\": \"Тест бүтэц\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "var j = pm.response.json();",
+         "pm.collectionVariables.set('new_structure_id', j.id);",
+         "pm.test('код хадгалагдсан', () => pm.expect(j.code).to.eql('ST-99'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Нэмэх (код давхардсан) → 409",
+     "request": {
+      "method": "POST",
+      "url": {
+       "raw": "{{base_url}}/api/structure",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "structure"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"code\": \"ST-99\",\n  \"name\": \"Тест бүтэц 2\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 409', () => pm.response.to.have.status(409));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Засах (код + нэр)",
+     "request": {
+      "method": "PUT",
+      "url": {
+       "raw": "{{base_url}}/api/structure/{{new_structure_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "structure",
+        "{{new_structure_id}}"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"code\": \"ST-98\",\n  \"name\": \"Тест бүтэц (шинэчилсэн)\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('код шинэчлэгдсэн', () => pm.expect(pm.response.json().code).to.eql('ST-98'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Байгууллага дээр сонгох → new_struct_org_id",
+     "request": {
+      "method": "POST",
+      "url": {
+       "raw": "{{base_url}}/api/organization",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "organization"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"name\": \"Бүтэцтэй байгууллага\",\n  \"school_category_id\": 12,\n  \"org_code\": \"901\",\n  \"structure_id\": \"{{new_structure_id}}\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "var j = pm.response.json();",
+         "pm.collectionVariables.set('new_struct_org_id', j.id);",
+         "pm.test('бүтцийн нэр хамт ирсэн', () => pm.expect(j.structure_name).to.eql('Тест бүтэц (шинэчилсэн)'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Байгууллагыг бүтцээр шүүх",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/organization?structure_id={{new_structure_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "organization"
+       ],
+       "query": [
+        {
+         "key": "structure_id",
+         "value": "{{new_structure_id}}"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('шүүлтүүр ажиллана', () => pm.expect(j.length).to.be.above(0));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Хэрэглэгч дээр сонгох → new_struct_user_id",
+     "request": {
+      "method": "POST",
+      "url": {
+       "raw": "{{base_url}}/api/user",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "user"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"username\": \"struct_user\",\n  \"password\": \"pass123\",\n  \"last_name\": \"Бат\",\n  \"first_name\": \"Болд\",\n  \"role_id\": 2,\n  \"structure_id\": \"{{new_structure_id}}\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "var j = pm.response.json();",
+         "pm.collectionVariables.set('new_struct_user_id', j.id);",
+         "pm.test('бүтцийн нэр хамт ирсэн', () => pm.expect(j.structure_name).to.exist);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Хэрэглэгчийг бүтцээр шүүх",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/user?structure_id={{new_structure_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "user"
+       ],
+       "query": [
+        {
+         "key": "structure_id",
+         "value": "{{new_structure_id}}"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('шүүлтүүр ажиллана', () => pm.expect(pm.response.json().length).to.eql(1));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Байхгүй бүтэц (байгууллага) → 400",
+     "request": {
+      "method": "PATCH",
+      "url": {
+       "raw": "{{base_url}}/api/organization/{{new_struct_org_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "organization",
+        "{{new_struct_org_id}}"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"structure_id\": 999999\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Байхгүй бүтэц (хэрэглэгч) → 400",
+     "request": {
+      "method": "PATCH",
+      "url": {
+       "raw": "{{base_url}}/api/user/{{new_struct_user_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "user",
+        "{{new_struct_user_id}}"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"structure_id\": 999999\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Лавлахыг устгах",
+     "request": {
+      "method": "DELETE",
+      "url": {
+       "raw": "{{base_url}}/api/structure/{{new_structure_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "structure",
+        "{{new_structure_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Шалгах: байгууллагын бүтэц NULL болсон",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/organization/{{new_struct_org_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "organization",
+        "{{new_struct_org_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('structure_id NULL', () => pm.expect(j.structure_id).to.be.null);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Шалгах: хэрэглэгчийн бүтэц NULL болсон",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/user/{{new_struct_user_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "user",
+        "{{new_struct_user_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('structure_id NULL', () => pm.expect(pm.response.json().structure_id).to.be.null);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Цэвэрлэгээ: байгууллага устгах",
+     "request": {
+      "method": "DELETE",
+      "url": {
+       "raw": "{{base_url}}/api/organization/{{new_struct_org_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "organization",
+        "{{new_struct_org_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Цэвэрлэгээ: хэрэглэгч устгах",
+     "request": {
+      "method": "DELETE",
+      "url": {
+       "raw": "{{base_url}}/api/user/{{new_struct_user_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "user",
+        "{{new_struct_user_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
    "name": "Лавлах — Сургуулийн ангилал (school_category)",
    "item": [
     {
@@ -5142,7 +5741,7 @@
       ],
       "body": {
        "mode": "raw",
-       "raw": "{\n  \"username\": \"bat\",\n  \"password\": \"pass123\",\n  \"last_name\": \"Батын\",\n  \"first_name\": \"Болд\",\n  \"email\": \"bat@example.mn\",\n  \"role_id\": 2,\n  \"is_active\": 1\n}"
+       "raw": "{\n  \"username\": \"bat\",\n  \"password\": \"pass123\",\n  \"last_name\": \"Батын\",\n  \"first_name\": \"Болд\",\n  \"email\": \"bat@example.mn\",\n  \"role_id\": 2,\n  \"is_active\": 1,\n  \"structure_id\": 1\n}"
       },
       "url": {
        "raw": "{{base_url}}/api/user",
@@ -5166,7 +5765,8 @@
          "pm.collectionVariables.set('new_user_id', j.id);",
          "pm.test('new_user_id хадгалагдсан', () => pm.expect(j.id).to.exist);",
          "pm.test('овог/нэр тусад нь', () => pm.expect(pm.response.json().last_name).to.eql('Батын'));",
-         "pm.test('full_name талбар байхгүй', () => pm.expect(pm.response.json()).to.not.have.property('full_name'));"
+         "pm.test('full_name талбар байхгүй', () => pm.expect(pm.response.json()).to.not.have.property('full_name'));",
+         "pm.test('бүтцийн удирдлага хадгалагдсан', () => { var j = pm.response.json(); pm.expect(j.structure_id).to.eql(1); pm.expect(j.structure_name).to.be.a('string'); });"
         ]
        }
       }

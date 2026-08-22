@@ -19,9 +19,9 @@ are in Mongolian (Cyrillic). The backend serves **two sites**, each in its own f
     plus a polymorphic `contact` table (many phones/faxes/emails per horoo, organization **or**
     member), `salary_request`/`salary_scale`, `member_education`, `member_reward` (шагнал,
     урамшуулал — many per member), and the `education_degree` (`id`+`name`) /
-    `position` (албан тушаал) / `profession` (мэргэжил) / `reward_type` (шагналын төрөл)
-    reference tables (the last three are `id`+`code`+`name`; each has full CRUD, seeded
-    16/20/20/12). A `member` is `last_name`+`first_name` and refers to
+    `position` (албан тушаал) / `profession` (мэргэжил) / `reward_type` (шагналын төрөл) /
+    `structure` (бүтцийн удирдлага) reference tables (the last four are `id`+`code`+`name`;
+    each has full CRUD, seeded 16/20/20/12/22). A `member` is `last_name`+`first_name` and refers to
     the lookups by id (`position_id`, `profession_id`, `salary_scale_id`); an `organization` refers
     to `school_category` by `school_category_id`. `member_file` holds PDF attachments (батламж) —
     metadata in SQLite, bytes on disk under `uploads/member/`.
@@ -97,8 +97,8 @@ gunicorn run:app               # production WSGI server (loads the module-level 
 - `seed_users()` creates the first admin account **only when `app_user` is empty**: `admin` / `admin123`.
 - No test suite or linter is configured — `docs/edu-union-backend.postman_collection.json` is the
   de-facto test suite. It runs **top to bottom** (Postman Runner or
-  `newman run docs/edu-union-backend.postman_collection.json --env-var base_url=...`): 254 requests,
-  385 assertions, and repeatable — three consecutive runs leave every table's row count
+  `newman run docs/edu-union-backend.postman_collection.json --env-var base_url=...`): 270 requests,
+  413 assertions, and repeatable — three consecutive runs leave every table's row count
   unchanged. (One known red on a *fresh* DB: `ҮЭ — Гишүүний боловсрол / Нэгийг авах` reads
   `member_education_id`=1, but `seed_union()` creates no `member_education` row.) **Keep it that way when adding requests:** run "0. Нэвтрэлт" first (it stores
   `{{token}}`), have each folder's `Нэмэх` save the new id into a `{{new_*}}` variable, and point
@@ -199,13 +199,26 @@ gunicorn run:app               # production WSGI server (loads the module-level 
   `_check_ref()` (client/union.py) turns a bad id into a 400. Reads go through `MEMBER_SELECT` /
   `ORG_SELECT`, which LEFT JOIN the lookups so responses carry `position_name`, `profession_name`,
   `salary_scale_code`, `school_category_name`, etc. alongside the ids.
-- **Three lookups carry a `code` next to the name** — `position`, `profession` and `reward_type`
-  are all `id`+`code`+`name`, so `client/union.py` serves their CRUD through one set of shared
+- **Four lookups carry a `code` next to the name** — `position`, `profession`, `reward_type` and
+  `structure` are all `id`+`code`+`name`, so `client/union.py` serves their CRUD through one set of shared
   helpers (`_ref_list/_ref_get/_ref_create/_ref_update/_ref_delete`, allowlist `CODED_REF_FIELDS`).
   `code` has **no DB-level UNIQUE** (SQLite cannot add one via `ALTER TABLE ADD COLUMN` on older
   DBs) — `_check_code_unique()` enforces it in code → 409. `PUT` is partial: send `code`, `name`
   or both. The seeds fill `code` with the 2-digit id (`01`, `02`, …); `_fill_ref_codes()` does the
-  same once for pre-existing rows, guarded by `PRAGMA user_version = 2`.
+  same once for pre-existing rows, guarded by `PRAGMA user_version = 2`. Deleting a lookup row
+  first NULLs every column that points at it (`REF_CLEAR_REFS` in `client/union.py`): on an older
+  DB those columns arrived through `ALTER TABLE ADD COLUMN`, which SQLite cannot give a foreign
+  key, so `ON DELETE SET NULL` fires only on a freshly created database — the explicit `UPDATE`
+  makes both behave the same.
+- **`structure` (Бүтцийн удирдлага) is picked by two different tables** — `organization.structure_id`
+  **and** `app_user.structure_id`, so it is the one lookup the client site and the admin site
+  share. Both list endpoints filter by it (`GET /api/organization?structure_id=`,
+  `GET /api/user?structure_id=`) and both reads join it for `structure_name` / `structure_code`
+  (`ORG_SELECT`, `USER_SELECT`). Its 22 seeded rows come from the union's own structure table, and
+  because the lookup is flat while the source is `I…V` sections with numbered units under them,
+  `STRUCTURE_CODES` (db.py) carries the hierarchy in `code`: `II` is a section heading, `II.0` its
+  unnumbered "Хариуцсан мэргэжилтэн" row, `II.3` the unit numbered 3 inside it. Four rows share the
+  name "Хариуцсан мэргэжилтэн" — the `code` is what tells them apart.
 - **A member's rewards live in `member_reward`** (`reward_type_id` + `description` + `reward_date`),
   the same one-member-many-rows pattern as `member_education`. `GET /api/member/<id>` embeds them
   as `rewards` (alongside `educations` / `contacts` / `files`); `GET /api/member_reward` filters by

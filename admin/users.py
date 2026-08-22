@@ -18,7 +18,15 @@ ACTIONS = ("create", "read", "update", "delete")
 
 # Хэрэглэгчийн засаж/оруулж болох талбарууд (password, username-ээс бусад тусад нь).
 # Нэр нь овог/нэр гэж ТУСДАА хадгалагдана (member-тэй ижил зарчим).
-USER_FIELDS = ("last_name", "first_name", "email", "role_id", "is_active")
+USER_FIELDS = ("last_name", "first_name", "email", "role_id", "structure_id", "is_active")
+
+# Хэрэглэгчийг дүр ба бүтцийн удирдлагынх нь нэртэй хамт унших SELECT
+USER_SELECT = (
+    "SELECT u.*, r.name AS role_name, st.name AS structure_name, st.code AS structure_code "
+    "FROM app_user u "
+    "LEFT JOIN role r ON r.id = u.role_id "
+    "LEFT JOIN structure st ON st.id = u.structure_id"
+)
 
 
 # ----------------------------- Туслахууд -----------------------------
@@ -282,17 +290,26 @@ def _check_role(conn, data):
         abort(400, description="role_id (дүр) олдсонгүй")
 
 
+def _check_structure(conn, data):
+    """structure_id өгсөн (null биш) бол лавлахад байгаа эсэхийг шалгана."""
+    sid = data.get("structure_id")
+    if sid is None:
+        return
+    if not conn.execute("SELECT 1 FROM structure WHERE id=?", (sid,)).fetchone():
+        conn.close()
+        abort(400, description="structure_id (бүтцийн удирдлага) олдсонгүй")
+
+
 @bp.route("/api/user", methods=["GET"])
 def list_user():
-    role_id = request.args.get("role_id")
     conn = get_db()
-    sql = ("SELECT u.*, r.name AS role_name "
-           "FROM app_user u LEFT JOIN role r ON r.id = u.role_id")
-    params = []
-    if role_id:
-        sql += " WHERE u.role_id=?"
-        params.append(role_id)
-    sql += " ORDER BY u.id"
+    # ?role_id= ба ?structure_id= шүүлтүүр — хосолж болно
+    cond, params = [], []
+    for f in ("role_id", "structure_id"):
+        if request.args.get(f):
+            cond.append(f"u.{f}=?")
+            params.append(request.args[f])
+    sql = USER_SELECT + (" WHERE " + " AND ".join(cond) if cond else "") + " ORDER BY u.id"
     data = [public_user(x) for x in conn.execute(sql, params).fetchall()]
     conn.close()
     return jsonify(data)
@@ -301,10 +318,7 @@ def list_user():
 @bp.route("/api/user/<int:uid>", methods=["GET"])
 def get_user(uid):
     conn = get_db()
-    row = conn.execute(
-        "SELECT u.*, r.name AS role_name "
-        "FROM app_user u LEFT JOIN role r ON r.id = u.role_id WHERE u.id=?",
-        (uid,)).fetchone()
+    row = conn.execute(USER_SELECT + " WHERE u.id=?", (uid,)).fetchone()
     if not row:
         conn.close()
         abort(404, description="Хэрэглэгч олдсонгүй")
@@ -321,19 +335,20 @@ def create_user():
     require(data, ["username", "password"])
     conn = get_db()
     _check_role(conn, data)
+    _check_structure(conn, data)
     try:
         cur = conn.execute(
             "INSERT INTO app_user(username, password_hash, last_name, first_name, "
-            "email, role_id, is_active) VALUES (?,?,?,?,?,?,?)",
+            "email, role_id, structure_id, is_active) VALUES (?,?,?,?,?,?,?,?)",
             (data["username"], generate_password_hash(data["password"], method="pbkdf2"),
              data.get("last_name"), data.get("first_name"), data.get("email"),
-             data.get("role_id"),
+             data.get("role_id"), data.get("structure_id"),
              1 if data.get("is_active", 1) else 0))
         conn.commit()
     except Exception:
         conn.close()
         abort(409, description="Энэ нэвтрэх нэр аль хэдийн бүртгэгдсэн байна")
-    row = conn.execute("SELECT * FROM app_user WHERE id=?", (cur.lastrowid,)).fetchone()
+    row = conn.execute(USER_SELECT + " WHERE u.id=?", (cur.lastrowid,)).fetchone()
     conn.close()
     return jsonify(public_user(row)), 201
 
@@ -343,6 +358,7 @@ def update_user(uid):
     data = json_body()
     conn = get_db()
     _check_role(conn, data)
+    _check_structure(conn, data)
     cols, vals = [], []
     for f in USER_FIELDS:  # last_name, first_name, email, role_id, is_active
         if f in data:
@@ -361,7 +377,7 @@ def update_user(uid):
     if cur.rowcount == 0:
         conn.close()
         abort(404, description="Хэрэглэгч олдсонгүй")
-    row = conn.execute("SELECT * FROM app_user WHERE id=?", (uid,)).fetchone()
+    row = conn.execute(USER_SELECT + " WHERE u.id=?", (uid,)).fetchone()
     conn.close()
     return jsonify(public_user(row))
 
@@ -383,10 +399,7 @@ def login():
     data = request.get_json(silent=True)
     require(data, ["username", "password"])
     conn = get_db()
-    row = conn.execute(
-        "SELECT u.*, r.name AS role_name "
-        "FROM app_user u LEFT JOIN role r ON r.id = u.role_id WHERE u.username=?",
-        (data["username"],)).fetchone()
+    row = conn.execute(USER_SELECT + " WHERE u.username=?", (data["username"],)).fetchone()
     if not row or not check_password_hash(row["password_hash"], data["password"]):
         conn.close()
         abort(400, description="Нэвтрэх нэр эсвэл нууц үг буруу")

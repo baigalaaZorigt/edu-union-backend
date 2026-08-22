@@ -88,7 +88,7 @@ ORG_FIELDS = (
     "registration_number", "state_reg_number", "founded_date",
     "activity_code", "activity_name", "parent_org",
     "au1_code", "au2_code", "au3_code", "address_detail", "postal_address",
-    "phone1", "phone2", "email", "contact_name",
+    "phone1", "phone2", "email", "contact_name", "structure_id",
 )
 
 # Гишүүнийг лавлах + байгууллагын кодтой нь хамт унших SELECT
@@ -111,6 +111,8 @@ SELECT m.*,
 # Байгууллагыг сургуулийн ангилал + 5 оронтой кодтой нь хамт унших SELECT
 ORG_SELECT = f"""
 SELECT o.*,
+       st.name AS structure_name,
+       st.code AS structure_code,
        sc.short_name AS school_category_short_name,
        sc.full_name  AS school_category_name,
        CASE WHEN o.school_category_id IS NULL THEN NULL
@@ -118,6 +120,7 @@ SELECT o.*,
        {ORG_FULL_CODE_SQL.format(t='o')} AS full_code
   FROM organization o
   LEFT JOIN school_category sc ON sc.id = o.school_category_id
+  LEFT JOIN structure       st ON st.id = o.structure_id
 """
 
 
@@ -362,14 +365,16 @@ def delete_horoo(hid):
 # =================== organization (Гишүүн байгууллага) ===================
 @bp.route("/api/organization", methods=["GET"])
 def list_org():
-    # ?school_category_id= шүүлтүүр (байгууллага хороонд харьяалагдахаа больсон)
-    cat = request.args.get("school_category_id")
+    # ?school_category_id= ба ?structure_id= шүүлтүүр — хосолж болно
+    # (байгууллага хороонд харьяалагдахаа больсон)
+    cond, params = [], []
+    for f in ("school_category_id", "structure_id"):
+        if request.args.get(f):
+            cond.append(f"o.{f}=?")
+            params.append(request.args[f])
+    sql = ORG_SELECT + (" WHERE " + " AND ".join(cond) if cond else "") + " ORDER BY o.id"
     conn = get_db()
-    if cat:
-        data = rows(conn.execute(
-            ORG_SELECT + " WHERE o.school_category_id=? ORDER BY o.id", (cat,)).fetchall())
-    else:
-        data = rows(conn.execute(ORG_SELECT + " ORDER BY o.id").fetchall())
+    data = rows(conn.execute(sql, params).fetchall())
     for o in data:
         o.update(org_stats(conn, o["id"]))
     conn.close()
@@ -455,6 +460,7 @@ def create_org():
     _validate_org(data)
     conn = get_db()
     _check_ref(conn, data, "school_category_id", "school_category", "Сургуулийн ангилал")
+    _check_ref(conn, data, "structure_id", "structure", "Бүтцийн удирдлага")
     _check_org_code_unique(conn, data)
     _check_au(conn, data)
     cols = list(ORG_FIELDS)
@@ -478,6 +484,7 @@ def update_org(oid):
         abort(400, description="Шинэчлэх талбар алга")
     conn = get_db()
     _check_ref(conn, data, "school_category_id", "school_category", "Сургуулийн ангилал")
+    _check_ref(conn, data, "structure_id", "structure", "Бүтцийн удирдлага")
     _check_org_code_unique(conn, data, oid)
     _check_au(conn, data)
     sets = ", ".join(f"{f}=?" for f in fields)
@@ -1031,8 +1038,22 @@ def _ref_update(table, rid, label):
     return jsonify(dict(row))
 
 
+# Лавлахын мөрийг устгахад ямар баганууд NULL болох ёстой вэ.
+# ON DELETE SET NULL нь ЗӨВХӨН шинэ DB дээр ажиллана: хуучин DB дээр эдгээр
+# багана нь ALTER TABLE ADD COLUMN-оор нэмэгдсэн бөгөөд SQLite тэгж FK үүсгэж
+# чаддаггүй. Тиймээс хоёр тохиолдолд ижил ажиллуулахын тулд гараар цэвэрлэнэ.
+REF_CLEAR_REFS = {
+    "structure": (("organization", "structure_id"), ("app_user", "structure_id")),
+    "position": (("member", "position_id"),),
+    "profession": (("member", "profession_id"),),
+    "reward_type": (("member_reward", "reward_type_id"),),
+}
+
+
 def _ref_delete(table, rid, label):
     conn = get_db()
+    for ref_table, col in REF_CLEAR_REFS.get(table, ()):
+        conn.execute(f"UPDATE {ref_table} SET {col}=NULL WHERE {col}=?", (rid,))
     cur = conn.execute(f"DELETE FROM {table} WHERE id=?", (rid,))
     conn.commit()
     conn.close()
@@ -1117,6 +1138,33 @@ def update_reward_type(rid):
 @bp.route("/api/reward_type/<int:rid>", methods=["DELETE"])
 def delete_reward_type(rid):
     return _ref_delete("reward_type", rid, "Шагналын төрөл")
+
+
+# ============ structure (Бүтцийн удирдлага, лавлах) ============
+# organization ба app_user хоёул эндээс сонгоно (structure_id).
+@bp.route("/api/structure", methods=["GET"])
+def list_structure():
+    return _ref_list("structure")
+
+
+@bp.route("/api/structure/<int:sid>", methods=["GET"])
+def get_structure(sid):
+    return _ref_get("structure", sid, "Бүтцийн удирдлага")
+
+
+@bp.route("/api/structure", methods=["POST"])
+def create_structure():
+    return _ref_create("structure", "Бүтцийн удирдлага")
+
+
+@bp.route("/api/structure/<int:sid>", methods=["PUT", "PATCH"])
+def update_structure(sid):
+    return _ref_update("structure", sid, "Бүтцийн удирдлага")
+
+
+@bp.route("/api/structure/<int:sid>", methods=["DELETE"])
+def delete_structure(sid):
+    return _ref_delete("structure", sid, "Бүтцийн удирдлага")
 
 
 # ================ member_education (Гишүүний боловсрол) ================

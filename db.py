@@ -79,7 +79,9 @@ CREATE TABLE IF NOT EXISTS organization (
     phone2              TEXT,               -- Утас 2
     email               TEXT,               -- И-мэйл
     contact_name        TEXT,               -- Холбогдох хүний нэр
-    FOREIGN KEY (school_category_id) REFERENCES school_category(id) ON DELETE SET NULL
+    structure_id        INTEGER,            -- Бүтцийн удирдлага (structure.id)
+    FOREIGN KEY (school_category_id) REFERENCES school_category(id) ON DELETE SET NULL,
+    FOREIGN KEY (structure_id) REFERENCES structure(id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS member (
@@ -228,8 +230,10 @@ CREATE TABLE IF NOT EXISTS app_user (
     first_name    TEXT,                 -- Нэр
     email         TEXT,                 -- И-мэйл
     role_id       INTEGER,              -- Сонгосон дүр (FK) — эндээс эрхээ авна
+    structure_id  INTEGER,              -- Бүтцийн удирдлага (structure.id)
     is_active     INTEGER DEFAULT 1,    -- Идэвхтэй эсэх (0/1)
-    FOREIGN KEY (role_id) REFERENCES role(id) ON DELETE SET NULL
+    FOREIGN KEY (role_id) REFERENCES role(id) ON DELETE SET NULL,
+    FOREIGN KEY (structure_id) REFERENCES structure(id) ON DELETE SET NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_rp_role ON role_permission(role_id);
@@ -262,6 +266,13 @@ CREATE TABLE IF NOT EXISTS profession (
     id   INTEGER PRIMARY KEY,
     code TEXT,                  -- Код (давхцахгүй)
     name TEXT NOT NULL          -- Мэргэжил
+);
+
+-- Бүтцийн удирдлага (лавлах) — organization ба app_user хоёул эндээс сонгоно.
+CREATE TABLE IF NOT EXISTS structure (
+    id   INTEGER PRIMARY KEY,
+    code TEXT,                  -- Код (давхцахгүй)
+    name TEXT NOT NULL          -- Бүтцийн нэгжийн нэр
 );
 
 -- Шагнал, урамшууллын төрөл (лавлах) — member_reward эндээс сонгоно.
@@ -517,6 +528,47 @@ PROFESSIONS = [
     (20, "Эмч"),
 ]
 
+# Бүтцийн удирдлагын лавлах (эх хүснэгтээс хэвээр).
+# Эх нь I..V гэсэн салбар (Ром тоо) + доор нь дугаарласан нэгжүүдтэй боловч
+# лавлах нь ХАВТГАЙ (id, code, name) тул код нь шатлалыг агуулна:
+#   "II"   — салбарын гарчиг
+#   "II.0" — тухайн салбарын "Хариуцсан мэргэжилтэн" (эхэд дугааргүй мөр)
+#   "II.3" — тухайн салбарын 3 дугаартай нэгж
+STRUCTURES = [
+    (1,  "Сургуулийн өмнөх боловсролын ҮЭ-ийн хорооны дарга"),
+    (2,  "Баянгол дүүрэг хариуцсан ҮЭ-ийн хорооны тэргүүлэгч"),
+    (3,  "Баянзүрх дүүрэг хариуцсан ҮЭ-ийн хорооны тэргүүлэгч"),
+    (4,  "Сүхбаатар дүүрэг хариуцсан ҮЭ-ийн хорооны тэргүүлэгч"),
+    (5,  "Сонгинохайрхан дүүрэг хариуцсан ҮЭ-ийн хорооны тэргүүлэгч"),
+    (6,  "Хан-Уул дүүрэг хариуцсан ҮЭ-ийн хорооны тэргүүлэгч"),
+    (7,  "Чингэлтэй дүүрэг хариуцсан ҮЭ-ийн хорооны тэргүүлэгч"),
+    (8,  "Ерөнхий Боловсролын Сургууль"),
+    (9,  "Хариуцсан мэргэжилтэн"),
+    (10, "Баянгол дүүргийн ЕБС-ийн ҮЭ-ийн хороодын зөвлөл"),
+    (11, "Баянзүрх дүүргийн ЕБС-ийн ҮЭ-ийн хороодын зөвлөл"),
+    (12, "Сүхбаатар дүүргийн ЕБС-ийн ҮЭ-ийн хороодын зөвлөл"),
+    (13, "Сонгинохайрхан дүүргийн ЕБС-ийн ҮЭ-ийн хороодын зөвлөл"),
+    (14, "Хан-Уул дүүргийн ЕБС-ийн ҮЭ-ийн хороодын зөвлөл"),
+    (15, "Чингэлтэй дүүргийн ЕБС-ийн ҮЭ-ийн хороодын зөвлөл"),
+    (16, "Их, дээд, мэргэжлийн сургууль"),
+    (17, "Хариуцсан мэргэжилтэн"),
+    (18, "Их, дээд, мэргэжлийн сургуулийн ҮЭ-ийн хороодын зөвлөл"),
+    (19, "Шинжлэх ухааны байгууллагын ҮЭ-ийн нэгдсэн хороо"),
+    (20, "Хариуцсан мэргэжилтэн"),
+    (21, "Хөдөө, орон нутгийн ҮЭ-ийн хороодын зөвлөл"),
+    (22, "Хариуцсан мэргэжилтэн"),
+]
+
+# structure.id -> эх хүснэгтийн № (шатлалыг агуулсан код)
+STRUCTURE_CODES = {
+    1: "I",    2: "I.1",  3: "I.2",  4: "I.3",  5: "I.4",  6: "I.5",  7: "I.6",
+    8: "II",   9: "II.0", 10: "II.1", 11: "II.2", 12: "II.3", 13: "II.4",
+    14: "II.5", 15: "II.6",
+    16: "III", 17: "III.0", 18: "III.1",
+    19: "IV",  20: "IV.0",
+    21: "V",   22: "V.0",
+}
+
 # Шагнал, урамшууллын төрлийн лавлах (боловсролын салбарт нийтлэг тохиолддог)
 REWARD_TYPES = [
     (1, "Хөдөлмөрийн баатар"),
@@ -578,6 +630,7 @@ PERMISSION_RESOURCES = [
     ("position", "Албан тушаал"),
     ("profession", "Мэргэжил"),
     ("reward_type", "Шагнал, урамшууллын төрөл"),
+    ("structure", "Бүтцийн удирдлага"),
     # --- Портал: динамик цэс ба контент ---
     ("menu", "Цэс"),
     ("page", "Контент хуудас"),
@@ -649,6 +702,7 @@ _MIGRATIONS = {
         ("org_code", "TEXT"),
         ("state_reg_number", "TEXT"),
         ("postal_address", "TEXT"),
+        ("structure_id", "INTEGER"),
         ("au1_code", "TEXT"),
         ("au2_code", "TEXT"),
         ("au3_code", "TEXT"),
@@ -663,6 +717,7 @@ _MIGRATIONS = {
     "app_user": [
         ("last_name", "TEXT"),
         ("first_name", "TEXT"),
+        ("structure_id", "INTEGER"),
     ],
     "horoo": [
         ("type", "TEXT"),
@@ -886,7 +941,7 @@ _ORG_COLUMNS = [
     "id", "name", "school_category_id", "org_code", "registration_number",
     "state_reg_number", "founded_date", "activity_code", "activity_name", "parent_org",
     "au1_code", "au2_code", "au3_code", "address_detail", "postal_address",
-    "phone1", "phone2", "email", "contact_name",
+    "phone1", "phone2", "email", "contact_name", "structure_id",
 ]
 
 
@@ -925,7 +980,9 @@ def _drop_org_horoo(conn):
             phone2              TEXT,
             email               TEXT,
             contact_name        TEXT,
-            FOREIGN KEY (school_category_id) REFERENCES school_category(id) ON DELETE SET NULL
+            structure_id        INTEGER,
+            FOREIGN KEY (school_category_id) REFERENCES school_category(id) ON DELETE SET NULL,
+            FOREIGN KEY (structure_id) REFERENCES structure(id) ON DELETE SET NULL
         );
         INSERT INTO organization_new({cl}) SELECT {cl} FROM organization;
         DROP TABLE organization;
@@ -1026,6 +1083,22 @@ def seed_profession():
 def seed_reward_type():
     """Шагнал, урамшууллын төрлийн лавлахыг ачаална (давхардлыг алгасна)."""
     _seed_coded_ref("reward_type", REWARD_TYPES, "Шагнал, урамшууллын төрөл")
+
+
+def seed_structure():
+    """Бүтцийн удирдлагын лавлахыг ачаална (давхардлыг алгасна).
+
+    Кодыг 2 оронтой id-гаар биш, эх хүснэгтийн № -оор (I, I.1, II.0 ...) бичнэ.
+    """
+    init_db()
+    conn = get_db()
+    conn.executemany(
+        "INSERT OR IGNORE INTO structure(id, code, name) VALUES (?, ?, ?)",
+        [(i, STRUCTURE_CODES.get(i, f"{i:02d}"), name) for i, name in STRUCTURES])
+    conn.commit()
+    n = conn.execute("SELECT COUNT(*) FROM structure").fetchone()[0]
+    conn.close()
+    print("Бүтцийн удирдлага ачаалагдлаа:", n)
 
 
 def seed_salary_scale():
@@ -1305,6 +1378,7 @@ def seed_all():
     seed_position()
     seed_profession()
     seed_reward_type()
+    seed_structure()
     seed_union()
     seed_menu()
     seed_users()
@@ -1326,7 +1400,7 @@ def ensure_seeded():
     need_units = empty("admin_unit1")
     need_ref = (empty("school_category") or empty("education_degree")
                 or empty("salary_scale") or empty("position") or empty("profession")
-                or empty("reward_type"))
+                or empty("reward_type") or empty("structure"))
     need_menu = empty("menu")
     conn.close()
 
@@ -1338,6 +1412,7 @@ def ensure_seeded():
         seed_position()
         seed_profession()
         seed_reward_type()
+        seed_structure()
     if need_units:
         seed()
         seed_union()
