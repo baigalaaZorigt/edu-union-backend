@@ -339,7 +339,7 @@ def create_menu():
     return jsonify(dict(row)), 201
 
 
-@bp.route("/api/menu/reorder", methods=["PUT"])
+@bp.route("/api/menu/reorder", methods=["PUT", "PATCH"])
 def reorder_menu():
     """Drag-drop эрэмбийг бүхэлд нь хадгална.
 
@@ -372,7 +372,7 @@ def reorder_menu():
     return jsonify(updated=[m for m, _, _ in updates])
 
 
-@bp.route("/api/menu/<int:mid>", methods=["PUT"])
+@bp.route("/api/menu/<int:mid>", methods=["PUT", "PATCH"])
 def update_menu(mid):
     """Цэс засах. type='page' болгож өөрчилвөл дутуу page бичлэг нөхөгдөнө."""
     data = json_body()
@@ -511,7 +511,7 @@ def create_page():
     return jsonify(dict(row)), 201
 
 
-@bp.route("/api/page/<int:pid>", methods=["PUT"])
+@bp.route("/api/page/<int:pid>", methods=["PUT", "PATCH"])
 def update_page(pid):
     """Контент засах (title, body, cover_image, status) — pid нь ХУУДСАНЫ id."""
     data = json_body()
@@ -585,7 +585,7 @@ def create_page_block():
     return jsonify(_public_block(row)), 201
 
 
-@bp.route("/api/page_block/reorder", methods=["PUT"])
+@bp.route("/api/page_block/reorder", methods=["PUT", "PATCH"])
 def reorder_page_block():
     """Блокийн эрэмбийг хадгална: {"order": [{"id": 3, "sort_order": 1}, ...]}."""
     data = json_body()
@@ -609,7 +609,7 @@ def reorder_page_block():
     return jsonify(updated=[b for _, b in updates])
 
 
-@bp.route("/api/page_block/<int:bid>", methods=["PUT"])
+@bp.route("/api/page_block/<int:bid>", methods=["PUT", "PATCH"])
 def update_page_block(bid):
     """Блок засах — төрөлдөө хамаарах талбарууд + sort_order."""
     data = json_body()

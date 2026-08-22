@@ -16,13 +16,18 @@ bp = Blueprint("users", __name__)
 
 ACTIONS = ("create", "read", "update", "delete")
 
-# Хэрэглэгчийн засаж/оруулж болох талбарууд (password, username-ээс бусад тусад нь)
-USER_FIELDS = ("full_name", "email", "role_id", "is_active")
+# Хэрэглэгчийн засаж/оруулж болох талбарууд (password, username-ээс бусад тусад нь).
+# Нэр нь овог/нэр гэж ТУСДАА хадгалагдана (member-тэй ижил зарчим).
+USER_FIELDS = ("last_name", "first_name", "email", "role_id", "is_active")
 
 
 # ----------------------------- Туслахууд -----------------------------
 def public_user(row):
-    """Хэрэглэгчийн мөрөөс password_hash-г хасаад буцаана."""
+    """Хэрэглэгчийн мөрөөс password_hash-г хасаад буцаана.
+
+    Нэр нь last_name (Овог) + first_name (Нэр) гэж ТУСАД нь хадгалагдана —
+    `full_name` гэсэн талбар байхгүй (хадгалахгүй, буцаахгүй).
+    """
     d = dict(row)
     d.pop("password_hash", None)
     return d
@@ -113,7 +118,7 @@ def create_permission():
     return jsonify(dict(row)), 201
 
 
-@bp.route("/api/permission/<int:pid>", methods=["PUT"])
+@bp.route("/api/permission/<int:pid>", methods=["PUT", "PATCH"])
 def update_permission(pid):
     data = json_body()
     _validate_permission(data)
@@ -195,7 +200,7 @@ def create_role():
     return jsonify(out), 201
 
 
-@bp.route("/api/role/<int:rid>", methods=["PUT"])
+@bp.route("/api/role/<int:rid>", methods=["PUT", "PATCH"])
 def update_role(rid):
     data = json_body()
     conn = get_db()
@@ -318,10 +323,10 @@ def create_user():
     _check_role(conn, data)
     try:
         cur = conn.execute(
-            "INSERT INTO app_user(username, password_hash, full_name, email, "
-            "role_id, is_active) VALUES (?,?,?,?,?,?)",
+            "INSERT INTO app_user(username, password_hash, last_name, first_name, "
+            "email, role_id, is_active) VALUES (?,?,?,?,?,?,?)",
             (data["username"], generate_password_hash(data["password"], method="pbkdf2"),
-             data.get("full_name"), data.get("email"),
+             data.get("last_name"), data.get("first_name"), data.get("email"),
              data.get("role_id"),
              1 if data.get("is_active", 1) else 0))
         conn.commit()
@@ -333,13 +338,13 @@ def create_user():
     return jsonify(public_user(row)), 201
 
 
-@bp.route("/api/user/<int:uid>", methods=["PUT"])
+@bp.route("/api/user/<int:uid>", methods=["PUT", "PATCH"])
 def update_user(uid):
     data = json_body()
     conn = get_db()
     _check_role(conn, data)
     cols, vals = [], []
-    for f in USER_FIELDS:  # full_name, email, role_id, is_active — дүрээ сонгох нь энд
+    for f in USER_FIELDS:  # last_name, first_name, email, role_id, is_active
         if f in data:
             cols.append(f)
             # is_active-г л 0/1 болгоно; бусад талбарыг хэвээр нь дамжуулна

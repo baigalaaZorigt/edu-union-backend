@@ -53,9 +53,10 @@ CREATE TABLE IF NOT EXISTS horoo (
     FOREIGN KEY (holboo_id) REFERENCES holboo(id) ON DELETE CASCADE
 );
 
+-- Гишүүн байгууллага. ХОРООНД ХАРЬЯАЛАГДАХГҮЙ (horoo_id хасагдсан) —
+-- байгууллага бие даан бүртгэгдэж, гишүүд нь organization_id-аар холбогдоно.
 CREATE TABLE IF NOT EXISTS organization (
     id                  INTEGER PRIMARY KEY AUTOINCREMENT,
-    horoo_id            INTEGER NOT NULL,    -- Аль хороонд харьяалагдах
     name                TEXT NOT NULL,       -- Байгууллагын нэр
     school_category_id  INTEGER,            -- Сургуулийн ангилал (school_category.id) = 2 орон
     org_code            TEXT,               -- Байгууллагын 3 оронтой код (гараас)
@@ -78,7 +79,6 @@ CREATE TABLE IF NOT EXISTS organization (
     phone2              TEXT,               -- Утас 2
     email               TEXT,               -- И-мэйл
     contact_name        TEXT,               -- Холбогдох хүний нэр
-    FOREIGN KEY (horoo_id) REFERENCES horoo(id) ON DELETE CASCADE,
     FOREIGN KEY (school_category_id) REFERENCES school_category(id) ON DELETE SET NULL
 );
 
@@ -159,6 +159,17 @@ CREATE TABLE IF NOT EXISTS member_education (
     FOREIGN KEY (education_degree_id) REFERENCES education_degree(id) ON DELETE SET NULL
 );
 
+-- Гишүүний шагнал, урамшуулал (нэг гишүүнд ОЛОН мөр). Төрлийг reward_type лавлахаас сонгоно.
+CREATE TABLE IF NOT EXISTS member_reward (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    member_id      INTEGER NOT NULL,    -- Аль гишүүний шагнал
+    reward_type_id INTEGER,             -- Шагнал, урамшууллын төрөл (FK, лавлах)
+    description    TEXT,                -- Тайлбар (шагналын дэлгэрэнгүй)
+    reward_date    TEXT,                -- Шагнасан огноо (YYYY-MM-DD)
+    FOREIGN KEY (member_id) REFERENCES member(id) ON DELETE CASCADE,
+    FOREIGN KEY (reward_type_id) REFERENCES reward_type(id) ON DELETE SET NULL
+);
+
 -- Гишүүний хавсаргасан файл (батламж г.м.) — зөвхөн PDF, нэг гишүүнд ОЛОН файл.
 -- Файлын агуулга нь диск дээр (uploads/member/), энд зөвхөн мэдээлэл нь хадгалагдана.
 CREATE TABLE IF NOT EXISTS member_file (
@@ -173,12 +184,12 @@ CREATE TABLE IF NOT EXISTS member_file (
 );
 
 CREATE INDEX IF NOT EXISTS idx_horoo_holboo ON horoo(holboo_id);
-CREATE INDEX IF NOT EXISTS idx_org_horoo ON organization(horoo_id);
 CREATE INDEX IF NOT EXISTS idx_member_org ON member(organization_id);
 CREATE INDEX IF NOT EXISTS idx_contact_owner ON contact(owner_type, owner_id);
 CREATE INDEX IF NOT EXISTS idx_salreq_member ON salary_request(member_id);
 CREATE INDEX IF NOT EXISTS idx_medu_member ON member_education(member_id);
 CREATE INDEX IF NOT EXISTS idx_mfile_member ON member_file(member_id);
+CREATE INDEX IF NOT EXISTS idx_mreward_member ON member_reward(member_id);
 """
 
 # ------------------------- Хэрэглэгчийн удирдлага (user management) -------------------------
@@ -213,7 +224,8 @@ CREATE TABLE IF NOT EXISTS app_user (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     username      TEXT NOT NULL UNIQUE, -- Нэвтрэх нэр
     password_hash TEXT NOT NULL,        -- Нууц үгийн hash (энгийн текстээр хадгалахгүй)
-    full_name     TEXT,                 -- Овог нэр
+    last_name     TEXT,                 -- Овог
+    first_name    TEXT,                 -- Нэр
     email         TEXT,                 -- И-мэйл
     role_id       INTEGER,              -- Сонгосон дүр (FK) — эндээс эрхээ авна
     is_active     INTEGER DEFAULT 1,    -- Идэвхтэй эсэх (0/1)
@@ -242,12 +254,21 @@ CREATE TABLE IF NOT EXISTS education_degree (
 
 CREATE TABLE IF NOT EXISTS position (
     id   INTEGER PRIMARY KEY,
+    code TEXT,                  -- Код (давхцахгүй, гараас эсвэл seed-ээс)
     name TEXT NOT NULL          -- Албан тушаал
 );
 
 CREATE TABLE IF NOT EXISTS profession (
     id   INTEGER PRIMARY KEY,
+    code TEXT,                  -- Код (давхцахгүй)
     name TEXT NOT NULL          -- Мэргэжил
+);
+
+-- Шагнал, урамшууллын төрөл (лавлах) — member_reward эндээс сонгоно.
+CREATE TABLE IF NOT EXISTS reward_type (
+    id   INTEGER PRIMARY KEY,
+    code TEXT,                  -- Код (давхцахгүй)
+    name TEXT NOT NULL          -- Шагнал, урамшууллын нэр
 );
 """
 
@@ -496,6 +517,22 @@ PROFESSIONS = [
     (20, "Эмч"),
 ]
 
+# Шагнал, урамшууллын төрлийн лавлах (боловсролын салбарт нийтлэг тохиолддог)
+REWARD_TYPES = [
+    (1, "Хөдөлмөрийн баатар"),
+    (2, "Алтан гадас одон"),
+    (3, "Хөдөлмөрийн хүндэт медаль"),
+    (4, "Боловсролын тэргүүний ажилтан"),
+    (5, "Тэргүүний багш"),
+    (6, "ҮЭ-ийн тэргүүний ажилтан"),
+    (7, "Хүндэт жуух бичиг"),
+    (8, "Баярын бичиг"),
+    (9, "Өргөмжлөл"),
+    (10, "Талархал"),
+    (11, "Мөнгөн шагнал"),
+    (12, "Үнэ бүхий зүйл"),
+]
+
 # Цалингийн шатлалын анхдагч өгөгдөл (tsalin_husnegt.xlsx-аас): (salbar, kod, albn_tushaal, tsalin)
 SALARY_SCALE = [
     ("СӨБ ба ЕБС", "ТҮБД-5", "Захирал, эрхлэгч", 3093930),
@@ -533,12 +570,14 @@ PERMISSION_RESOURCES = [
     ("member", "Гишүүн"),
     ("member_education", "Гишүүний боловсрол"),
     ("member_file", "Гишүүний файл"),
+    ("member_reward", "Гишүүний шагнал, урамшуулал"),
     ("contact", "Холбоо барих"),
     ("salary_request", "Цалингийн хүсэлт"),
     ("salary_scale", "Цалингийн шатлал"),
     ("education_degree", "Боловсролын зэрэг"),
     ("position", "Албан тушаал"),
     ("profession", "Мэргэжил"),
+    ("reward_type", "Шагнал, урамшууллын төрөл"),
     # --- Портал: динамик цэс ба контент ---
     ("menu", "Цэс"),
     ("page", "Контент хуудас"),
@@ -614,6 +653,17 @@ _MIGRATIONS = {
         ("au2_code", "TEXT"),
         ("au3_code", "TEXT"),
     ],
+    # Лавлахуудад код нэмэгдсэн (хуучин DB дээр NULL-ээр нэмэгдэж, seed нь дүүргэнэ)
+    "position": [
+        ("code", "TEXT"),
+    ],
+    "profession": [
+        ("code", "TEXT"),
+    ],
+    "app_user": [
+        ("last_name", "TEXT"),
+        ("first_name", "TEXT"),
+    ],
     "horoo": [
         ("type", "TEXT"),
         ("registration_number", "TEXT"),
@@ -643,6 +693,7 @@ _RENAME_COLUMNS = {
 _DROP_COLUMNS = {
     "organization": ["org_type", "school_type"],
     "member": ["bolovsrol", "position", "profession", "phone_fax"],
+    "app_user": ["full_name"],          # -> last_name + first_name (_migrate_data)
 }
 
 # Хуучин organization.school_type (чөлөөт текст) -> school_category.id
@@ -657,7 +708,8 @@ _SCHOOL_TYPE_MAP = {
 
 # Нэг удаа ажиллах өгөгдлийн шилжилтүүдийн хувилбар (PRAGMA user_version).
 #   1 — school_category.id 1..7 -> 11..17 (код нь 2 орон тул тэглэх шаардлагагүй болно)
-SCHEMA_VERSION = 1
+#   2 — position/profession.code-г 2 оронтой id-гаар нэг удаа дүүргэх
+SCHEMA_VERSION = 2
 
 
 def _cols(conn, table):
@@ -703,7 +755,21 @@ def _shift_school_category_ids(conn):
                      (new, old))
         conn.execute("DELETE FROM school_category WHERE id=?", (old,))
     _recompute_card_numbers(conn)          # ангилал өөрчлөгдсөн тул дугаарууд шинэчлэгдэнэ
-    conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
+    conn.execute("PRAGMA user_version = 1")
+
+
+def _fill_ref_codes(conn):
+    """Шинээр нэмэгдсэн position/profession.code-г 2 оронтой id-гаар дүүргэнэ (нэг удаа).
+
+    Зөвхөн хоосон код бүхий мөрүүдэд хамаарна; дараа нь админ өөрөө засаж болно.
+    """
+    if conn.execute("PRAGMA user_version").fetchone()[0] >= 2:
+        return
+    for table in ("position", "profession"):
+        conn.execute(
+            f"UPDATE {table} SET code = printf('%02d', id) "
+            "WHERE code IS NULL OR code = ''")
+    conn.execute("PRAGMA user_version = 2")
 
 
 def _migrate_data(conn):
@@ -714,8 +780,11 @@ def _migrate_data(conn):
     - member.phone_fax -> contact (owner_type='member', type='утас')
     - organization.school_type (текст) -> school_category_id
     - school_category.id 1..7 -> 11..17 (нэг удаа)
+    - position/profession.code хоосон бол 2 оронтой id-гаар дүүргэх (нэг удаа)
+    - app_user.full_name ("Батын Болд") -> last_name + first_name
     """
     _shift_school_category_ids(conn)   # ангиллын дугаарлалт эхэлж шинэчлэгдэнэ
+    _fill_ref_codes(conn)              # position/profession.code (нэг удаа)
     member_cols = _cols(conn, "member")
 
     # 1) Овог+нэр салгах: зөвхөн хоосон last_name-тэй, зайтай нэрийг л хуваана
@@ -726,6 +795,18 @@ def _migrate_data(conn):
             last, _, first = full.strip().partition(" ")
             conn.execute("UPDATE member SET last_name=?, first_name=? WHERE id=?",
                          (last, first.strip(), mid))
+
+    # 1.1) app_user.full_name -> last_name + first_name (устгахаас ӨМНӨ)
+    user_cols = _cols(conn, "app_user")
+    if "full_name" in user_cols and "first_name" in user_cols:
+        for uid, full in conn.execute(
+                "SELECT id, full_name FROM app_user "
+                "WHERE full_name IS NOT NULL AND full_name <> '' "
+                "AND first_name IS NULL AND last_name IS NULL").fetchall():
+            last, _, first = full.strip().partition(" ")
+            # Зайгүй нэр (ж: "admin") бол бүхлээр нь нэр гэж үзнэ
+            conn.execute("UPDATE app_user SET last_name=?, first_name=? WHERE id=?",
+                         ((last if first else None), (first.strip() or last), uid))
 
     # 2) Албан тушаал / мэргэжлийн текстийг лавлахын id болгох (байхгүйг нь лавлахад нэмнэ)
     for col, table in (("position", "position"), ("profession", "profession")):
@@ -800,6 +881,59 @@ def _relax_submission_user(conn):
     conn.execute("PRAGMA foreign_keys = ON")
 
 
+# organization-ы шинэ баганын жагсаалт (horoo_id-гүй) — _drop_org_horoo() ашиглана.
+_ORG_COLUMNS = [
+    "id", "name", "school_category_id", "org_code", "registration_number",
+    "state_reg_number", "founded_date", "activity_code", "activity_name", "parent_org",
+    "au1_code", "au2_code", "au3_code", "address_detail", "postal_address",
+    "phone1", "phone2", "email", "contact_name",
+]
+
+
+def _drop_org_horoo(conn):
+    """organization.horoo_id-г бүрмөсөн хасна (хүснэгтийг дахин барьж).
+
+    SQLite нь FK тодорхойлолтод оролцож буй баганыг ALTER TABLE DROP COLUMN-оор
+    хасч чаддаггүй тул: шинэ хүснэгт барь -> өгөгдлийг хуул -> хуучныг устга ->
+    нэрийг нь сольё. DROP TABLE нь foreign_keys pragma асаалттай үед member руу
+    cascade хийчихдэг тул үйлдлийн турш pragma-г унтраана.
+    """
+    if "horoo_id" not in _cols(conn, "organization"):
+        return
+    cols = [c for c in _ORG_COLUMNS if c in _cols(conn, "organization")]
+    cl = ", ".join(cols)
+    conn.commit()                       # PRAGMA нь гүйлгээний ГАДНА л үйлчилнэ
+    conn.execute("PRAGMA foreign_keys = OFF")
+    conn.executescript(f"""
+        CREATE TABLE organization_new (
+            id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+            name                TEXT NOT NULL,
+            school_category_id  INTEGER,
+            org_code            TEXT,
+            registration_number TEXT,
+            state_reg_number    TEXT,
+            founded_date        TEXT,
+            activity_code       TEXT,
+            activity_name       TEXT,
+            parent_org          TEXT,
+            au1_code            TEXT,
+            au2_code            TEXT,
+            au3_code            TEXT,
+            address_detail      TEXT,
+            postal_address      TEXT,
+            phone1              TEXT,
+            phone2              TEXT,
+            email               TEXT,
+            contact_name        TEXT,
+            FOREIGN KEY (school_category_id) REFERENCES school_category(id) ON DELETE SET NULL
+        );
+        INSERT INTO organization_new({cl}) SELECT {cl} FROM organization;
+        DROP TABLE organization;
+        ALTER TABLE organization_new RENAME TO organization;
+    """)
+    conn.execute("PRAGMA foreign_keys = ON")
+
+
 def _migrate(conn):
     # 0) Галиглал -> англи нэр солих (дутуу багана нэмэхээс ӨМНӨ)
     for table, renames in _RENAME_COLUMNS.items():
@@ -822,6 +956,8 @@ def _migrate(conn):
             conn.execute(f"ALTER TABLE {table} ADD COLUMN address_detail TEXT")
     # 3) form_submission.user_id-г NULL зөвшөөрөхөөр сулруулах (зочны бөглөлт)
     _relax_submission_user(conn)
+    # 3.1) organization.horoo_id-г бүрмөсөн хасах (хүснэгтийг дахин барина)
+    _drop_org_horoo(conn)
     # 4) Хуучин баганы утгыг шинэ бүтэц рүү зөөх (устгахаас өмнө)
     _migrate_data(conn)
     # 5) Хэрэглэхгүй болсон баганыг устгах
@@ -859,28 +995,37 @@ def seed_education_degree():
     print("Боловсролын зэрэг ачаалагдлаа:", n)
 
 
-def seed_position():
-    """Албан тушаалын лавлах өгөгдлийг ачаална (давхардлыг алгасна)."""
+def _seed_coded_ref(table, data, label):
+    """id+name лавлахыг ачаалж, code-г 2 оронтой id-гаар (01, 02 ...) дүүргэнэ.
+
+    Хуучин DB дээр code багана саяхан нэмэгдсэн тул NULL үлдсэн мөрүүдийг ч дүүргэнэ.
+    """
     init_db()
     conn = get_db()
     conn.executemany(
-        "INSERT OR IGNORE INTO position(id, name) VALUES (?, ?)", POSITIONS)
+        f"INSERT OR IGNORE INTO {table}(id, code, name) VALUES (?, ?, ?)",
+        [(i, f"{i:02d}", name) for i, name in data])
+    conn.execute(
+        f"UPDATE {table} SET code = printf('%02d', id) WHERE code IS NULL OR code = ''")
     conn.commit()
-    n = conn.execute("SELECT COUNT(*) FROM position").fetchone()[0]
+    n = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
     conn.close()
-    print("Албан тушаал ачаалагдлаа:", n)
+    print(f"{label} ачаалагдлаа:", n)
+
+
+def seed_position():
+    """Албан тушаалын лавлах өгөгдлийг ачаална (давхардлыг алгасна)."""
+    _seed_coded_ref("position", POSITIONS, "Албан тушаал")
 
 
 def seed_profession():
     """Мэргэжлийн лавлах өгөгдлийг ачаална (давхардлыг алгасна)."""
-    init_db()
-    conn = get_db()
-    conn.executemany(
-        "INSERT OR IGNORE INTO profession(id, name) VALUES (?, ?)", PROFESSIONS)
-    conn.commit()
-    n = conn.execute("SELECT COUNT(*) FROM profession").fetchone()[0]
-    conn.close()
-    print("Мэргэжил ачаалагдлаа:", n)
+    _seed_coded_ref("profession", PROFESSIONS, "Мэргэжил")
+
+
+def seed_reward_type():
+    """Шагнал, урамшууллын төрлийн лавлахыг ачаална (давхардлыг алгасна)."""
+    _seed_coded_ref("reward_type", REWARD_TYPES, "Шагнал, урамшууллын төрөл")
 
 
 def seed_salary_scale():
@@ -1015,10 +1160,10 @@ def seed_users():
     if cur.execute("SELECT COUNT(*) FROM app_user").fetchone()[0] == 0:
         from werkzeug.security import generate_password_hash
         cur.execute(
-            "INSERT INTO app_user(username, password_hash, full_name, role_id, is_active) "
-            "VALUES (?, ?, ?, ?, 1)",
+            "INSERT INTO app_user(username, password_hash, last_name, first_name, "
+            "role_id, is_active) VALUES (?, ?, ?, ?, ?, 1)",
             ("admin", generate_password_hash("admin123", method="pbkdf2"),
-             "Систем администратор", role_id("admin")),
+             "Систем", "Администратор", role_id("admin")),
         )
         conn.commit()
         print("Анхны хэрэглэгч үүслээ: admin / admin123 (нэвтэрсний дараа нууц үгээ солино уу)")
@@ -1106,12 +1251,12 @@ def seed_union():
 
     cur.execute(
         """INSERT INTO organization
-           (horoo_id, name, school_category_id, org_code, registration_number,
+           (name, school_category_id, org_code, registration_number,
             state_reg_number, founded_date, activity_code, activity_name, parent_org,
             au1_code, au2_code, address_detail, postal_address,
             phone1, phone2, email, contact_name)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-        (horoo_id, "АШУҮИС-ийн харьяа сургууль", 14, "001",  # 14 + 001 -> 14001
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+        ("АШУҮИС-ийн харьяа сургууль", 14, "001",  # 14 + 001 -> 14001
          "9923659", "9019001234", "2023-01-31", "8530",
          "Дээд боловсрол олгох үйл ажиллагаа",
          "Анагаахын шинжлэх ухааны үндэсний их сургууль",
@@ -1159,6 +1304,7 @@ def seed_all():
     seed_education_degree()
     seed_position()
     seed_profession()
+    seed_reward_type()
     seed_union()
     seed_menu()
     seed_users()
@@ -1179,7 +1325,8 @@ def ensure_seeded():
 
     need_units = empty("admin_unit1")
     need_ref = (empty("school_category") or empty("education_degree")
-                or empty("salary_scale") or empty("position") or empty("profession"))
+                or empty("salary_scale") or empty("position") or empty("profession")
+                or empty("reward_type"))
     need_menu = empty("menu")
     conn.close()
 
@@ -1190,6 +1337,7 @@ def ensure_seeded():
         seed_education_degree()
         seed_position()
         seed_profession()
+        seed_reward_type()
     if need_units:
         seed()
         seed_union()

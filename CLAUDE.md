@@ -11,12 +11,17 @@ are in Mongolian (Cyrillic). The backend serves **two sites**, each in its own f
   - `admin_units.py` — Mongolia's 3-level geography:
     `admin_unit1` (аймаг/нийслэл) → `admin_unit2` (сум/дүүрэг) → `admin_unit3` (баг/хороо),
     plus `school_category` reference table.
-  - `union.py` — trade-union 4-level hierarchy:
-    `holboo` (Холбоо) → `horoo` (Хороо) → `organization` (Гишүүн байгууллага) → `member` (Гишүүн),
+  - `union.py` — trade-union hierarchy:
+    `holboo` (Холбоо) → `horoo` (Хороо), and separately `organization` (Гишүүн байгууллага) →
+    `member` (Гишүүн). **An `organization` does not belong to a `horoo`** — `horoo_id` was
+    removed, so organizations are registered standalone and are no longer cascade-deleted with
+    a horoo,
     plus a polymorphic `contact` table (many phones/faxes/emails per horoo, organization **or**
-    member), `salary_request`/`salary_scale`, `member_education`, and the `education_degree` /
-    `position` (албан тушаал) / `profession` (мэргэжил) reference tables (each a simple `id`+`name`
-    lookup with full CRUD, seeded 16/20/20). A `member` is `last_name`+`first_name` and refers to
+    member), `salary_request`/`salary_scale`, `member_education`, `member_reward` (шагнал,
+    урамшуулал — many per member), and the `education_degree` (`id`+`name`) /
+    `position` (албан тушаал) / `profession` (мэргэжил) / `reward_type` (шагналын төрөл)
+    reference tables (the last three are `id`+`code`+`name`; each has full CRUD, seeded
+    16/20/20/12). A `member` is `last_name`+`first_name` and refers to
     the lookups by id (`position_id`, `profession_id`, `salary_scale_id`); an `organization` refers
     to `school_category` by `school_category_id`. `member_file` holds PDF attachments (батламж) —
     metadata in SQLite, bytes on disk under `uploads/member/`.
@@ -85,19 +90,22 @@ gunicorn run:app               # production WSGI server (loads the module-level 
   (`seed_all()`) locally to force a full re-seed.
 - `python db.py` runs `seed()` (loads `data/seed/admin_unit*.json`), the reference seeds
   (`seed_school_category()`, `seed_salary_scale()`, `seed_education_degree()`, `seed_position()`,
-  `seed_profession()`), then `seed_union()`, `seed_menu()` (the portal's default menu tree) and
+  `seed_profession()`, `seed_reward_type()`), then `seed_union()`, `seed_menu()` (the portal's default menu tree) and
   `seed_users()`. **References must be seeded before
   `seed_union()`** — its sample organization points at `school_category_id`, and the FK pragma
   rejects the insert otherwise. All use `INSERT OR IGNORE` / empty-table guards, so re-running is safe.
 - `seed_users()` creates the first admin account **only when `app_user` is empty**: `admin` / `admin123`.
 - No test suite or linter is configured — `docs/edu-union-backend.postman_collection.json` is the
   de-facto test suite. It runs **top to bottom** (Postman Runner or
-  `newman run docs/edu-union-backend.postman_collection.json --env-var base_url=...`): 219 requests,
-  315 assertions, and repeatable — three consecutive runs leave every table's row count
+  `newman run docs/edu-union-backend.postman_collection.json --env-var base_url=...`): 254 requests,
+  385 assertions, and repeatable — three consecutive runs leave every table's row count
   unchanged. (One known red on a *fresh* DB: `ҮЭ — Гишүүний боловсрол / Нэгийг авах` reads
   `member_education_id`=1, but `seed_union()` creates no `member_education` row.) **Keep it that way when adding requests:** run "0. Нэвтрэлт" first (it stores
   `{{token}}`), have each folder's `Нэмэх` save the new id into a `{{new_*}}` variable, and point
   that folder's `Засах`/`Устгах` at `{{new_*}}` only — never at a seeded row. The
+  `ҮЭ — Алдааны шалгалт (сөрөг тест)` is the union-side negative folder: it creates one
+  organization, drives every 400/405/401 path through it (bad category, bad `org_code`, wrong
+  method, no token) and deletes it again. The
   `Судалгаа 1..8` folders additionally show the pattern for **public** endpoints: every
   `/api/portal/` request carries `"auth": {"type": "noauth"}` so the run proves a guest can
   submit without a token, and the cleanup folder deletes forms with `?hard=1` (a form with
@@ -131,7 +139,7 @@ gunicorn run:app               # production WSGI server (loads the module-level 
   route automatically needs `<resource>.{action}` permissions** — add the resource to
   `PERMISSION_RESOURCES` in `db.py` (which is the cross-product source for the seeded CRUD permissions).
 - **Error handling is centralized.** `register_error_handlers(app)` in `run.py` maps
-  400/401/403/404/409 to `{"error": ...}` JSON for the whole app — including unmatched-URL 404s and
+  400/401/403/404/405/409 to `{"error": ...}` JSON for the whole app — including unmatched-URL 404s and
   aborts raised inside any blueprint (Flask falls back to app-level handlers for blueprint errors).
 - **Shared helpers live in `helpers.py`.** `rows()` (Row→dict list), `require(data, fields)`
   (required-field check → 400), `json_body()` (parse JSON body or 400), and
@@ -176,11 +184,32 @@ gunicorn run:app               # production WSGI server (loads the module-level 
   (both on the 5-digit org code and the 9-digit card number). Editing an organization's category or
   `org_code` calls `_recompute_cards()`, which rewrites every member's `union_card_number` in that
   organization — that's why `union_card_code` is stored as its own column.
+- **Update routes accept `PUT` *and* `PATCH`** (`methods=["PUT", "PATCH"]`) — every one of them is
+  already a partial update, and `auth.py` maps both to the `update` action. A wrong method now
+  returns JSON 405 (`register_error_handlers`) instead of Flask's HTML page, so a frontend that
+  used `PATCH` no longer fails silently.
+- **`organization.school_category_id` is normalised before it is stored.** `_validate_org()` turns
+  a form's `"12"` into `12` and an empty string into `NULL` (a string id would otherwise break the
+  `f"{cat:02d}"` collision message and the code comparisons). `full_code` /
+  `school_category_code` are `NULL` — not `"00…"` — when the category is missing, because
+  `printf('%02d', NULL)` yields `'00'` (hence the `CASE` in `ORG_FULL_CODE_SQL`).
 - **Reference FKs are validated, never free text.** `member.position_id` / `profession_id` /
-  `salary_scale_id` and `organization.school_category_id` point at the reference tables;
+  `salary_scale_id`, `member_reward.reward_type_id` and `organization.school_category_id`
+  point at the reference tables;
   `_check_ref()` (client/union.py) turns a bad id into a 400. Reads go through `MEMBER_SELECT` /
   `ORG_SELECT`, which LEFT JOIN the lookups so responses carry `position_name`, `profession_name`,
   `salary_scale_code`, `school_category_name`, etc. alongside the ids.
+- **Three lookups carry a `code` next to the name** — `position`, `profession` and `reward_type`
+  are all `id`+`code`+`name`, so `client/union.py` serves their CRUD through one set of shared
+  helpers (`_ref_list/_ref_get/_ref_create/_ref_update/_ref_delete`, allowlist `CODED_REF_FIELDS`).
+  `code` has **no DB-level UNIQUE** (SQLite cannot add one via `ALTER TABLE ADD COLUMN` on older
+  DBs) — `_check_code_unique()` enforces it in code → 409. `PUT` is partial: send `code`, `name`
+  or both. The seeds fill `code` with the 2-digit id (`01`, `02`, …); `_fill_ref_codes()` does the
+  same once for pre-existing rows, guarded by `PRAGMA user_version = 2`.
+- **A member's rewards live in `member_reward`** (`reward_type_id` + `description` + `reward_date`),
+  the same one-member-many-rows pattern as `member_education`. `GET /api/member/<id>` embeds them
+  as `rewards` (alongside `educations` / `contacts` / `files`); `GET /api/member_reward` filters by
+  `?member_id=` / `?reward_type_id=` and LEFT JOINs the lookup for `reward_type_name` / `_code`.
 - **Portal CMS** (`admin/content.py`) is menu-driven. `menu.type` decides what a menu shows:
   `page` (fully dynamic content, admin-managed), `news`/`survey`/`poll`/`contact`/`home`
   (built-in features — the admin may rename/hide/reorder them but not change what they do),
@@ -237,7 +266,10 @@ gunicorn run:app               # production WSGI server (loads the module-level 
   files checked before any is saved), bytes under `FORM_UPLOAD_DIR` (`uploads/form/<uuid>.pdf`),
   metadata in `form_document`, served token-free from `/uploads/form/` for the portal's PDF viewer.
 - **User management** (`admin/users.py`): a `role` has many `permission`s (M:N via `role_permission`);
-  an `app_user` picks one `role_id` and inherits all its permissions. Passwords are hashed with
+  an `app_user` picks one `role_id` and inherits all its permissions. A user's name is stored
+  **split** — `last_name` (Овог) + `first_name` (Нэр), like `member`. **`full_name` is gone**: not
+  a column, not accepted on input, not returned. `_migrate_data()` splits an old `full_name` on the
+  first space into the two columns before `_DROP_COLUMNS` removes it. Passwords are hashed with
   `generate_password_hash(..., method="pbkdf2")` (scrypt is unavailable in this Python build).
   `public_user()` strips `password_hash` from every response. Seed permissions are the cross-product
   of `PERMISSION_RESOURCES × PERMISSION_ACTIONS` (CRUD per resource) in `db.py`.
@@ -258,7 +290,7 @@ gunicorn run:app               # production WSGI server (loads the module-level 
 
 - Admin-unit codes are TEXT primary keys (e.g. `"011"`), preserved as strings with leading zeros.
 - Union / user ids are INTEGER autoincrement; routes use `<int:...>` converters.
-- List endpoints support optional parent-filter query params (`?au1_code=`, `?holboo_id=`,
-  `?horoo_id=`, `?organization_id=`, `?owner_type=&owner_id=`, `?resource=`, `?role_id=`, `?status=`).
+- List endpoints support optional filter query params (`?au1_code=`, `?holboo_id=`,
+  `?horoo_id=` (horoo only), `?school_category_id=` (organization), `?organization_id=`, `?owner_type=&owner_id=`, `?resource=`, `?role_id=`, `?status=`).
 - Imports are absolute (`from db import get_db`, `from client.union import bp`) and assume the repo
   root is on `sys.path` — always run from the repo root (`python run.py`).

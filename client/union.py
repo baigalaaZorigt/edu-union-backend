@@ -47,7 +47,9 @@ MEMBER_FIELDS = (
 ORG_CODE_LEN = 3          # organization.org_code — гараас
 CARD_CODE_LEN = 4         # member.union_card_code — гараас
 # SQL хэсэг: байгууллагын 5 оронтой код (аль нэг хэсэг нь дутуу бол NULL)
-ORG_FULL_CODE_SQL = "printf('%02d', {t}.school_category_id) || {t}.org_code"
+# Ангилал эсвэл код нь дутуу бол NULL (printf нь NULL-ыг '00' болгочихдог тул CASE хэрэгтэй)
+ORG_FULL_CODE_SQL = ("CASE WHEN {t}.school_category_id IS NULL THEN NULL "
+                     "ELSE printf('%02d', {t}.school_category_id) || {t}.org_code END")
 
 # Цалингийн хүсэлт
 SALARY_STATUSES = ("хүлээгдэж буй", "зөвшөөрсөн", "татгалзсан")
@@ -63,6 +65,22 @@ SALARY_SCALE_FIELDS = ("sector", "code", "position", "salary")
 
 # Гишүүний боловсролын мөрийн талбарууд (member_id-аас бусад)
 MEMBER_EDUCATION_FIELDS = ("education_degree_id", "school", "profession", "graduation_year")
+
+# Гишүүний шагнал, урамшууллын мөрийн талбарууд (member_id-аас бусад).
+# Нэг гишүүн ОЛОН шагналтай байж болно; төрлийг reward_type лавлахаас сонгоно.
+MEMBER_REWARD_FIELDS = ("reward_type_id", "description", "reward_date")
+
+# Кодтой лавлах хүснэгтүүдийн талбарууд (id-аас бусад)
+CODED_REF_FIELDS = ("code", "name")
+
+# Гишүүний шагналыг төрлийнх нь нэр/кодтой хамт унших SELECT
+MEMBER_REWARD_SELECT = """
+SELECT mr.*,
+       rt.name AS reward_type_name,
+       rt.code AS reward_type_code
+  FROM member_reward mr
+  LEFT JOIN reward_type rt ON rt.id = mr.reward_type_id
+"""
 
 # Байгууллагын бүх талбар (зөвхөн эдгээрийг л оруулж/засна)
 ORG_FIELDS = (
@@ -95,7 +113,8 @@ ORG_SELECT = f"""
 SELECT o.*,
        sc.short_name AS school_category_short_name,
        sc.full_name  AS school_category_name,
-       printf('%02d', o.school_category_id) AS school_category_code,
+       CASE WHEN o.school_category_id IS NULL THEN NULL
+            ELSE printf('%02d', o.school_category_id) END AS school_category_code,
        {ORG_FULL_CODE_SQL.format(t='o')} AS full_code
   FROM organization o
   LEFT JOIN school_category sc ON sc.id = o.school_category_id
@@ -309,7 +328,7 @@ def create_horoo():
     return jsonify(dict(row)), 201
 
 
-@bp.route("/api/horoo/<int:hid>", methods=["PUT"])
+@bp.route("/api/horoo/<int:hid>", methods=["PUT", "PATCH"])
 def update_horoo(hid):
     data = json_body()
     fields = [f for f in HOROO_FIELDS if f in data]
@@ -343,11 +362,12 @@ def delete_horoo(hid):
 # =================== organization (Гишүүн байгууллага) ===================
 @bp.route("/api/organization", methods=["GET"])
 def list_org():
-    horoo_id = request.args.get("horoo_id")
+    # ?school_category_id= шүүлтүүр (байгууллага хороонд харьяалагдахаа больсон)
+    cat = request.args.get("school_category_id")
     conn = get_db()
-    if horoo_id:
+    if cat:
         data = rows(conn.execute(
-            ORG_SELECT + " WHERE o.horoo_id=? ORDER BY o.id", (horoo_id,)).fetchall())
+            ORG_SELECT + " WHERE o.school_category_id=? ORDER BY o.id", (cat,)).fetchall())
     else:
         data = rows(conn.execute(ORG_SELECT + " ORDER BY o.id").fetchall())
     for o in data:
@@ -372,9 +392,25 @@ def get_org(oid):
 
 
 def _validate_org(data):
-    """org_code (гараас) яг 3 оронтой тоо эсэхийг шалгана — DB нээхээс өмнө."""
+    """org_code (3 орон) ба school_category_id-г шалгаж, тоон утга болгоно — DB нээхээс өмнө.
+
+    Маягтаас ангилал нь "12" гэсэн ТЕКСТ хэлбэрээр ирдэг тул int болгож хэвийтгэнэ
+    (эс бөгөөс кодын харьцуулалт/форматлалт дээр л мэдэгддэг алдаа үүснэ).
+    Хоосон мөр ("") нь "утга алга" гэсэн үг — NULL болгож хадгална.
+    """
     if data.get("org_code") is not None:
         data["org_code"] = _digit_code(data["org_code"], ORG_CODE_LEN, "org_code")
+    if "school_category_id" in data:
+        cat = data["school_category_id"]
+        if isinstance(cat, str):
+            cat = cat.strip()
+            data["school_category_id"] = None if cat == "" else cat
+            cat = data["school_category_id"]
+        if cat is not None:
+            try:
+                data["school_category_id"] = int(cat)
+            except (TypeError, ValueError):
+                abort(400, description="school_category_id нь бүхэл тоо байх ёстой")
 
 
 def _check_org_code_unique(conn, data, oid=None):
@@ -415,17 +451,14 @@ def _recompute_cards(conn, oid):
 @bp.route("/api/organization", methods=["POST"])
 def create_org():
     data = request.get_json(silent=True)
-    require(data, ["horoo_id", "name"])
+    require(data, ["name"])
     _validate_org(data)
     conn = get_db()
-    if not conn.execute("SELECT 1 FROM horoo WHERE id=?", (data["horoo_id"],)).fetchone():
-        conn.close()
-        abort(400, description="horoo_id (эцэг хороо) олдсонгүй")
     _check_ref(conn, data, "school_category_id", "school_category", "Сургуулийн ангилал")
     _check_org_code_unique(conn, data)
     _check_au(conn, data)
-    cols = ["horoo_id"] + list(ORG_FIELDS)
-    vals = [data["horoo_id"]] + [data.get(f) for f in ORG_FIELDS]
+    cols = list(ORG_FIELDS)
+    vals = [data.get(f) for f in ORG_FIELDS]
     ph = ", ".join("?" * len(cols))
     cur = conn.execute(
         f"INSERT INTO organization({', '.join(cols)}) VALUES ({ph})", vals)
@@ -436,7 +469,7 @@ def create_org():
     return jsonify(dict(row)), 201
 
 
-@bp.route("/api/organization/<int:oid>", methods=["PUT"])
+@bp.route("/api/organization/<int:oid>", methods=["PUT", "PATCH"])
 def update_org(oid):
     data = json_body()
     _validate_org(data)
@@ -510,6 +543,9 @@ def get_member(mid):
     out["contacts"] = rows(conn.execute(
         "SELECT * FROM contact WHERE owner_type='member' AND owner_id=? ORDER BY id",
         (mid,)).fetchall())
+    # Шагнал, урамшуулал (олон байж болно) — төрлийнх нь нэртэй хамт
+    out["rewards"] = rows(conn.execute(
+        MEMBER_REWARD_SELECT + " WHERE mr.member_id=? ORDER BY mr.id", (mid,)).fetchall())
     # Хавсаргасан PDF файлууд (батламж г.м.)
     out["files"] = rows(conn.execute(
         "SELECT * FROM member_file WHERE member_id=? ORDER BY id", (mid,)).fetchall())
@@ -550,7 +586,7 @@ def create_member():
     return jsonify(dict(row)), 201
 
 
-@bp.route("/api/member/<int:mid>", methods=["PUT"])
+@bp.route("/api/member/<int:mid>", methods=["PUT", "PATCH"])
 def update_member(mid):
     data = json_body()
     _validate_member(data)
@@ -632,7 +668,7 @@ def create_contact():
     return jsonify(id=new_id, **data), 201
 
 
-@bp.route("/api/contact/<int:cid>", methods=["PUT"])
+@bp.route("/api/contact/<int:cid>", methods=["PUT", "PATCH"])
 def update_contact(cid):
     data = json_body()
     if data.get("type") and data["type"] not in CONTACT_TYPES:
@@ -745,7 +781,7 @@ def create_salary():
     return jsonify(dict(out)), 201
 
 
-@bp.route("/api/salary_request/<int:sid>", methods=["PUT"])
+@bp.route("/api/salary_request/<int:sid>", methods=["PUT", "PATCH"])
 def update_salary(sid):
     data = json_body()
     _validate_salary(data)
@@ -821,7 +857,7 @@ def create_salary_scale():
     return jsonify(dict(row)), 201
 
 
-@bp.route("/api/salary_scale/<int:sid>", methods=["PUT"])
+@bp.route("/api/salary_scale/<int:sid>", methods=["PUT", "PATCH"])
 def update_salary_scale(sid):
     data = json_body()
     fields = [f for f in SALARY_SCALE_FIELDS if f in data]
@@ -895,7 +931,7 @@ def create_education_degree():
     return jsonify(dict(row)), 201
 
 
-@bp.route("/api/education_degree/<int:eid>", methods=["PUT"])
+@bp.route("/api/education_degree/<int:eid>", methods=["PUT", "PATCH"])
 def update_education_degree(eid):
     data = request.get_json(silent=True)
     require(data, ["name"])
@@ -919,136 +955,168 @@ def delete_education_degree(eid):
     return jsonify(deleted=eid)
 
 
-# ==================== position (Албан тушаал, лавлах) ====================
-@bp.route("/api/position", methods=["GET"])
-def list_position():
+# ============ Кодтой лавлахууд (position / profession / reward_type) ============
+# Гурвуулаа ижил бүтэцтэй (id + code + name) тул CRUD-ыг доорх туслахууд хуваалцана.
+def _check_code_unique(conn, table, code, label, exclude_id=None):
+    """Лавлахын код давхцсан эсэхийг шалгана (DB-д UNIQUE байхгүй тул гараар, 409)."""
+    if code is None or code == "":
+        return
+    sql, params = f"SELECT 1 FROM {table} WHERE code=?", [code]
+    if exclude_id is not None:
+        sql += " AND id<>?"
+        params.append(exclude_id)
+    if conn.execute(sql, params).fetchone():
+        conn.close()
+        abort(409, description=f"{label}: '{code}' код аль хэдийн бүртгэгдсэн байна")
+
+
+def _ref_list(table):
     conn = get_db()
-    data = rows(conn.execute("SELECT * FROM position ORDER BY id").fetchall())
+    data = rows(conn.execute(f"SELECT * FROM {table} ORDER BY id").fetchall())
     conn.close()
     return jsonify(data)
 
 
-@bp.route("/api/position/<int:pid>", methods=["GET"])
-def get_position(pid):
+def _ref_get(table, rid, label):
     conn = get_db()
-    row = conn.execute("SELECT * FROM position WHERE id=?", (pid,)).fetchone()
+    row = conn.execute(f"SELECT * FROM {table} WHERE id=?", (rid,)).fetchone()
     conn.close()
     if not row:
-        abort(404, description="Албан тушаал олдсонгүй")
+        abort(404, description=f"{label} олдсонгүй")
     return jsonify(dict(row))
 
 
-@bp.route("/api/position", methods=["POST"])
-def create_position():
+def _ref_create(table, label):
     data = request.get_json(silent=True)
     require(data, ["name"])
     conn = get_db()
-    cols, vals = ["name"], [data["name"]]
+    _check_code_unique(conn, table, data.get("code"), label)
+    cols = [f for f in CODED_REF_FIELDS if data.get(f) is not None]
+    vals = [data[f] for f in cols]
     if data.get("id") is not None:
         cols.append("id")
         vals.append(data["id"])
     ph = ", ".join("?" * len(cols))
     try:
-        cur = conn.execute(
-            f"INSERT INTO position({', '.join(cols)}) VALUES ({ph})", vals)
+        cur = conn.execute(f"INSERT INTO {table}({', '.join(cols)}) VALUES ({ph})", vals)
         conn.commit()
     except Exception:
         conn.close()
         abort(409, description="Энэ id аль хэдийн бүртгэгдсэн байна")
     new_id = data.get("id") or cur.lastrowid
-    row = conn.execute("SELECT * FROM position WHERE id=?", (new_id,)).fetchone()
+    row = conn.execute(f"SELECT * FROM {table} WHERE id=?", (new_id,)).fetchone()
     conn.close()
     return jsonify(dict(row)), 201
 
 
-@bp.route("/api/position/<int:pid>", methods=["PUT"])
-def update_position(pid):
-    data = request.get_json(silent=True)
-    require(data, ["name"])
+def _ref_update(table, rid, label):
+    """code/name-ийн аль нэг эсвэл хоёуланг нь засна (хэсэгчилсэн засвар)."""
+    data = json_body()
+    fields = [f for f in CODED_REF_FIELDS if f in data]
+    if not fields:
+        abort(400, description="Шинэчлэх талбар алга")
+    if "name" in data and not (data["name"] or "").strip():
+        abort(400, description="name хоосон байж болохгүй")
     conn = get_db()
-    cur = conn.execute("UPDATE position SET name=? WHERE id=?", (data["name"], pid))
+    _check_code_unique(conn, table, data.get("code"), label, rid)
+    sets = ", ".join(f"{f}=?" for f in fields)
+    cur = conn.execute(f"UPDATE {table} SET {sets} WHERE id=?",
+                       [data[f] for f in fields] + [rid])
+    conn.commit()
+    if cur.rowcount == 0:
+        conn.close()
+        abort(404, description=f"{label} олдсонгүй")
+    row = conn.execute(f"SELECT * FROM {table} WHERE id=?", (rid,)).fetchone()
+    conn.close()
+    return jsonify(dict(row))
+
+
+def _ref_delete(table, rid, label):
+    conn = get_db()
+    cur = conn.execute(f"DELETE FROM {table} WHERE id=?", (rid,))
     conn.commit()
     conn.close()
     if cur.rowcount == 0:
-        abort(404, description="Албан тушаал олдсонгүй")
-    return jsonify(id=pid, name=data["name"])
+        abort(404, description=f"{label} олдсонгүй")
+    return jsonify(deleted=rid)
+
+
+# ==================== position (Албан тушаал, лавлах) ====================
+@bp.route("/api/position", methods=["GET"])
+def list_position():
+    return _ref_list("position")
+
+
+@bp.route("/api/position/<int:pid>", methods=["GET"])
+def get_position(pid):
+    return _ref_get("position", pid, "Албан тушаал")
+
+
+@bp.route("/api/position", methods=["POST"])
+def create_position():
+    return _ref_create("position", "Албан тушаал")
+
+
+@bp.route("/api/position/<int:pid>", methods=["PUT", "PATCH"])
+def update_position(pid):
+    return _ref_update("position", pid, "Албан тушаал")
 
 
 @bp.route("/api/position/<int:pid>", methods=["DELETE"])
 def delete_position(pid):
-    conn = get_db()
-    cur = conn.execute("DELETE FROM position WHERE id=?", (pid,))
-    conn.commit()
-    conn.close()
-    if cur.rowcount == 0:
-        abort(404, description="Албан тушаал олдсонгүй")
-    return jsonify(deleted=pid)
+    return _ref_delete("position", pid, "Албан тушаал")
 
 
 # ==================== profession (Мэргэжил, лавлах) ====================
 @bp.route("/api/profession", methods=["GET"])
 def list_profession():
-    conn = get_db()
-    data = rows(conn.execute("SELECT * FROM profession ORDER BY id").fetchall())
-    conn.close()
-    return jsonify(data)
+    return _ref_list("profession")
 
 
 @bp.route("/api/profession/<int:pid>", methods=["GET"])
 def get_profession(pid):
-    conn = get_db()
-    row = conn.execute("SELECT * FROM profession WHERE id=?", (pid,)).fetchone()
-    conn.close()
-    if not row:
-        abort(404, description="Мэргэжил олдсонгүй")
-    return jsonify(dict(row))
+    return _ref_get("profession", pid, "Мэргэжил")
 
 
 @bp.route("/api/profession", methods=["POST"])
 def create_profession():
-    data = request.get_json(silent=True)
-    require(data, ["name"])
-    conn = get_db()
-    cols, vals = ["name"], [data["name"]]
-    if data.get("id") is not None:
-        cols.append("id")
-        vals.append(data["id"])
-    ph = ", ".join("?" * len(cols))
-    try:
-        cur = conn.execute(
-            f"INSERT INTO profession({', '.join(cols)}) VALUES ({ph})", vals)
-        conn.commit()
-    except Exception:
-        conn.close()
-        abort(409, description="Энэ id аль хэдийн бүртгэгдсэн байна")
-    new_id = data.get("id") or cur.lastrowid
-    row = conn.execute("SELECT * FROM profession WHERE id=?", (new_id,)).fetchone()
-    conn.close()
-    return jsonify(dict(row)), 201
+    return _ref_create("profession", "Мэргэжил")
 
 
-@bp.route("/api/profession/<int:pid>", methods=["PUT"])
+@bp.route("/api/profession/<int:pid>", methods=["PUT", "PATCH"])
 def update_profession(pid):
-    data = request.get_json(silent=True)
-    require(data, ["name"])
-    conn = get_db()
-    cur = conn.execute("UPDATE profession SET name=? WHERE id=?", (data["name"], pid))
-    conn.commit()
-    conn.close()
-    if cur.rowcount == 0:
-        abort(404, description="Мэргэжил олдсонгүй")
-    return jsonify(id=pid, name=data["name"])
+    return _ref_update("profession", pid, "Мэргэжил")
 
 
 @bp.route("/api/profession/<int:pid>", methods=["DELETE"])
 def delete_profession(pid):
-    conn = get_db()
-    cur = conn.execute("DELETE FROM profession WHERE id=?", (pid,))
-    conn.commit()
-    conn.close()
-    if cur.rowcount == 0:
-        abort(404, description="Мэргэжил олдсонгүй")
-    return jsonify(deleted=pid)
+    return _ref_delete("profession", pid, "Мэргэжил")
+
+
+# ============ reward_type (Шагнал, урамшууллын төрөл, лавлах) ============
+@bp.route("/api/reward_type", methods=["GET"])
+def list_reward_type():
+    return _ref_list("reward_type")
+
+
+@bp.route("/api/reward_type/<int:rid>", methods=["GET"])
+def get_reward_type(rid):
+    return _ref_get("reward_type", rid, "Шагналын төрөл")
+
+
+@bp.route("/api/reward_type", methods=["POST"])
+def create_reward_type():
+    return _ref_create("reward_type", "Шагналын төрөл")
+
+
+@bp.route("/api/reward_type/<int:rid>", methods=["PUT", "PATCH"])
+def update_reward_type(rid):
+    return _ref_update("reward_type", rid, "Шагналын төрөл")
+
+
+@bp.route("/api/reward_type/<int:rid>", methods=["DELETE"])
+def delete_reward_type(rid):
+    return _ref_delete("reward_type", rid, "Шагналын төрөл")
 
 
 # ================ member_education (Гишүүний боловсрол) ================
@@ -1113,7 +1181,7 @@ def create_member_education():
     return jsonify(dict(row)), 201
 
 
-@bp.route("/api/member_education/<int:eid>", methods=["PUT"])
+@bp.route("/api/member_education/<int:eid>", methods=["PUT", "PATCH"])
 def update_member_education(eid):
     data = json_body()
     conn = get_db()
@@ -1141,6 +1209,98 @@ def delete_member_education(eid):
     if cur.rowcount == 0:
         abort(404, description="Боловсролын бүртгэл олдсонгүй")
     return jsonify(deleted=eid)
+
+
+# ============ member_reward (Гишүүний шагнал, урамшуулал) ============
+# Нэг гишүүн ОЛОН шагналтай байж болно (member_education-тэй ижил зарчим).
+def _check_reward_type(conn, data):
+    """reward_type_id өгсөн бол лавлахад байгаа эсэхийг шалгана."""
+    rid = data.get("reward_type_id")
+    if rid is None:
+        return
+    if not conn.execute("SELECT 1 FROM reward_type WHERE id=?", (rid,)).fetchone():
+        conn.close()
+        abort(400, description="reward_type_id (шагналын төрөл) олдсонгүй")
+
+
+@bp.route("/api/member_reward", methods=["GET"])
+def list_member_reward():
+    # ?member_id= ба ?reward_type_id= шүүлтүүд — хосолж болно
+    cond, params = [], []
+    for f in ("member_id", "reward_type_id"):
+        if request.args.get(f):
+            cond.append(f"mr.{f}=?")
+            params.append(request.args[f])
+    sql = (MEMBER_REWARD_SELECT
+           + (" WHERE " + " AND ".join(cond) if cond else "") + " ORDER BY mr.id")
+    conn = get_db()
+    data = rows(conn.execute(sql, params).fetchall())
+    conn.close()
+    return jsonify(data)
+
+
+@bp.route("/api/member_reward/<int:rid>", methods=["GET"])
+def get_member_reward(rid):
+    conn = get_db()
+    row = conn.execute(MEMBER_REWARD_SELECT + " WHERE mr.id=?", (rid,)).fetchone()
+    conn.close()
+    if not row:
+        abort(404, description="Шагналын бүртгэл олдсонгүй")
+    return jsonify(dict(row))
+
+
+@bp.route("/api/member_reward", methods=["POST"])
+def create_member_reward():
+    data = request.get_json(silent=True)
+    require(data, ["member_id"])
+    conn = get_db()
+    if not conn.execute("SELECT 1 FROM member WHERE id=?", (data["member_id"],)).fetchone():
+        conn.close()
+        abort(400, description="member_id (эцэг гишүүн) олдсонгүй")
+    _check_reward_type(conn, data)
+    cols, vals = ["member_id"], [data["member_id"]]
+    for f in MEMBER_REWARD_FIELDS:
+        if data.get(f) is not None:
+            cols.append(f)
+            vals.append(data[f])
+    ph = ", ".join("?" * len(cols))
+    cur = conn.execute(
+        f"INSERT INTO member_reward({', '.join(cols)}) VALUES ({ph})", vals)
+    conn.commit()
+    new_id = cur.lastrowid
+    row = conn.execute(MEMBER_REWARD_SELECT + " WHERE mr.id=?", (new_id,)).fetchone()
+    conn.close()
+    return jsonify(dict(row)), 201
+
+
+@bp.route("/api/member_reward/<int:rid>", methods=["PUT", "PATCH"])
+def update_member_reward(rid):
+    data = json_body()
+    conn = get_db()
+    _check_reward_type(conn, data)
+    fields = [f for f in MEMBER_REWARD_FIELDS if f in data]
+    if not fields:
+        conn.close()
+        abort(400, description="Шинэчлэх талбар алга")
+    sets = ", ".join(f"{f}=?" for f in fields)
+    vals = [data[f] for f in fields] + [rid]
+    cur = conn.execute(f"UPDATE member_reward SET {sets} WHERE id=?", vals)
+    conn.commit()
+    conn.close()
+    if cur.rowcount == 0:
+        abort(404, description="Шагналын бүртгэл олдсонгүй")
+    return jsonify(updated=rid, fields=fields)
+
+
+@bp.route("/api/member_reward/<int:rid>", methods=["DELETE"])
+def delete_member_reward(rid):
+    conn = get_db()
+    cur = conn.execute("DELETE FROM member_reward WHERE id=?", (rid,))
+    conn.commit()
+    conn.close()
+    if cur.rowcount == 0:
+        abort(404, description="Шагналын бүртгэл олдсонгүй")
+    return jsonify(deleted=rid)
 
 
 # ============ member_file (Гишүүний хавсралт — батламж г.м., зөвхөн PDF) ============
@@ -1255,7 +1415,7 @@ def upload_member_file():
     return jsonify(data), 201
 
 
-@bp.route("/api/member_file/<int:fid>", methods=["PUT"])
+@bp.route("/api/member_file/<int:fid>", methods=["PUT", "PATCH"])
 def update_member_file(fid):
     """Зөвхөн тайлбарыг (note) засна — файлын агуулгыг солихгүй (дахин оруулна)."""
     data = json_body()

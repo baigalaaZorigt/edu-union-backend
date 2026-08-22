@@ -51,7 +51,7 @@ def create_au1():
     return jsonify(data), 201
 
 
-@bp.route("/api/au1/<code>", methods=["PUT"])
+@bp.route("/api/au1/<code>", methods=["PUT", "PATCH"])
 def update_au1(code):
     data = request.get_json(silent=True)
     require(data, ["name"])
@@ -128,7 +128,7 @@ def create_au2():
     return jsonify(data), 201
 
 
-@bp.route("/api/au2/<au2_code>", methods=["PUT"])
+@bp.route("/api/au2/<au2_code>", methods=["PUT", "PATCH"])
 def update_au2(au2_code):
     data = request.get_json(silent=True)
     require(data, ["au2_name"])
@@ -212,7 +212,7 @@ def create_au3():
     return jsonify(data), 201
 
 
-@bp.route("/api/au3/<au3_code>", methods=["PUT"])
+@bp.route("/api/au3/<au3_code>", methods=["PUT", "PATCH"])
 def update_au3(au3_code):
     data = request.get_json(silent=True)
     require(data, ["au3_name"])
@@ -300,7 +300,7 @@ def create_school_category():
     return jsonify(dict(row)), 201
 
 
-@bp.route("/api/school_category/<int:cid>", methods=["PUT"])
+@bp.route("/api/school_category/<int:cid>", methods=["PUT", "PATCH"])
 def update_school_category(cid):
     data = json_body()
     fields = [f for f in SCHOOL_CATEGORY_FIELDS if f in data]

@@ -136,7 +136,7 @@ def create_form():
     return jsonify(out), 201
 
 
-@bp.route("/api/admin/forms/<int:fid>", methods=["PUT"])
+@bp.route("/api/admin/forms/<int:fid>", methods=["PUT", "PATCH"])
 def update_form(fid):
     """Маягт засах (хэсэгчилсэн). status-г мөн энд эсвэл publish/close-оор солино."""
     data = json_body()
@@ -264,7 +264,7 @@ def get_question(qid):
     return jsonify(out)
 
 
-@bp.route("/api/admin/questions/<int:qid>", methods=["PUT"])
+@bp.route("/api/admin/questions/<int:qid>", methods=["PUT", "PATCH"])
 def update_question(qid):
     """Асуулт засах. options өгвөл сонголтууд БҮРЭН солигдоно (хариултгүй үед л)."""
     data = json_body()
@@ -408,7 +408,7 @@ def create_option(qid):
     return jsonify(dict(row)), 201
 
 
-@bp.route("/api/admin/options/<int:oid>", methods=["PUT"])
+@bp.route("/api/admin/options/<int:oid>", methods=["PUT", "PATCH"])
 def update_option(oid):
     """Сонголтын нэр/эрэмбийг засна (хариултад нөлөөлөхгүй тул үргэлж боломжтой)."""
     data = json_body()

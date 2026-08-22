@@ -36,7 +36,7 @@ def register_error_handlers(target):
     боловсруулагчийг бүртгэнэ.
 
     400 буруу хүсэлт / 401 нэвтрээгүй / 403 эрх хүрэлцэхгүй / 404 олдсонгүй /
-    409 давхцал / 413 хэт том хүсэлт (файл оруулах).
+    405 буруу метод / 409 давхцал / 413 хэт том хүсэлт (файл оруулах).
     """
     @target.errorhandler(400)
     @target.errorhandler(401)
@@ -45,6 +45,13 @@ def register_error_handlers(target):
     @target.errorhandler(409)
     def _handle(err):
         return jsonify(error=err.description), err.code
+
+    @target.errorhandler(405)
+    def _bad_method(err):
+        # Анхдагчаараа HTML буцдаг тул JSON болгож, зөвшөөрөгдсөн методыг хэлж өгнө.
+        allowed = ", ".join(sorted(err.valid_methods or ()))
+        return jsonify(error=f"{request.method} метод энэ хаяг дээр ажиллахгүй"
+                             + (f" — зөвшөөрөгдөх: {allowed}" if allowed else "")), 405
 
     @target.errorhandler(413)
     def _too_large(err):

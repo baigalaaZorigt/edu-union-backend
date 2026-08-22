@@ -56,6 +56,10 @@
    "value": "1"
   },
   {
+   "key": "member_reward_id",
+   "value": "1"
+  },
+  {
    "key": "contact_id",
    "value": "1"
   },
@@ -77,6 +81,10 @@
   },
   {
    "key": "profession_id",
+   "value": "1"
+  },
+  {
+   "key": "reward_type_id",
    "value": "1"
   },
   {
@@ -169,6 +177,14 @@
   },
   {
    "key": "new_organization_id",
+   "value": ""
+  },
+  {
+   "key": "new_neg_org_id",
+   "value": ""
+  },
+  {
+   "key": "new_neg_horoo_id",
    "value": ""
   },
   {
@@ -1062,11 +1078,11 @@
    "name": "ҮЭ — Гишүүн байгууллага (organization)",
    "item": [
     {
-     "name": "Жагсаалт (хороогоор шүүх)",
+     "name": "Жагсаалт (ангиллаар шүүх)",
      "request": {
       "method": "GET",
       "url": {
-       "raw": "{{base_url}}/api/organization?horoo_id={{horoo_id}}",
+       "raw": "{{base_url}}/api/organization?school_category_id={{school_category_id}}",
        "host": [
         "{{base_url}}"
        ],
@@ -1076,8 +1092,8 @@
        ],
        "query": [
         {
-         "key": "horoo_id",
-         "value": "{{horoo_id}}"
+         "key": "school_category_id",
+         "value": "{{school_category_id}}"
         }
        ]
       }
@@ -1134,7 +1150,7 @@
       ],
       "body": {
        "mode": "raw",
-       "raw": "{\n  \"horoo_id\": 1,\n  \"name\": \"Шинэ сургууль\",\n  \"school_category_id\": 12,\n  \"org_code\": \"123\",\n  \"registration_number\": \"9923659\",\n  \"state_reg_number\": \"9019001234\",\n  \"founded_date\": \"2023-01-31\",\n  \"activity_code\": \"8530\",\n  \"activity_name\": \"Дээд боловсрол олгох үйл ажиллагаа\",\n  \"parent_org\": \"АШУҮИС\",\n  \"au1_code\": \"011\",\n  \"au2_code\": \"01101\",\n  \"au3_code\": \"0110151\",\n  \"address_detail\": \"Ард Аюушийн гудамж\",\n  \"postal_address\": \"Улаанбаатар 14210, ШУТИС-14-р байр\",\n  \"phone1\": \"70112233\",\n  \"phone2\": \"99112233\",\n  \"email\": \"info@example.mn\",\n  \"contact_name\": \"Б.Болд\"\n}"
+       "raw": "{\n  \"name\": \"Шинэ сургууль\",\n  \"school_category_id\": 12,\n  \"org_code\": \"123\",\n  \"registration_number\": \"9923659\",\n  \"state_reg_number\": \"9019001234\",\n  \"founded_date\": \"2023-01-31\",\n  \"activity_code\": \"8530\",\n  \"activity_name\": \"Дээд боловсрол олгох үйл ажиллагаа\",\n  \"parent_org\": \"АШУҮИС\",\n  \"au1_code\": \"011\",\n  \"au2_code\": \"01101\",\n  \"au3_code\": \"0110151\",\n  \"address_detail\": \"Ард Аюушийн гудамж\",\n  \"postal_address\": \"Улаанбаатар 14210, ШУТИС-14-р байр\",\n  \"phone1\": \"70112233\",\n  \"phone2\": \"99112233\",\n  \"email\": \"info@example.mn\",\n  \"contact_name\": \"Б.Болд\"\n}"
       },
       "url": {
        "raw": "{{base_url}}/api/organization",
@@ -1156,7 +1172,8 @@
          "pm.test('статус 201', () => pm.response.to.have.status(201));",
          "var j = pm.response.json();",
          "pm.collectionVariables.set('new_organization_id', j.id);",
-         "pm.test('new_organization_id хадгалагдсан', () => pm.expect(j.id).to.exist);"
+         "pm.test('ангилал хадгалагдсан', () => pm.expect(j.school_category_id).to.eql(12));",
+         "pm.test('5 оронтой код', () => pm.expect(j.full_code).to.eql('12123'));"
         ]
        }
       }
@@ -1197,6 +1214,77 @@
         "exec": [
          "pm.test('статус 200', () => pm.response.to.have.status(200));",
          "pm.test('холбоо барих талбар шинэчлэгдсэн', () => pm.expect(pm.response.json().fields).to.include('contact_name'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Засах (PATCH — ангилал хадгалагдахыг шалгах)",
+     "request": {
+      "method": "PATCH",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"school_category_id\": \"16\"\n}"
+      },
+      "url": {
+       "raw": "{{base_url}}/api/organization/{{new_organization_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "organization",
+        "{{new_organization_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('PATCH дэмжигдэнэ', () => pm.expect(j.updated).to.exist);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Шалгах: ангилал шинэчлэгдсэн",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/organization/{{new_organization_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "organization",
+        "{{new_organization_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('ангилал 16 болсон', () => pm.expect(j.school_category_id).to.eql(16));",
+         "pm.test('код дахин бодогдсон', () => pm.expect(j.full_code).to.eql('16007'));"
         ]
        }
       }
@@ -1248,12 +1336,7 @@
       ],
       "body": {
        "mode": "raw",
-       "options": {
-        "raw": {
-         "language": "json"
-        }
-       },
-       "raw": "{\n  \"horoo_id\": \"{{horoo_id}}\",\n  \"name\": \"Тест сургууль (гишүүний тест)\",\n  \"school_category_id\": 12,\n  \"org_code\": \"999\"\n}"
+       "raw": "{\n  \"name\": \"Тест сургууль (гишүүний тест)\",\n  \"school_category_id\": 12,\n  \"org_code\": \"999\"\n}"
       },
       "url": {
        "raw": "{{base_url}}/api/organization",
@@ -1672,6 +1755,316 @@
         "api",
         "member_education",
         "{{new_member_education_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "ҮЭ — Гишүүний шагнал (member_reward)",
+   "item": [
+    {
+     "name": "Жагсаалт (гишүүнээр шүүх)",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/member_reward?member_id={{member_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member_reward"
+       ],
+       "query": [
+        {
+         "key": "member_id",
+         "value": "{{member_id}}"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Нэмэх → new_member_reward_id",
+     "request": {
+      "method": "POST",
+      "url": {
+       "raw": "{{base_url}}/api/member_reward",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member_reward"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"member_id\": 1,\n  \"reward_type_id\": 7,\n  \"description\": \"Салбарын тэргүүний ажилтан\",\n  \"reward_date\": \"2024-05-01\"\n}"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "var j = pm.response.json();",
+         "pm.collectionVariables.set('new_member_reward_id', j.id);",
+         "pm.test('төрлийн нэр хамт ирсэн', () => pm.expect(j.reward_type_name).to.exist);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Нэгийг авах",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/member_reward/{{new_member_reward_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member_reward",
+        "{{new_member_reward_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Жагсаалт (төрлөөр шүүх)",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/member_reward?reward_type_id=7",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member_reward"
+       ],
+       "query": [
+        {
+         "key": "reward_type_id",
+         "value": "7"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('массив', () => pm.expect(pm.response.json()).to.be.an('array'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Нэмэх (буруу төрөл) → 400",
+     "request": {
+      "method": "POST",
+      "url": {
+       "raw": "{{base_url}}/api/member_reward",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member_reward"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"member_id\": 1,\n  \"reward_type_id\": 99999\n}"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Нэмэх (буруу гишүүн) → 400",
+     "request": {
+      "method": "POST",
+      "url": {
+       "raw": "{{base_url}}/api/member_reward",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member_reward"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"member_id\": 999999,\n  \"reward_type_id\": 7\n}"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Гишүүн дээр шагнал харагдах",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/member/{{member_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member",
+        "{{member_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('rewards массив ирсэн', () => pm.expect(j.rewards).to.be.an('array'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Засах (хэсэгчилсэн)",
+     "request": {
+      "method": "PUT",
+      "url": {
+       "raw": "{{base_url}}/api/member_reward/{{new_member_reward_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member_reward",
+        "{{new_member_reward_id}}"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"description\": \"Шинэчилсэн тайлбар\"\n}"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Устгах",
+     "request": {
+      "method": "DELETE",
+      "url": {
+       "raw": "{{base_url}}/api/member_reward/{{new_member_reward_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member_reward",
+        "{{new_member_reward_id}}"
        ]
       }
      },
@@ -2550,6 +2943,541 @@
    ]
   },
   {
+   "name": "ҮЭ — Алдааны шалгалт (сөрөг тест)",
+   "item": [
+    {
+     "name": "Бэлтгэл: байгууллага үүсгэх → new_neg_org_id",
+     "request": {
+      "method": "POST",
+      "url": {
+       "raw": "{{base_url}}/api/organization",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "organization"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"name\": \"Сөрөг тестийн байгууллага\",\n  \"school_category_id\": 13,\n  \"org_code\": \"801\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "var j = pm.response.json();",
+         "pm.collectionVariables.set('new_neg_org_id', j.id);",
+         "pm.test('horoo_id талбар байхгүй', () => pm.expect(j).to.not.have.property('horoo_id'));",
+         "pm.test('ангилал хадгалагдсан', () => pm.expect(j.school_category_id).to.eql(13));",
+         "pm.test('5 оронтой код', () => pm.expect(j.full_code).to.eql('13801'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Ангилал текстээр ('16') → бүхэл тоо болно",
+     "request": {
+      "method": "PATCH",
+      "url": {
+       "raw": "{{base_url}}/api/organization/{{new_neg_org_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "organization",
+        "{{new_neg_org_id}}"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"school_category_id\": \"16\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Шалгах: 16 болж хадгалагдсан",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/organization/{{new_neg_org_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "organization",
+        "{{new_neg_org_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('тоо болж хөрвүүлсэн', () => pm.expect(j.school_category_id).to.eql(16));",
+         "pm.test('код дахин бодогдсон', () => pm.expect(j.full_code).to.eql('16801'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Ангилал хоосон ('') → NULL",
+     "request": {
+      "method": "PATCH",
+      "url": {
+       "raw": "{{base_url}}/api/organization/{{new_neg_org_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "organization",
+        "{{new_neg_org_id}}"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"school_category_id\": \"\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Шалгах: full_code NULL ('00...' биш)",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/organization/{{new_neg_org_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "organization",
+        "{{new_neg_org_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('ангилал NULL', () => pm.expect(j.school_category_id).to.be.null);",
+         "pm.test('full_code NULL', () => pm.expect(j.full_code).to.be.null);",
+         "pm.test('school_category_code NULL', () => pm.expect(j.school_category_code).to.be.null);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Ангилал тоо биш → 400",
+     "request": {
+      "method": "PATCH",
+      "url": {
+       "raw": "{{base_url}}/api/organization/{{new_neg_org_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "organization",
+        "{{new_neg_org_id}}"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"school_category_id\": \"хоосон\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));",
+         "pm.test('JSON алдаа буцаасан', () => pm.expect(pm.response.json().error).to.exist);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Байхгүй ангилал (999) → 400",
+     "request": {
+      "method": "PATCH",
+      "url": {
+       "raw": "{{base_url}}/api/organization/{{new_neg_org_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "organization",
+        "{{new_neg_org_id}}"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"school_category_id\": 999\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));",
+         "pm.test('JSON алдаа буцаасан', () => pm.expect(pm.response.json().error).to.exist);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "org_code 3 оронтой биш → 400",
+     "request": {
+      "method": "PATCH",
+      "url": {
+       "raw": "{{base_url}}/api/organization/{{new_neg_org_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "organization",
+        "{{new_neg_org_id}}"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"org_code\": \"12\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));",
+         "pm.test('JSON алдаа буцаасан', () => pm.expect(pm.response.json().error).to.exist);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Бэлтгэл: хороо үүсгэх → new_neg_horoo_id",
+     "request": {
+      "method": "POST",
+      "url": {
+       "raw": "{{base_url}}/api/horoo",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "horoo"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"holboo_id\": 1,\n  \"name\": \"Сөрөг тестийн хороо\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "pm.collectionVariables.set('new_neg_horoo_id', pm.response.json().id);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Хороог устгах",
+     "request": {
+      "method": "DELETE",
+      "url": {
+       "raw": "{{base_url}}/api/horoo/{{new_neg_horoo_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "horoo",
+        "{{new_neg_horoo_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Байгууллага ҮЛДСЭН эсэх (horoo_id хасагдсан)",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/organization/{{new_neg_org_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "organization",
+        "{{new_neg_org_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('байгууллага амьд', () => pm.expect(pm.response.json().id).to.exist);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Цэвэрлэгээ: байгууллагыг устгах",
+     "request": {
+      "method": "DELETE",
+      "url": {
+       "raw": "{{base_url}}/api/organization/{{new_neg_org_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "organization",
+        "{{new_neg_org_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Буруу метод (PATCH /api/login) → JSON 405",
+     "request": {
+      "method": "PATCH",
+      "url": {
+       "raw": "{{base_url}}/api/login",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "login"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 405', () => pm.response.to.have.status(405));",
+         "pm.test('JSON алдаа буцаасан', () => pm.expect(pm.response.json().error).to.exist);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Токенгүй хандалт → 401",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/reward_type",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "reward_type"
+       ]
+      },
+      "auth": {
+       "type": "noauth"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 401', () => pm.response.to.have.status(401));",
+         "pm.test('JSON алдаа буцаасан', () => pm.expect(pm.response.json().error).to.exist);"
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
    "name": "Лавлах — Цалингийн шатлал (salary_scale)",
    "item": [
     {
@@ -2939,7 +3867,9 @@
        "script": {
         "type": "text/javascript",
         "exec": [
-         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('code талбартай', () => pm.expect(j).to.have.property('code'));"
         ]
        }
       }
@@ -2949,16 +3879,6 @@
      "name": "Нэмэх → new_position_id",
      "request": {
       "method": "POST",
-      "header": [
-       {
-        "key": "Content-Type",
-        "value": "application/json"
-       }
-      ],
-      "body": {
-       "mode": "raw",
-       "raw": "{\n  \"name\": \"Шинэ албан тушаал\"\n}"
-      },
       "url": {
        "raw": "{{base_url}}/api/position",
        "host": [
@@ -2968,6 +3888,16 @@
         "api",
         "position"
        ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"code\": \"AT-99\",\n  \"name\": \"Шинэ албан тушаал\"\n}"
       }
      },
      "event": [
@@ -2979,16 +3909,26 @@
          "pm.test('статус 201', () => pm.response.to.have.status(201));",
          "var j = pm.response.json();",
          "pm.collectionVariables.set('new_position_id', j.id);",
-         "pm.test('new_position_id хадгалагдсан', () => pm.expect(j.id).to.exist);"
+         "pm.test('код буцаасан', () => pm.expect(j.code).to.eql('AT-99'));"
         ]
        }
       }
      ]
     },
     {
-     "name": "Засах",
+     "name": "Нэмэх (код давхардсан) → 409",
      "request": {
-      "method": "PUT",
+      "method": "POST",
+      "url": {
+       "raw": "{{base_url}}/api/position",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "position"
+       ]
+      },
       "header": [
        {
         "key": "Content-Type",
@@ -2997,8 +3937,25 @@
       ],
       "body": {
        "mode": "raw",
-       "raw": "{\n  \"name\": \"Шинэ албан тушаал (шинэчилсэн)\"\n}"
-      },
+       "raw": "{\n  \"code\": \"AT-99\",\n  \"name\": \"Шинэ албан тушаал 2\"\n}"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 409', () => pm.response.to.have.status(409));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Засах (код + нэр)",
+     "request": {
+      "method": "PUT",
       "url": {
        "raw": "{{base_url}}/api/position/{{new_position_id}}",
        "host": [
@@ -3009,6 +3966,16 @@
         "position",
         "{{new_position_id}}"
        ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"code\": \"AT-99A\",\n  \"name\": \"Шинэ албан тушаал (шинэчилсэн)\"\n}"
       }
      },
      "event": [
@@ -3017,7 +3984,9 @@
        "script": {
         "type": "text/javascript",
         "exec": [
-         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('код шинэчлэгдсэн', () => pm.expect(j.code).to.eql('AT-99A'));"
         ]
        }
       }
@@ -3105,7 +4074,9 @@
        "script": {
         "type": "text/javascript",
         "exec": [
-         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('code талбартай', () => pm.expect(j).to.have.property('code'));"
         ]
        }
       }
@@ -3115,16 +4086,6 @@
      "name": "Нэмэх → new_profession_id",
      "request": {
       "method": "POST",
-      "header": [
-       {
-        "key": "Content-Type",
-        "value": "application/json"
-       }
-      ],
-      "body": {
-       "mode": "raw",
-       "raw": "{\n  \"name\": \"Шинэ мэргэжил\"\n}"
-      },
       "url": {
        "raw": "{{base_url}}/api/profession",
        "host": [
@@ -3134,6 +4095,16 @@
         "api",
         "profession"
        ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"code\": \"MZ-99\",\n  \"name\": \"Шинэ мэргэжил\"\n}"
       }
      },
      "event": [
@@ -3145,16 +4116,26 @@
          "pm.test('статус 201', () => pm.response.to.have.status(201));",
          "var j = pm.response.json();",
          "pm.collectionVariables.set('new_profession_id', j.id);",
-         "pm.test('new_profession_id хадгалагдсан', () => pm.expect(j.id).to.exist);"
+         "pm.test('код буцаасан', () => pm.expect(j.code).to.eql('MZ-99'));"
         ]
        }
       }
      ]
     },
     {
-     "name": "Засах",
+     "name": "Нэмэх (код давхардсан) → 409",
      "request": {
-      "method": "PUT",
+      "method": "POST",
+      "url": {
+       "raw": "{{base_url}}/api/profession",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "profession"
+       ]
+      },
       "header": [
        {
         "key": "Content-Type",
@@ -3163,8 +4144,25 @@
       ],
       "body": {
        "mode": "raw",
-       "raw": "{\n  \"name\": \"Шинэ мэргэжил (шинэчилсэн)\"\n}"
-      },
+       "raw": "{\n  \"code\": \"MZ-99\",\n  \"name\": \"Шинэ мэргэжил 2\"\n}"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 409', () => pm.response.to.have.status(409));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Засах (код + нэр)",
+     "request": {
+      "method": "PUT",
       "url": {
        "raw": "{{base_url}}/api/profession/{{new_profession_id}}",
        "host": [
@@ -3175,6 +4173,16 @@
         "profession",
         "{{new_profession_id}}"
        ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"code\": \"MZ-99A\",\n  \"name\": \"Шинэ мэргэжил (шинэчилсэн)\"\n}"
       }
      },
      "event": [
@@ -3183,7 +4191,9 @@
        "script": {
         "type": "text/javascript",
         "exec": [
-         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('код шинэчлэгдсэн', () => pm.expect(j.code).to.eql('MZ-99A'));"
         ]
        }
       }
@@ -3202,6 +4212,213 @@
         "api",
         "profession",
         "{{new_profession_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Лавлах — Шагнал, урамшууллын төрөл (reward_type)",
+   "item": [
+    {
+     "name": "Жагсаалт",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/reward_type",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "reward_type"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Нэгийг авах",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/reward_type/{{reward_type_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "reward_type",
+        "{{reward_type_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('code талбартай', () => pm.expect(j).to.have.property('code'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Нэмэх → new_reward_type_id",
+     "request": {
+      "method": "POST",
+      "url": {
+       "raw": "{{base_url}}/api/reward_type",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "reward_type"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"code\": \"ШТ-99\",\n  \"name\": \"Шинэ шагналын төрөл\"\n}"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "var j = pm.response.json();",
+         "pm.collectionVariables.set('new_reward_type_id', j.id);",
+         "pm.test('код буцаасан', () => pm.expect(j.code).to.eql('ШТ-99'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Нэмэх (код давхардсан) → 409",
+     "request": {
+      "method": "POST",
+      "url": {
+       "raw": "{{base_url}}/api/reward_type",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "reward_type"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"code\": \"ШТ-99\",\n  \"name\": \"Шинэ шагналын төрөл 2\"\n}"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 409', () => pm.response.to.have.status(409));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Засах (код + нэр)",
+     "request": {
+      "method": "PUT",
+      "url": {
+       "raw": "{{base_url}}/api/reward_type/{{new_reward_type_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "reward_type",
+        "{{new_reward_type_id}}"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"code\": \"ШТ-99A\",\n  \"name\": \"Шинэ шагналын төрөл (шинэчилсэн)\"\n}"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('код шинэчлэгдсэн', () => pm.expect(j.code).to.eql('ШТ-99A'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Устгах",
+     "request": {
+      "method": "DELETE",
+      "url": {
+       "raw": "{{base_url}}/api/reward_type/{{new_reward_type_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "reward_type",
+        "{{new_reward_type_id}}"
        ]
       }
      },
@@ -3925,7 +5142,7 @@
       ],
       "body": {
        "mode": "raw",
-       "raw": "{\n  \"username\": \"bat\",\n  \"password\": \"pass123\",\n  \"full_name\": \"Бат\",\n  \"email\": \"bat@example.mn\",\n  \"role_id\": 2,\n  \"is_active\": 1\n}"
+       "raw": "{\n  \"username\": \"bat\",\n  \"password\": \"pass123\",\n  \"last_name\": \"Батын\",\n  \"first_name\": \"Болд\",\n  \"email\": \"bat@example.mn\",\n  \"role_id\": 2,\n  \"is_active\": 1\n}"
       },
       "url": {
        "raw": "{{base_url}}/api/user",
@@ -3947,7 +5164,9 @@
          "pm.test('статус 201', () => pm.response.to.have.status(201));",
          "var j = pm.response.json();",
          "pm.collectionVariables.set('new_user_id', j.id);",
-         "pm.test('new_user_id хадгалагдсан', () => pm.expect(j.id).to.exist);"
+         "pm.test('new_user_id хадгалагдсан', () => pm.expect(j.id).to.exist);",
+         "pm.test('овог/нэр тусад нь', () => pm.expect(pm.response.json().last_name).to.eql('Батын'));",
+         "pm.test('full_name талбар байхгүй', () => pm.expect(pm.response.json()).to.not.have.property('full_name'));"
         ]
        }
       }
@@ -3965,7 +5184,7 @@
       ],
       "body": {
        "mode": "raw",
-       "raw": "{\n  \"full_name\": \"Бат Болд\",\n  \"role_id\": 3,\n  \"password\": \"newpass123\"\n}"
+       "raw": "{\n  \"last_name\": \"Доржийн\",\n  \"first_name\": \"Бат\",\n  \"role_id\": 3,\n  \"password\": \"newpass123\"\n}"
       },
       "url": {
        "raw": "{{base_url}}/api/user/{{new_user_id}}",
@@ -3985,7 +5204,100 @@
        "script": {
         "type": "text/javascript",
         "exec": [
-         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('нэр шинэчлэгдсэн', () => pm.expect(j.first_name).to.eql('Бат'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Засах (PATCH — зөвхөн нэр)",
+     "request": {
+      "method": "PATCH",
+      "url": {
+       "raw": "{{base_url}}/api/user/{{new_user_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "user",
+        "{{new_user_id}}"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"first_name\": \"Ганбат\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('нэр шинэчлэгдсэн', () => pm.expect(j.first_name).to.eql('Ганбат'));",
+         "pm.test('овог хэвээр', () => pm.expect(j.last_name).to.eql('Доржийн'));",
+         "pm.test('full_name байхгүй', () => pm.expect(j).to.not.have.property('full_name'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Засах (зөвхөн full_name) → 400",
+     "request": {
+      "method": "PUT",
+      "url": {
+       "raw": "{{base_url}}/api/user/{{new_user_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "user",
+        "{{new_user_id}}"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"full_name\": \"Хэн нэгэн\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));",
+         "pm.test('JSON алдаа буцаасан', () => pm.expect(pm.response.json().error).to.exist);"
         ]
        }
       }
