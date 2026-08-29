@@ -17,7 +17,7 @@ set -euo pipefail
 REGION="${REGION:-ap-northeast-1}"
 NAME="${NAME:-edu-union}"
 REPO="${REPO:-https://github.com/baigalaaZorigt/edu-union-backend.git}"
-DOMAIN="${DOMAIN:-none}"
+DOMAIN="${DOMAIN:-api.fmesu.mn}"   # DNS-ийн A бичлэг EC2 рүү заасан байх ёстой
 
 DB_ID="${NAME}-db"
 DB_NAME=eduunion

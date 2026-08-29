@@ -86,6 +86,9 @@ gunicorn run:app               # production WSGI server (loads the module-level 
   start `gunicorn run:app --bind 0.0.0.0:$PORT` (see `render.yaml`).
 - On AWS: `bash deploy/provision.sh` creates everything (RDS + EC2 + security groups +
   SSH key, idempotent); `DATABASE_URL=... python migrate_to_pg.py` copies SQLite → Postgres.
+  Live at **https://api.fmesu.mn** (EC2 `i-03648c2bcc4e19350`, 13.196.178.202 → nginx → docker →
+  RDS `edu-union-db`). The RDS instance is **not** publicly accessible: reach it through the app
+  server (`ssh -i edu-union-key.pem -L 5432:<rds-endpoint>:5432 ec2-user@13.196.178.202`).
 
 - `run.py`'s `create_app()` calls `ensure_seeded()` on startup: it always creates the schema,
   **auto-seeds any empty table** (idempotent), and **always re-runs `seed_users()`** so newly added
