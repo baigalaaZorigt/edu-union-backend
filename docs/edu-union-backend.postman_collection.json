@@ -1,7 +1,7 @@
 {
  "info": {
   "name": "edu-union-backend — Засаг захиргаа, ҮЭ, Хэрэглэгчийн удирдлага",
-  "description": "edu-union-backend — Flask + SQLite JSON API-ийн бүрэн лавлах цуглуулга.\n\n## Хэрхэн ажиллуулах\n1. Сервер: `python run.py` (анхдагч http://127.0.0.1:5001).\n2. `base_url` хувьсагчийг серверийнхээ хаягаар тохируулна.\n3. **'0. Нэвтрэлт (login)'-ийг ЭХЭЛЖ ажиллуулна** — токен `{{token}}`-д хадгалагдаж, бусад бүх хүсэлт үүнийг Bearer толгойгоор автоматаар авна.\n4. Дараа нь Runner-ээр бүх цуглуулгыг дээрээс доош ажиллуулж болно.\n\n## Зарчим\n- Фолдер бүр **өөрийгөө цэвэрлэдэг**: `Нэмэх` шинэ бичлэг үүсгэж id-г нь `{{new_*}}` хувьсагчид хадгална, `Засах`/`Устгах` нь ЗӨВХӨН тэр бичлэгийг онилно. Тиймээс цуглуулгыг хэдэн ч удаа ажиллуулсан seed өгөгдөл (аймаг, лавлахууд, admin дүр/хэрэглэгч) хэвээр үлдэнэ.\n- `GET` хүсэлтүүд seed мөрүүдийг (ж: `{{au1_code}}`=011) уншина.\n- Хүсэлт бүрд статусын шалгалт (`pm.test`) байгаа тул Runner-т ногоон/улаанаар харагдана.\n\n## Файлтай хүсэлтүүд\n`ҮЭ — Гишүүний файл` болон `Портал 2 — Файл байршуулах` дотор Body → form-data → `file` мөрөнд компьютерээсээ файлаа СОНГОНО. Сонгоогүй үед тэдгээр хүсэлт алгасагдаж, дараагийнх нь анхдагч утгаар үргэлжилнэ.\n\n## Портал (цэс ба контент)\n`Портал 1..7` фолдерууд дараалан ажиллах бүтэн урсгал: цэс үүсгэх → файл байршуулах → контент засах → блок нэмэх/эрэмбэлэх → спекийн зураг/файл/видео маршрут → алдааны шалгалт → cascade устгал.\n\n## Судалгаа / Санал асуулга\n`Судалгаа 1..8` фолдерууд дараалан ажиллах бүтэн урсгал: маягт үүсгэх → асуулт барих → сонголт → PDF хавсаргах → **токенгүй** порталаас бөглөх → үр дүн/трэнд → алдааны шалгалт → бүрэн цэвэрлэгээ.\n\n`/api/portal/...` нь НЭЭЛТТЭЙ тул тэдгээр хүсэлт `noauth`-той явна — зочин хүн нэвтрэхгүйгээр судалгаа бөглөнө. Токен ирвэл бөглөлт хэрэглэгчийн нэр дээр бүртгэгдэж `one_response` үйлчилнэ.",
+  "description": "edu-union-backend — Flask + SQLite JSON API-ийн бүрэн лавлах цуглуулга.\n\n## Хэрхэн ажиллуулах\n1. Сервер: `python run.py` (анхдагч http://127.0.0.1:5001).\n2. `base_url` хувьсагчийг серверийнхээ хаягаар тохируулна.\n3. **'0. Нэвтрэлт (login)'-ийг ЭХЭЛЖ ажиллуулна** — токен `{{token}}`-д хадгалагдаж, бусад бүх хүсэлт үүнийг Bearer толгойгоор автоматаар авна.\n4. Дараа нь Runner-ээр бүх цуглуулгыг дээрээс доош ажиллуулж болно.\n\n## Зарчим\n- Фолдер бүр **өөрийгөө цэвэрлэдэг**: `Нэмэх` шинэ бичлэг үүсгэж id-г нь `{{new_*}}` хувьсагчид хадгална, `Засах`/`Устгах` нь ЗӨВХӨН тэр бичлэгийг онилно. Тиймээс цуглуулгыг хэдэн ч удаа ажиллуулсан seed өгөгдөл (аймаг, лавлахууд, admin дүр/хэрэглэгч) хэвээр үлдэнэ.\n- `GET` хүсэлтүүд seed мөрүүдийг (ж: `{{au1_code}}`=011) уншина.\n- Хүсэлт бүрд статусын шалгалт (`pm.test`) байгаа тул Runner-т ногоон/улаанаар харагдана.\n\n## Файлтай хүсэлтүүд\n`ҮЭ — Гишүүний файл` болон `Портал 2 — Файл байршуулах` дотор Body → form-data → `file` мөрөнд компьютерээсээ файлаа СОНГОНО. Сонгоогүй үед тэдгээр хүсэлт алгасагдаж, дараагийнх нь анхдагч утгаар үргэлжилнэ.\n\n## Портал (цэс ба контент)\n`Портал 1..7` фолдерууд дараалан ажиллах бүтэн урсгал: цэс үүсгэх → файл байршуулах → контент засах → блок нэмэх/эрэмбэлэх → спекийн зураг/файл/видео маршрут → алдааны шалгалт → cascade устгал.\n\n## Судалгаа / Санал асуулга\n`Судалгаа 1..8` фолдерууд дараалан ажиллах бүтэн урсгал: маягт үүсгэх → асуулт барих → сонголт → PDF хавсаргах → **токенгүй** порталаас бөглөх → үр дүн/трэнд → алдааны шалгалт → бүрэн цэвэрлэгээ.\n\n`/api/portal/...` нь НЭЭЛТТЭЙ тул тэдгээр хүсэлт `noauth`-той явна — зочин хүн нэвтрэхгүйгээр судалгаа бөглөнө. Токен ирвэл бөглөлт хэрэглэгчийн нэр дээр бүртгэгдэж `one_response` үйлчилнэ.\n\n## Метод\nЗасварын БҮХ маршрут `PUT` ба `PATCH` хоёуланг хүлээж авдаг (хоёулаа хэсэгчилсэн\nзасвар — зөвхөн илгээсэн талбарыг сольдог). Цуглуулгад `Засах` хүсэлт бүрийн\nдэргэд `— PATCH-аар мөн` хувилбар байгаа нь үүнийг батална. Онцгой тохиолдол нь\n`PUT|PATCH /api/user/{id}/scope`: `PUT` бүхэлд нь дарж бичнэ, `PATCH` merge хийнэ.\nБуруу метод (ж: `PATCH /api/login`) нь HTML биш JSON 405 буцаана.\n\n## Огноо\nХүснэгт бүр `created_at` / `updated_at`-тай (DB-ийн trigger автоматаар бөглөнө) —\n`Огноо — created_at / updated_at (бүх жагсаалт)` фолдер үүнийг бүх жагсаалт дээр\nшалгана. Миграциас ӨМНӨ үүссэн мөрүүд NULL хэвээр байж болно.\n\n## Лавлахууд\n`position` / `profession` / `reward_type` / `structure` дөрвүүлээ `id` + `code` +\n`name` бүтэцтэй, код давхцвал 409. `structure` (Бүтцийн удирдлага) -г\n`organization` ба `user` хоёул `structure_id`-аар сонгоно.\n\n## Хэрэглэгч\nНэр нь `last_name` + `first_name` (`full_name` байхгүй). `Хэрэглэгч — Хамрах\nхүрээ (user_scope)` фолдер нь тухайн хэрэглэгч АЛЬ өгөгдлийг харахыг тодорхойлох\n`/api/user/{id}/scope`-ыг бүрэн шалгана.\n\n## Байгууллага\n`organization` нь хороонд ХАРЬЯАЛАГДАХГҮЙ (`horoo_id` хасагдсан) — жагсаалтыг\n`?school_category_id=` / `?structure_id=`-ээр шүүнэ. `ҮЭ — Алдааны шалгалт\n(сөрөг тест)` фолдер энэ бүх ирмэгийн тохиолдлыг гүйлгэнэ.",
   "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
  },
  "auth": {
@@ -557,6 +557,44 @@
      ]
     },
     {
+     "name": "Засах — PATCH-аар мөн",
+     "request": {
+      "method": "PATCH",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"name\": \"Шинэчилсэн нэр\"\n}"
+      },
+      "url": {
+       "raw": "{{base_url}}/api/au1/{{new_au1_code}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "au1",
+        "{{new_au1_code}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('PATCH мөн ажиллана (статус 200)', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
      "name": "Устгах",
      "request": {
       "method": "DELETE",
@@ -723,6 +761,44 @@
         "type": "text/javascript",
         "exec": [
          "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Засах — PATCH-аар мөн",
+     "request": {
+      "method": "PATCH",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"au2_name\": \"Шинэчилсэн\"\n}"
+      },
+      "url": {
+       "raw": "{{base_url}}/api/au2/{{new_au2_code}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "au2",
+        "{{new_au2_code}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('PATCH мөн ажиллана (статус 200)', () => pm.response.to.have.status(200));"
         ]
        }
       }
@@ -901,6 +977,44 @@
      ]
     },
     {
+     "name": "Засах — PATCH-аар мөн",
+     "request": {
+      "method": "PATCH",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"au3_name\": \"Шинэчилсэн\"\n}"
+      },
+      "url": {
+       "raw": "{{base_url}}/api/au3/{{new_au3_code}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "au3",
+        "{{new_au3_code}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('PATCH мөн ажиллана (статус 200)', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
      "name": "Устгах",
      "request": {
       "method": "DELETE",
@@ -1067,6 +1181,44 @@
         "type": "text/javascript",
         "exec": [
          "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Засах — PATCH-аар мөн",
+     "request": {
+      "method": "PATCH",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"name\": \"Шинэчилсэн хороо\",\n  \"type\": \"Салбар хороо\",\n  \"registration_number\": \"2899001\",\n  \"founded_date\": \"2010-09-01\"\n}"
+      },
+      "url": {
+       "raw": "{{base_url}}/api/horoo/{{new_horoo_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "horoo",
+        "{{new_horoo_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('PATCH мөн ажиллана (статус 200)', () => pm.response.to.have.status(200));"
         ]
        }
       }
@@ -1572,6 +1724,44 @@
      ]
     },
     {
+     "name": "Засах (хэсэгчилсэн) — PATCH-аар мөн",
+     "request": {
+      "method": "PATCH",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"position_id\": 5,\n  \"email\": \"shine@example.mn\",\n  \"union_card_code\": \"0042\",\n  \"is_active\": 0,\n  \"status\": \"чөлөөтэй\"\n}"
+      },
+      "url": {
+       "raw": "{{base_url}}/api/member/{{new_member_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member",
+        "{{new_member_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('PATCH мөн ажиллана (статус 200)', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
      "name": "Устгах",
      "request": {
       "method": "DELETE",
@@ -1768,6 +1958,44 @@
         "type": "text/javascript",
         "exec": [
          "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Засах (хэсэгчилсэн) — PATCH-аар мөн",
+     "request": {
+      "method": "PATCH",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"school\": \"ШУТИС\"\n}"
+      },
+      "url": {
+       "raw": "{{base_url}}/api/member_education/{{new_member_education_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member_education",
+        "{{new_member_education_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('PATCH мөн ажиллана (статус 200)', () => pm.response.to.have.status(200));"
         ]
        }
       }
@@ -2084,6 +2312,44 @@
      ]
     },
     {
+     "name": "Засах (хэсэгчилсэн) — PATCH-аар мөн",
+     "request": {
+      "method": "PATCH",
+      "url": {
+       "raw": "{{base_url}}/api/member_reward/{{new_member_reward_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member_reward",
+        "{{new_member_reward_id}}"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"description\": \"Шинэчилсэн тайлбар\"\n}"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('PATCH мөн ажиллана (статус 200)', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
      "name": "Устгах",
      "request": {
       "method": "DELETE",
@@ -2312,6 +2578,49 @@
         "type": "text/javascript",
         "exec": [
          "pm.test('200 (PDF сонгосон) эсвэл 404 (алгассан)', () => pm.expect([200, 404]).to.include(pm.response.code));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Тайлбар засах (note) — PATCH-аар мөн",
+     "request": {
+      "method": "PATCH",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/member_file/{{new_member_file_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member_file",
+        "{{new_member_file_id}}"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"note\": \"Дипломын хуулбар\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('PATCH мөн ажиллана — 200 (PDF сонгосон) эсвэл 404 (алгассан)', () => pm.expect([200, 404]).to.include(pm.response.code));"
         ]
        }
       }
@@ -2607,6 +2916,44 @@
         "type": "text/javascript",
         "exec": [
          "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Засах — PATCH-аар мөн",
+     "request": {
+      "method": "PATCH",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"value\": \"88112233\"\n}"
+      },
+      "url": {
+       "raw": "{{base_url}}/api/contact/{{new_contact_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "contact",
+        "{{new_contact_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('PATCH мөн ажиллана (статус 200)', () => pm.response.to.have.status(200));"
         ]
        }
       }
@@ -2909,6 +3256,44 @@
         "type": "text/javascript",
         "exec": [
          "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Засах (статус/дүн) — PATCH-аар мөн",
+     "request": {
+      "method": "PATCH",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"status\": \"зөвшөөрсөн\"\n}"
+      },
+      "url": {
+       "raw": "{{base_url}}/api/salary_request/{{new_salary_request_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "salary_request",
+        "{{new_salary_request_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('PATCH мөн ажиллана (статус 200)', () => pm.response.to.have.status(200));"
         ]
        }
       }
@@ -3651,6 +4036,44 @@
      ]
     },
     {
+     "name": "Засах (хэсэгчилсэн) — PATCH-аар мөн",
+     "request": {
+      "method": "PATCH",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"salary\": 3300000\n}"
+      },
+      "url": {
+       "raw": "{{base_url}}/api/salary_scale/{{new_salary_scale_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "salary_scale",
+        "{{new_salary_scale_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('PATCH мөн ажиллана (статус 200)', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
      "name": "Устгах",
      "request": {
       "method": "DELETE",
@@ -3811,6 +4234,44 @@
         "type": "text/javascript",
         "exec": [
          "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Засах — PATCH-аар мөн",
+     "request": {
+      "method": "PATCH",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"name\": \"Тест зэрэг (шинэчилсэн)\"\n}"
+      },
+      "url": {
+       "raw": "{{base_url}}/api/education_degree/{{new_education_degree_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "education_degree",
+        "{{new_education_degree_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('PATCH мөн ажиллана (статус 200)', () => pm.response.to.have.status(200));"
         ]
        }
       }
@@ -4024,6 +4485,44 @@
      ]
     },
     {
+     "name": "Засах (код + нэр) — PATCH-аар мөн",
+     "request": {
+      "method": "PATCH",
+      "url": {
+       "raw": "{{base_url}}/api/position/{{new_position_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "position",
+        "{{new_position_id}}"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"code\": \"AT-99A\",\n  \"name\": \"Шинэ албан тушаал (шинэчилсэн)\"\n}"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('PATCH мөн ажиллана (статус 200)', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
      "name": "Устгах",
      "request": {
       "method": "DELETE",
@@ -4231,6 +4730,44 @@
      ]
     },
     {
+     "name": "Засах (код + нэр) — PATCH-аар мөн",
+     "request": {
+      "method": "PATCH",
+      "url": {
+       "raw": "{{base_url}}/api/profession/{{new_profession_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "profession",
+        "{{new_profession_id}}"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"code\": \"MZ-99A\",\n  \"name\": \"Шинэ мэргэжил (шинэчилсэн)\"\n}"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('PATCH мөн ажиллана (статус 200)', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
      "name": "Устгах",
      "request": {
       "method": "DELETE",
@@ -4432,6 +4969,44 @@
          "pm.test('статус 200', () => pm.response.to.have.status(200));",
          "var j = pm.response.json();",
          "pm.test('код шинэчлэгдсэн', () => pm.expect(j.code).to.eql('ШТ-99A'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Засах (код + нэр) — PATCH-аар мөн",
+     "request": {
+      "method": "PATCH",
+      "url": {
+       "raw": "{{base_url}}/api/reward_type/{{new_reward_type_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "reward_type",
+        "{{new_reward_type_id}}"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"code\": \"ШТ-99A\",\n  \"name\": \"Шинэ шагналын төрөл (шинэчилсэн)\"\n}"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('PATCH мөн ажиллана (статус 200)', () => pm.response.to.have.status(200));"
         ]
        }
       }
@@ -4654,6 +5229,49 @@
         "exec": [
          "pm.test('статус 200', () => pm.response.to.have.status(200));",
          "pm.test('код шинэчлэгдсэн', () => pm.expect(pm.response.json().code).to.eql('ST-98'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Засах (код + нэр) — PATCH-аар мөн",
+     "request": {
+      "method": "PATCH",
+      "url": {
+       "raw": "{{base_url}}/api/structure/{{new_structure_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "structure",
+        "{{new_structure_id}}"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"code\": \"ST-98\",\n  \"name\": \"Тест бүтэц (шинэчилсэн)\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('PATCH мөн ажиллана (статус 200)', () => pm.response.to.have.status(200));"
         ]
        }
       }
@@ -5186,6 +5804,44 @@
      ]
     },
     {
+     "name": "Засах (хэсэгчилсэн) — PATCH-аар мөн",
+     "request": {
+      "method": "PATCH",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"short_name\": \"ТА2\"\n}"
+      },
+      "url": {
+       "raw": "{{base_url}}/api/school_category/{{new_school_category_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "school_category",
+        "{{new_school_category_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('PATCH мөн ажиллана (статус 200)', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
      "name": "Устгах",
      "request": {
       "method": "DELETE",
@@ -5386,6 +6042,44 @@
      ]
     },
     {
+     "name": "Засах — PATCH-аар мөн",
+     "request": {
+      "method": "PATCH",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"name\": \"Тайлан татах (шинэ)\"\n}"
+      },
+      "url": {
+       "raw": "{{base_url}}/api/permission/{{new_permission_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "permission",
+        "{{new_permission_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('PATCH мөн ажиллана (статус 200)', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
      "name": "Устгах",
      "request": {
       "method": "DELETE",
@@ -5546,6 +6240,44 @@
         "type": "text/javascript",
         "exec": [
          "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Засах (нэр/эрхийн жагсаалт) — PATCH-аар мөн",
+     "request": {
+      "method": "PATCH",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"description\": \"Шинэчилсэн\",\n  \"permission_ids\": [\n    29,\n    30,\n    31,\n    32\n  ]\n}"
+      },
+      "url": {
+       "raw": "{{base_url}}/api/role/{{new_role_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "role",
+        "{{new_role_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('PATCH мөн ажиллана (статус 200)', () => pm.response.to.have.status(200));"
         ]
        }
       }
@@ -7900,6 +8632,49 @@
      ]
     },
     {
+     "name": "Засах (нэр солих) — PATCH-аар мөн",
+     "request": {
+      "method": "PATCH",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/menu/{{menu_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "menu",
+        "{{menu_id}}"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"title\": \"Ковид-19\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('PATCH мөн ажиллана (статус 200)', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
      "name": "Нуух (is_visible=false)",
      "request": {
       "method": "PUT",
@@ -8025,6 +8800,50 @@
         "type": "text/javascript",
         "exec": [
          "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Эрэмбэ хадгалах (drag-drop) — PATCH-аар мөн",
+     "request": {
+      "method": "PATCH",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/menu/reorder",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "menu",
+        "reorder"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"order\": [\n    {\n      \"id\": \"{{menu_id}}\",\n      \"parent_id\": null,\n      \"sort_order\": 1\n    },\n    {\n      \"id\": \"{{menu_child_id}}\",\n      \"parent_id\": \"{{menu_id}}\",\n      \"sort_order\": 1\n    }\n  ]\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      },
+      "description": "Бүх цэсний эцэг + эрэмбийг НЭГ хүсэлтээр хадгална (админ UI-ийн ↑↓ / чирэх)."
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('PATCH мөн ажиллана (статус 200)', () => pm.response.to.have.status(200));"
         ]
        }
       }
@@ -8288,6 +9107,49 @@
         "exec": [
          "pm.test('статус 200', () => pm.response.to.have.status(200));",
          "pm.test('нийтлэгдсэн', () => pm.expect(pm.response.json().status).to.eql('published'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Засах (гарчиг / текст / cover / төлөв) — PATCH-аар мөн",
+     "request": {
+      "method": "PATCH",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/page/{{page_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "page",
+        "{{page_id}}"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"title\": \"Ковид-19 мэдээлэл\",\n  \"body\": \"<p>Тайлбар текст...</p>\",\n  \"cover_image\": \"{{upload_url}}\",\n  \"status\": \"published\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('PATCH мөн ажиллана (статус 200)', () => pm.response.to.have.status(200));"
         ]
        }
       }
@@ -8674,6 +9536,49 @@
      ]
     },
     {
+     "name": "Засах (текст) — PATCH-аар мөн",
+     "request": {
+      "method": "PATCH",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/page_block/{{page_block_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "page_block",
+        "{{page_block_id}}"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"text\": \"<p>Шинэчилсэн текст</p>\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('PATCH мөн ажиллана (статус 200)', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
      "name": "Эрэмбэ хадгалах (↑↓)",
      "request": {
       "method": "PUT",
@@ -8712,6 +9617,50 @@
         "type": "text/javascript",
         "exec": [
          "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Эрэмбэ хадгалах (↑↓) — PATCH-аар мөн",
+     "request": {
+      "method": "PATCH",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/page_block/reorder",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "page_block",
+        "reorder"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"order\": [\n    {\n      \"id\": \"{{block_video_id}}\",\n      \"sort_order\": 1\n    },\n    {\n      \"id\": \"{{page_block_id}}\",\n      \"sort_order\": 2\n    },\n    {\n      \"id\": \"{{block_image_id}}\",\n      \"sort_order\": 3\n    },\n    {\n      \"id\": \"{{block_link_id}}\",\n      \"sort_order\": 4\n    },\n    {\n      \"id\": \"{{block_file_id}}\",\n      \"sort_order\": 5\n    }\n  ]\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      },
+      "description": "Админ UI дээр блокийг ↑↓-ээр зөөх бүрд бүх блокийн эрэмбийг илгээнэ."
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('PATCH мөн ажиллана (статус 200)', () => pm.response.to.have.status(200));"
         ]
        }
       }
@@ -9840,6 +10789,50 @@
      ]
     },
     {
+     "name": "Засах (хэсэгчилсэн) — PATCH-аар мөн",
+     "request": {
+      "method": "PATCH",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/admin/forms/{{survey_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "forms",
+        "{{survey_id}}"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"description\": \"Шинэчилсэн тайлбар — 2026 оны судалгаа.\",\n  \"show_results\": true\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('PATCH мөн ажиллана (статус 200)', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
      "name": "Нийтлэх (publish)",
      "request": {
       "method": "POST",
@@ -10035,6 +11028,50 @@
          "pm.test('статус 200', () => pm.response.to.have.status(200));",
          "var j = pm.response.json();",
          "pm.test('заавал боллоо', () => pm.expect(j.is_required).to.be.true);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Засах (гарчиг + заавал болгох) — PATCH-аар мөн",
+     "request": {
+      "method": "PATCH",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/admin/questions/{{new_form_question_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "questions",
+        "{{new_form_question_id}}"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"title\": \"Дараагийн судалгаанд оролцох уу?\",\n  \"is_required\": true\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('PATCH мөн ажиллана (статус 200)', () => pm.response.to.have.status(200));"
         ]
        }
       }
@@ -10326,6 +11363,51 @@
         "exec": [
          "pm.test('статус 200', () => pm.response.to.have.status(200));",
          "pm.test('нэр солигдсон', () => pm.expect(pm.response.json().label).to.include('статистик'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Засах (нэр солих) — PATCH-аар мөн",
+     "request": {
+      "method": "PATCH",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/admin/options/{{new_form_option_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "options",
+        "{{new_form_option_id}}"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"label\": \"Судалгаа, статистикийн арга зүй\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      },
+      "description": "Сонголтын нэр солих нь хариултад нөлөөлөхгүй тул үргэлж зөвшөөрөгдөнө."
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('PATCH мөн ажиллана (статус 200)', () => pm.response.to.have.status(200));"
         ]
        }
       }

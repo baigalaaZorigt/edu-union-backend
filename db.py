@@ -1,11 +1,27 @@
-"""SQLite холболт ба бүтэц (schema) үүсгэх, JSON өгөгдлийг ачаалах."""
+"""Өгөгдлийн сангийн холболт ба бүтэц (schema) үүсгэх, JSON өгөгдлийг ачаалах.
+
+ХОЁР САНГ ДЭМЖИНЭ:
+  * SQLite  — анхдагч (локал хөгжүүлэлт, `admin_units.db` файл).
+  * Postgres — `DATABASE_URL` орчны хувьсагч өгөгдсөн үед (ж: AWS RDS).
+
+Маршрутын кодыг бүхэлд нь дахин бичихгүйн тулд Postgres талд НИМГЭН БҮРХҮҮЛ
+(_PgConn/_PgCursor) тавьсан: SQLite-ийн бичиглэлийг (`?` placeholder,
+`INSERT OR IGNORE`, `printf`, `julianday`, `lastrowid`) гүйцэтгэх агшинд
+Postgres-ийн бичиглэл рүү хөрвүүлнэ. Ингэснээр 500 гаруй асуулга хэвээрээ
+ажиллана.
+"""
 import json
 import os
+import re
 import sqlite3
 from datetime import datetime, timezone
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "admin_units.db")
+
+# Postgres руу шилжих цорын ганц шилжүүлэгч: DATABASE_URL байвал Postgres.
+DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
+IS_PG = bool(DATABASE_URL)
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS admin_unit1 (
@@ -679,11 +695,176 @@ DEFAULT_ROLES = [
 ]
 
 
+# ======================= Postgres-ийн нимгэн бүрхүүл =======================
+class Row(dict):
+    """sqlite3.Row-той ижил аашилдаг мөр: row["ner"] БОЛОН row[0] хоёул ажиллана."""
+
+    def __getitem__(self, key):
+        if isinstance(key, int):
+            return list(self.values())[key]
+        return super().__getitem__(key)
+
+
+def _pg_row_factory(cur):
+    cols = [d.name for d in cur.description] if cur.description else []
+    def make(values):
+        return Row(zip(cols, values))
+    return make
+
+
+_RE_INSERT = re.compile(r"^\s*INSERT\s+INTO\s+(\w+)", re.IGNORECASE)
+_RE_PRINTF = re.compile(r"printf\('%02d',\s*([^)]+)\)")
+_RE_JULIAN = re.compile(r"julianday\(([^)]+)\)")
+
+
+def _to_pg(sql, has_params):
+    """SQLite-ийн SQL-ийг Postgres-ийн SQL болгоно (гүйцэтгэх агшинд)."""
+    # printf('%02d', x) -> to_char(x, 'FM00')  (2 оронтой тэглэсэн код)
+    sql = _RE_PRINTF.sub(r"to_char(\1, 'FM00')", sql)
+    # julianday('now') - julianday(x) -> CURRENT_DATE - x::date  (хоногийн зөрүү)
+    if "julianday" in sql:
+        sql = sql.replace("julianday('now')", "CURRENT_DATE")
+        sql = _RE_JULIAN.sub(r"(\1)::date", sql)
+    # INSERT OR IGNORE -> ON CONFLICT DO NOTHING
+    if "INSERT OR IGNORE" in sql:
+        sql = sql.replace("INSERT OR IGNORE INTO", "INSERT INTO") + " ON CONFLICT DO NOTHING"
+    if has_params:
+        # psycopg нь параметртэй үед %-г тайлдаг тул эхлээд түүнийг хамгаална,
+        # дараа нь ? -> %s болгоно.
+        sql = sql.replace("%", "%%").replace("?", "%s")
+    return sql
+
+
+class _PgCursor:
+    """sqlite3.Cursor-ийн ашигладаг хэсгийг (fetch*, rowcount, lastrowid) дуурайна."""
+
+    def __init__(self, cur, conn, lastrowid=None):
+        self._cur = cur
+        self._conn = conn
+        self._lastrowid = lastrowid
+
+    def fetchone(self):
+        return self._cur.fetchone()
+
+    def fetchall(self):
+        return self._cur.fetchall()
+
+    def __iter__(self):
+        return iter(self._cur)
+
+    def execute(self, sql, params=()):
+        """conn.cursor() маягаар ашиглах үед (seed функцууд) — өөрийгөө буцаана."""
+        pg_sql = _to_pg(sql, bool(params))
+        m = _RE_INSERT.match(pg_sql)
+        want_id = (bool(m) and m.group(1) in self._conn.id_tables()
+                   and "RETURNING" not in pg_sql.upper())
+        if want_id:
+            pg_sql += " RETURNING id"
+        try:
+            self._cur.execute(pg_sql, tuple(params) or None)
+        except Exception:
+            self._conn.raw.rollback()
+            raise
+        if want_id:
+            row = self._cur.fetchone()
+            self._lastrowid = row["id"] if row else None
+        return self
+
+    def executemany(self, sql, seq):
+        seq = [tuple(x) for x in seq]
+        try:
+            self._cur.executemany(_to_pg(sql, True), seq)
+        except Exception:
+            self._conn.raw.rollback()
+            raise
+        return self
+
+    @property
+    def rowcount(self):
+        return self._cur.rowcount
+
+    @property
+    def lastrowid(self):
+        """Сүүлд оруулсан мөрийн id (SQLite-ийн lastrowid-ийн орлуулга).
+
+        `lastval()` ХАРАХГҮЙ: түүнийг хожуу уншихад ЗАВСАРТ хийгдсэн өөр INSERT
+        (ж: menu үүсгэхэд _ensure_page() page нэмдэг) -ийн id буцаана. Оронд нь
+        INSERT гүйцэтгэх агшинд `RETURNING id`-аар шууд авч хадгалсан утга.
+        """
+        return self._lastrowid
+
+
+class _PgConn:
+    """sqlite3.Connection-ийн ашигладаг хэсгийг дуурайсан бүрхүүл."""
+
+    def __init__(self, raw):
+        self.raw = raw
+        self._id_tables = None
+
+    def id_tables(self):
+        """`id` баганатай хүснэгтүүд (RETURNING id хийж болох эсэхийг мэдэхэд)."""
+        if self._id_tables is None:
+            cur = self.raw.cursor()
+            cur.execute("SELECT table_name FROM information_schema.columns "
+                        "WHERE table_schema='public' AND column_name='id'")
+            self._id_tables = {r[0] for r in cur.fetchall()}
+        return self._id_tables
+
+    def execute(self, sql, params=()):
+        cur = self.raw.cursor(row_factory=_pg_row_factory)
+        pg_sql = _to_pg(sql, bool(params))
+        m = _RE_INSERT.match(pg_sql)
+        want_id = bool(m) and m.group(1) in self.id_tables() and "RETURNING" not in pg_sql.upper()
+        if want_id:
+            pg_sql += " RETURNING id"
+        try:
+            cur.execute(pg_sql, tuple(params) or None)
+        except Exception:
+            self.raw.rollback()      # PG-д алдаа гарвал гүйлгээ хаагддаг
+            raise
+        new_id = None
+        if want_id:
+            row = cur.fetchone()     # ON CONFLICT DO NOTHING үед хоосон байж болно
+            new_id = row["id"] if row else None
+        return _PgCursor(cur, self, new_id)
+
+    def executemany(self, sql, seq):
+        seq = [tuple(x) for x in seq]
+        cur = self.raw.cursor()
+        try:
+            cur.executemany(_to_pg(sql, True), seq)
+        except Exception:
+            self.raw.rollback()
+            raise
+        return _PgCursor(cur, self)
+
+    def executescript(self, sql):
+        cur = self.raw.cursor()
+        cur.execute(_to_pg(sql, False))
+        self.raw.commit()
+        return _PgCursor(cur, self)
+
+    def cursor(self):
+        return _PgCursor(self.raw.cursor(row_factory=_pg_row_factory), self, None)
+
+    def commit(self):
+        self.raw.commit()
+
+    def rollback(self):
+        self.raw.rollback()
+
+    def close(self):
+        self.raw.close()
+
+
 def get_db():
-    """Мөр бүрийг dict шиг хандах боломжтой холболт буцаана."""
+    """Мөр бүрийг dict шиг хандах боломжтой холболт буцаана (SQLite эсвэл Postgres)."""
+    if IS_PG:
+        import psycopg
+        return _PgConn(psycopg.connect(DATABASE_URL))
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON")
+    conn.execute("PRAGMA foreign_keys = ON")   # PG-д FK үргэлж хүчинтэй
     return conn
 
 
@@ -1082,16 +1263,157 @@ def _ensure_timestamps(conn):
             f"  UPDATE {t} SET updated_at = {_TS_NOW} WHERE rowid = NEW.rowid; END")
 
 
+# ======================= Postgres: schema бэлтгэх =======================
+_RE_ID_PK = re.compile(r"\bid(\s+)INTEGER PRIMARY KEY( AUTOINCREMENT)?")
+_RE_FK = re.compile(r"^\s*FOREIGN KEY\s*\((?P<cols>[^)]+)\)\s*REFERENCES\s*(?P<ref>[^,]+?),?\s*$",
+                    re.MULTILINE)
+_RE_TABLE = re.compile(r"CREATE TABLE IF NOT EXISTS\s+(\w+)", re.IGNORECASE)
+
+
+def _split_statements(script):
+    """DDL-ийг мэдэгдэл тус бүрээр нь салгана.
+
+    Энгийн `split(";")` тохирохгүй — тайлбар (`-- ...`) дотор цэг таслал байвал
+    мэдэгдлийг дундуур нь тасалчихна. Тиймээс мөр мөрөөр нь явж, тайлбараас
+    ГАДУУРХ цэг таслалыг л төгсгөл гэж үзнэ.
+    """
+    stmts, buf = [], []
+    for line in script.split("\n"):
+        buf.append(line)
+        if ";" in line.split("--")[0]:
+            stmts.append("\n".join(buf).rsplit(";", 1)[0])
+            buf = []
+    if any(l.strip() for l in buf):
+        stmts.append("\n".join(buf))
+    return stmts
+
+
+def _strip_dangling_comma(stmt):
+    """FK мөрүүдийг хассаны дараа үлдсэн сүүлчийн таслалыг арилгана.
+
+    Тайлбар (`-- ...`) таслалын ард үлддэг тул энгийн regex хүрэлцэхгүй — мөр
+    мөрөөр нь явж, агуулгатай СҮҮЛЧИЙН мөрний таслалыг л хасна.
+    """
+    lines = stmt.split("\n")
+    for i in range(len(lines) - 1, -1, -1):
+        code = lines[i].split("--")[0].rstrip()
+        if not code.strip() or code.strip() == ")":
+            continue
+        if code.endswith(","):
+            lines[i] = code[:-1] + (("  " + lines[i][len(code):].lstrip())
+                                    if "--" in lines[i] else "")
+        break
+    return "\n".join(lines)
+
+
+def _pg_schema(script):
+    """SQLite-ийн DDL-ийг Postgres-ийнх болгож, FK-үүдийг ТУСАД нь салгана.
+
+    Хоёр ялгаа:
+      * `id INTEGER PRIMARY KEY [AUTOINCREMENT]` -> IDENTITY (гараас id өгөх ч
+        боломжтой хэвээр — лавлахууд id-гаа өөрсдөө заадаг).
+      * SQLite нь хожим үүсэх хүснэгт рүү FK бичихийг зөвшөөрдөг, PG зөвшөөрдөггүй.
+        Тиймээс FK мөрүүдийг хасаад, бүх хүснэгт үүссэний ДАРАА ALTER-ээр нэмнэ.
+    """
+    script = _RE_ID_PK.sub(r"id\1INTEGER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY", script)
+    alters, out = [], []
+    for stmt in _split_statements(script):
+        if not stmt.strip():
+            continue
+        m = _RE_TABLE.search(stmt)
+        if m:
+            table, n = m.group(1), 0
+            def take(fk, table=table):
+                nonlocal n
+                n += 1
+                alters.append(
+                    f"DO $$ BEGIN ALTER TABLE {table} ADD CONSTRAINT fk_{table}_{n} "
+                    f"FOREIGN KEY ({fk.group('cols')}) REFERENCES {fk.group('ref').strip()}; "
+                    f"EXCEPTION WHEN duplicate_object THEN NULL; END $$")
+                return ""
+            stmt = _RE_FK.sub(take, stmt)
+            stmt = _strip_dangling_comma(stmt)
+        out.append(stmt)
+    return ";\n".join(out) + ";", alters
+
+
+_PG_TS_FN = """
+CREATE OR REPLACE FUNCTION set_timestamps() RETURNS trigger AS $$
+DECLARE now_txt TEXT := to_char(now() AT TIME ZONE 'utc',
+                                'YYYY-MM-DD"T"HH24:MI:SS+00:00');
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    NEW.created_at := COALESCE(NEW.created_at, now_txt);
+    NEW.updated_at := COALESCE(NEW.updated_at, now_txt);
+  ELSE
+    NEW.created_at := OLD.created_at;
+    NEW.updated_at := now_txt;
+  END IF;
+  RETURN NEW;
+END $$ LANGUAGE plpgsql;
+"""
+
+
+def _pg_tables(conn):
+    return [r[0] for r in conn.execute(
+        "SELECT table_name FROM information_schema.tables "
+        "WHERE table_schema='public' AND table_type='BASE TABLE' ORDER BY table_name")]
+
+
+def _pg_timestamps(conn):
+    """Бүх хүснэгтэд created_at/updated_at багана ба тэдгээрийн trigger (PG хувилбар)."""
+    conn.executescript(_PG_TS_FN)
+    for t in _pg_tables(conn):
+        conn.execute(f"ALTER TABLE {t} ADD COLUMN IF NOT EXISTS created_at TEXT")
+        conn.execute(f"ALTER TABLE {t} ADD COLUMN IF NOT EXISTS updated_at TEXT")
+        conn.execute(f"DROP TRIGGER IF EXISTS trg_{t}_ts ON {t}")
+        conn.execute(f"CREATE TRIGGER trg_{t}_ts BEFORE INSERT OR UPDATE ON {t} "
+                     f"FOR EACH ROW EXECUTE FUNCTION set_timestamps()")
+
+
+def pg_sync_sequences(conn=None):
+    """IDENTITY дарааллуудыг одоо байгаа хамгийн том id-д тааруулна.
+
+    Лавлахуудын мөрүүд id-гаа гараас авдаг (ж: structure 1..22) тул дараалал нь
+    хоцорч үлддэг — үүнийг засахгүй бол дараагийн автомат id давхцана.
+    """
+    if not IS_PG:
+        return
+    own = conn is None
+    conn = conn or get_db()
+    for t in _pg_tables(conn):
+        try:
+            row = conn.execute(
+                "SELECT pg_get_serial_sequence(?, 'id')", (t,)).fetchone()
+        except Exception:
+            continue                      # id багана байхгүй хүснэгт (ж: admin_unit1)
+        seq = row[0] if row else None
+        if not seq:
+            continue
+        conn.execute(f"SELECT setval('{seq}', GREATEST((SELECT COALESCE(MAX(id), 0) FROM {t}), 1))")
+    conn.commit()
+    if own:
+        conn.close()
+
+
 def init_db():
     conn = get_db()
-    conn.executescript(SCHEMA)
-    conn.executescript(SCHEMA_UNION)
-    conn.executescript(SCHEMA_REF)
-    conn.executescript(SCHEMA_USER)
-    conn.executescript(SCHEMA_CONTENT)
-    conn.executescript(SCHEMA_FORM)
-    _migrate(conn)
-    _ensure_timestamps(conn)     # бүх хүснэгтэд created_at/updated_at + trigger
+    # Лавлахууд (SCHEMA_REF) нь union/user-ийн FK-ийн бай тул ЭХЭЛЖ үүснэ.
+    scripts = [SCHEMA, SCHEMA_REF, SCHEMA_UNION, SCHEMA_USER, SCHEMA_CONTENT, SCHEMA_FORM]
+    if IS_PG:
+        alters = []
+        for sc in scripts:
+            ddl, fks = _pg_schema(sc)
+            conn.executescript(ddl)
+            alters += fks
+        for a in alters:
+            conn.executescript(a)
+        _pg_timestamps(conn)
+    else:
+        for sc in scripts:
+            conn.executescript(sc)
+        _migrate(conn)
+        _ensure_timestamps(conn)     # бүх хүснэгтэд created_at/updated_at + trigger
     conn.commit()
     conn.close()
 
@@ -1440,6 +1762,7 @@ def seed_all():
     seed_union()
     seed_menu()
     seed_users()
+    pg_sync_sequences()      # PG: гараас өгсөн id-ийн дараа дарааллыг тааруулна
 
 
 def ensure_seeded():
@@ -1479,6 +1802,7 @@ def ensure_seeded():
     # Эрх/дүрийг ҮРГЭЛЖ синк хийнэ (idempotent): шинэ resource-ийн эрхүүд нэмэгдэж,
     # admin бүх эрхээ авна. Анхны admin хэрэглэгч зөвхөн app_user хоосон үед л үүснэ.
     seed_users()
+    pg_sync_sequences()          # PG дээр id-ийн дараалал зөв байхыг баталгаажуулна
 
 
 if __name__ == "__main__":

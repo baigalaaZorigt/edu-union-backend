@@ -14,3 +14,13 @@ venv/
 
 # Оруулсан файлууд (гишүүний PDF хавсралт) — git-д хадгалахгүй
 uploads/
+
+# Нууц түлхүүр / жетон — git-д ОГТ оруулахгүй
+admin_accessKeys.csv
+*accessKeys*.csv
+*.pem
+.env
+
+# Deploy-ийн нууц зүйлс
+.db_password
+deploy/.db_password

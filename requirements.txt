@@ -1,3 +1,5 @@
 Flask>=3.1,<4.0
 PyJWT>=2.8               # JWT токен (auth.py) — HS256 гарын үсэг
 gunicorn>=23.0          # production WSGI сервер (Render/Heroku): gunicorn run:app
+
+psycopg[binary]>=3.2   # Postgres драйвер — DATABASE_URL өгсөн үед л хэрэглэгдэнэ
