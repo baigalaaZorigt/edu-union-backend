@@ -19,7 +19,12 @@ mkdir -p /usr/local/lib/docker/cli-plugins
 ARCH=$(uname -m); case "$ARCH" in aarch64) C=aarch64 ;; *) C=x86_64 ;; esac
 curl -fsSL "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-${C}" \
      -o /usr/local/lib/docker/cli-plugins/docker-compose
-chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+# buildx — AL2023-ийн docker багцад ОРООГҮЙ, гэхдээ `compose build` шаарддаг
+BX_ARCH=$([ "$ARCH" = aarch64 ] && echo arm64 || echo amd64)
+curl -fsSL "$(curl -s https://api.github.com/repos/docker/buildx/releases/latest \
+             | grep -o "https://[^\"]*linux-${BX_ARCH}" | head -1)" \
+     -o /usr/local/lib/docker/cli-plugins/docker-buildx
+chmod +x /usr/local/lib/docker/cli-plugins/docker-compose /usr/local/lib/docker/cli-plugins/docker-buildx
 
 systemctl enable --now docker
 usermod -aG docker ec2-user
