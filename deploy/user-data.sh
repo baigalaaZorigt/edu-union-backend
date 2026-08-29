@@ -36,7 +36,7 @@ git clone --depth 1 "$REPO" "$APP_DIR" || (cd "$APP_DIR" && git pull --ff-only)
 cat > /opt/edu-union/.env <<'ENVEOF'
 DATABASE_URL=__DATABASE_URL__
 SECRET_KEY=__SECRET_KEY__
-CORS_ORIGINS=*
+CORS_ORIGINS=__CORS_ORIGINS__
 ENVEOF
 chmod 600 /opt/edu-union/.env
 

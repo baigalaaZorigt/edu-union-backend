@@ -149,7 +149,11 @@ gunicorn run:app               # production WSGI server (loads the module-level 
 - **CORS is hand-rolled in `run.py`** (`add_cors_headers` via `app.after_request`) — no extra
   dependency. `CORS_ORIGINS` (env, comma-separated) defaults to `*`; that is safe here because
   auth is a Bearer token, never a cookie, so a wildcard grants no CSRF. `require_auth()` already
-  short-circuits `OPTIONS`, so preflights pass.
+  short-circuits `OPTIONS`, so preflights pass. **Production does not use the default**: the
+  deployed server sets `CORS_ORIGINS=https://fmesu.mn,https://www.fmesu.mn` (in
+  `/opt/edu-union/.env`, and `deploy/provision.sh` bakes the same value into new instances). An
+  origin outside the list simply gets no `Access-Control-Allow-Origin` header back — the response
+  itself is unchanged, since the browser is what enforces this.
 - **Auth is enforced globally in `auth.py`.** `run.py` registers `app.before_request(require_auth)`,
   so **every request except `/api/login` and anything under `/uploads/` or `/api/portal/`
   (`PUBLIC_PREFIXES`) requires a Bearer token** (`Authorization: Bearer <jwt>`)

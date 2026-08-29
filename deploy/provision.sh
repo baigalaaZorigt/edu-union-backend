@@ -18,6 +18,8 @@ REGION="${REGION:-ap-northeast-1}"
 NAME="${NAME:-edu-union}"
 REPO="${REPO:-https://github.com/baigalaaZorigt/edu-union-backend.git}"
 DOMAIN="${DOMAIN:-api.fmesu.mn}"   # DNS-ийн A бичлэг EC2 рүү заасан байх ёстой
+# Браузерээс хандахыг зөвшөөрөх эхүүд (порталын домэйнууд). "*" биш байх нь зөв.
+CORS_ORIGINS="${CORS_ORIGINS:-https://fmesu.mn,https://www.fmesu.mn}"
 
 DB_ID="${NAME}-db"
 DB_NAME=eduunion
@@ -127,6 +129,7 @@ if [ -z "$IID" ] || [ "$IID" = "None" ]; then
       -e "s|__DATABASE_URL__|$DATABASE_URL|g" \
       -e "s|__SECRET_KEY__|$SECRET_KEY|g" \
       -e "s|__DOMAIN__|$DOMAIN|g" \
+      -e "s|__CORS_ORIGINS__|$CORS_ORIGINS|g" \
       "$(dirname "${BASH_SOURCE[0]}")/user-data.sh" > "$UD"
   IID="$(aws ec2 run-instances --image-id "$AMI" --instance-type "$EC2_TYPE" \
         --key-name "$KEY_NAME" --security-group-ids "$WEB_SG" \
