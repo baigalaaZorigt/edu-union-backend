@@ -35,6 +35,8 @@ PATH_RESOURCE = {
     # Судалгаа/санал асуулга — спекийн олон тоот URL -> хүснэгтийн нэр
     "forms": "form", "questions": "form_question", "options": "form_option",
     "documents": "form_document",
+    # Мэдээ — /api/admin/news_blocks/<id> -> news_block
+    "news_blocks": "news_block",
 }
 
 # /api/<site>/... хэлбэрийн site угтварууд — эрхийг ДАРААГИЙН хэсгээс гаргана
@@ -49,6 +51,7 @@ SUB_RESOURCE = {
     "document": "form_document", "documents": "form_document",
     "results": "form_result", "answers": "form_result",
     "submit": "form_submission", "submissions": "form_submission",
+    "blocks": "news_block",              # /api/admin/news/41/blocks -> news_block
 }
 
 # HTTP методоос гарах үйлдлийг дарж бичих дэд замууд
@@ -65,7 +68,9 @@ PUBLIC_PATHS = {"/api/login"}
 # /api/portal/  — порталын судалгаа / санал асуулга БҮХЭЛДЭЭ нээлттэй: зочин
 #                 нэвтрэхгүйгээр жагсаалтыг хараад бөглөж чадна. Токен ирвэл
 #                 _optional_user() түүнийг ачаалж, бөглөлтийг нэр дээр нь бүртгэнэ.
-PUBLIC_PREFIXES = ("/uploads/", "/api/portal/")
+# /api/public/  — порталд зориулсан "зөвхөн унших" нээлттэй харагдацууд
+#                 (ж: /api/public/portal_settings — portal.html-ийн толгой/баннер).
+PUBLIC_PREFIXES = ("/uploads/", "/api/portal/", "/api/public/")
 
 
 def make_token(user_id):

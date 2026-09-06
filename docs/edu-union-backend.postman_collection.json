@@ -1,7 +1,7 @@
 {
  "info": {
   "name": "edu-union-backend — Засаг захиргаа, ҮЭ, Хэрэглэгчийн удирдлага",
-  "description": "edu-union-backend — Flask + SQLite JSON API-ийн бүрэн лавлах цуглуулга.\n\n## Хэрхэн ажиллуулах\n1. Сервер: `python run.py` (анхдагч http://127.0.0.1:5001).\n2. `base_url` хувьсагчийг серверийнхээ хаягаар тохируулна.\n3. **'0. Нэвтрэлт (login)'-ийг ЭХЭЛЖ ажиллуулна** — токен `{{token}}`-д хадгалагдаж, бусад бүх хүсэлт үүнийг Bearer толгойгоор автоматаар авна.\n4. Дараа нь Runner-ээр бүх цуглуулгыг дээрээс доош ажиллуулж болно.\n\n## Зарчим\n- Фолдер бүр **өөрийгөө цэвэрлэдэг**: `Нэмэх` шинэ бичлэг үүсгэж id-г нь `{{new_*}}` хувьсагчид хадгална, `Засах`/`Устгах` нь ЗӨВХӨН тэр бичлэгийг онилно. Тиймээс цуглуулгыг хэдэн ч удаа ажиллуулсан seed өгөгдөл (аймаг, лавлахууд, admin дүр/хэрэглэгч) хэвээр үлдэнэ.\n- `GET` хүсэлтүүд seed мөрүүдийг (ж: `{{au1_code}}`=011) уншина.\n- Хүсэлт бүрд статусын шалгалт (`pm.test`) байгаа тул Runner-т ногоон/улаанаар харагдана.\n\n## Файлтай хүсэлтүүд\n`ҮЭ — Гишүүний файл` болон `Портал 2 — Файл байршуулах` дотор Body → form-data → `file` мөрөнд компьютерээсээ файлаа СОНГОНО. Сонгоогүй үед тэдгээр хүсэлт алгасагдаж, дараагийнх нь анхдагч утгаар үргэлжилнэ.\n\n## Портал (цэс ба контент)\n`Портал 1..7` фолдерууд дараалан ажиллах бүтэн урсгал: цэс үүсгэх → файл байршуулах → контент засах → блок нэмэх/эрэмбэлэх → спекийн зураг/файл/видео маршрут → алдааны шалгалт → cascade устгал.\n\n## Судалгаа / Санал асуулга\n`Судалгаа 1..8` фолдерууд дараалан ажиллах бүтэн урсгал: маягт үүсгэх → асуулт барих → сонголт → PDF хавсаргах → **токенгүй** порталаас бөглөх → үр дүн/трэнд → алдааны шалгалт → бүрэн цэвэрлэгээ.\n\n`/api/portal/...` нь НЭЭЛТТЭЙ тул тэдгээр хүсэлт `noauth`-той явна — зочин хүн нэвтрэхгүйгээр судалгаа бөглөнө. Токен ирвэл бөглөлт хэрэглэгчийн нэр дээр бүртгэгдэж `one_response` үйлчилнэ.\n\n## Метод\nЗасварын БҮХ маршрут `PUT` ба `PATCH` хоёуланг хүлээж авдаг (хоёулаа хэсэгчилсэн\nзасвар — зөвхөн илгээсэн талбарыг сольдог). Цуглуулгад `Засах` хүсэлт бүрийн\nдэргэд `— PATCH-аар мөн` хувилбар байгаа нь үүнийг батална. Онцгой тохиолдол нь\n`PUT|PATCH /api/user/{id}/scope`: `PUT` бүхэлд нь дарж бичнэ, `PATCH` merge хийнэ.\nБуруу метод (ж: `PATCH /api/login`) нь HTML биш JSON 405 буцаана.\n\n## Огноо\nХүснэгт бүр `created_at` / `updated_at`-тай (DB-ийн trigger автоматаар бөглөнө) —\n`Огноо — created_at / updated_at (бүх жагсаалт)` фолдер үүнийг бүх жагсаалт дээр\nшалгана. Миграциас ӨМНӨ үүссэн мөрүүд NULL хэвээр байж болно.\n\n## Лавлахууд\n`position` / `profession` / `reward_type` / `structure` дөрвүүлээ `id` + `code` +\n`name` бүтэцтэй, код давхцвал 409. `structure` (Бүтцийн удирдлага) -г\n`organization` ба `user` хоёул `structure_id`-аар сонгоно.\n\n## Хэрэглэгч\nНэр нь `last_name` + `first_name` (`full_name` байхгүй). `Хэрэглэгч — Хамрах\nхүрээ (user_scope)` фолдер нь тухайн хэрэглэгч АЛЬ өгөгдлийг харахыг тодорхойлох\n`/api/user/{id}/scope`-ыг бүрэн шалгана.\n\n## Байгууллага\n`organization` нь хороонд ХАРЬЯАЛАГДАХГҮЙ (`horoo_id` хасагдсан) — жагсаалтыг\n`?school_category_id=` / `?structure_id=`-ээр шүүнэ. `ҮЭ — Алдааны шалгалт\n(сөрөг тест)` фолдер энэ бүх ирмэгийн тохиолдлыг гүйлгэнэ.",
+  "description": "edu-union-backend — Flask + SQLite JSON API-ийн бүрэн лавлах цуглуулга.\n\n## Хэрхэн ажиллуулах\n1. Сервер: `python run.py` (анхдагч http://127.0.0.1:5001).\n2. `base_url` хувьсагчийг серверийнхээ хаягаар тохируулна.\n3. **'0. Нэвтрэлт (login)'-ийг ЭХЭЛЖ ажиллуулна** — токен `{{token}}`-д хадгалагдаж, бусад бүх хүсэлт үүнийг Bearer толгойгоор автоматаар авна.\n4. Дараа нь Runner-ээр бүх цуглуулгыг дээрээс доош ажиллуулж болно.\n\n## Зарчим\n- Фолдер бүр **өөрийгөө цэвэрлэдэг**: `Нэмэх` шинэ бичлэг үүсгэж id-г нь `{{new_*}}` хувьсагчид хадгална, `Засах`/`Устгах` нь ЗӨВХӨН тэр бичлэгийг онилно. Тиймээс цуглуулгыг хэдэн ч удаа ажиллуулсан seed өгөгдөл (аймаг, лавлахууд, admin дүр/хэрэглэгч) хэвээр үлдэнэ.\n- `GET` хүсэлтүүд seed мөрүүдийг (ж: `{{au1_code}}`=011) уншина.\n- Хүсэлт бүрд статусын шалгалт (`pm.test`) байгаа тул Runner-т ногоон/улаанаар харагдана.\n\n## Файлтай хүсэлтүүд\n`ҮЭ — Гишүүний файл` болон `Портал 2 — Файл байршуулах` дотор Body → form-data → `file` мөрөнд компьютерээсээ файлаа СОНГОНО. Сонгоогүй үед тэдгээр хүсэлт алгасагдаж, дараагийнх нь анхдагч утгаар үргэлжилнэ.\n\n## Портал (цэс ба контент)\n`Портал 1..7` фолдерууд дараалан ажиллах бүтэн урсгал: цэс үүсгэх → файл байршуулах → контент засах → блок нэмэх/эрэмбэлэх → спекийн зураг/файл/видео маршрут → алдааны шалгалт → cascade устгал.\n\n## Судалгаа / Санал асуулга\n`Судалгаа 1..8` фолдерууд дараалан ажиллах бүтэн урсгал: маягт үүсгэх → асуулт барих → сонголт → PDF хавсаргах → **токенгүй** порталаас бөглөх → үр дүн/трэнд → алдааны шалгалт → бүрэн цэвэрлэгээ.\n\n`/api/portal/...` нь НЭЭЛТТЭЙ тул тэдгээр хүсэлт `noauth`-той явна — зочин хүн нэвтрэхгүйгээр судалгаа бөглөнө. Токен ирвэл бөглөлт хэрэглэгчийн нэр дээр бүртгэгдэж `one_response` үйлчилнэ.\n\n## Метод\nЗасварын БҮХ маршрут `PUT` ба `PATCH` хоёуланг хүлээж авдаг (хоёулаа хэсэгчилсэн\nзасвар — зөвхөн илгээсэн талбарыг сольдог). Цуглуулгад `Засах` хүсэлт бүрийн\nдэргэд `— PATCH-аар мөн` хувилбар байгаа нь үүнийг батална. Онцгой тохиолдол нь\n`PUT|PATCH /api/user/{id}/scope`: `PUT` бүхэлд нь дарж бичнэ, `PATCH` merge хийнэ.\nБуруу метод (ж: `PATCH /api/login`) нь HTML биш JSON 405 буцаана.\n\n## Огноо\nХүснэгт бүр `created_at` / `updated_at`-тай (DB-ийн trigger автоматаар бөглөнө) —\n`Огноо — created_at / updated_at (бүх жагсаалт)` фолдер үүнийг бүх жагсаалт дээр\nшалгана. Миграциас ӨМНӨ үүссэн мөрүүд NULL хэвээр байж болно.\n\n## Лавлахууд\n`position` / `profession` / `reward_type` / `structure` дөрвүүлээ `id` + `code` +\n`name` бүтэцтэй, код давхцвал 409. `structure` (Бүтцийн удирдлага) -г\n`organization` ба `user` хоёул `structure_id`-аар сонгоно.\n\n## Хэрэглэгч\nНэр нь `last_name` + `first_name` (`full_name` байхгүй). `Хэрэглэгч — Хамрах\nхүрээ (user_scope)` фолдер нь тухайн хэрэглэгч АЛЬ өгөгдлийг харахыг тодорхойлох\n`/api/user/{id}/scope`-ыг бүрэн шалгана.\n\n## Мэдээ ба порталын тохиргоо\n`Мэдээ 1..6` фолдерууд дараалан ажиллах бүтэн урсгал: мэдээ үүсгэх → блок нэмэх (текст/зураг/видео) → эрэмбэлэх → нийтлэх → **токенгүй** порталаас унших → порталын тохиргоо (толгой, баннер, холбоо барих) → алдааны шалгалт → cascade устгал.\n\n`Мэдээ 4` нь `portal_settings` singleton-ыг дарж бичээд, ТЭР ЖИШЭЭ ФОЛДЕРТ анхны утгуудыг нь буцааж сэргээдэг тул цуглуулгыг хэдэн ч удаа ажиллуулахад тохиргоо хэвээр үлдэнэ. Кирилл шүүлтүүр (`?category=Мэдээ`) нь URL-encoded хэлбэрээр явна.\n\n## Байгууллага\n`organization` нь хороонд ХАРЬЯАЛАГДАХГҮЙ (`horoo_id` хасагдсан) — жагсаалтыг\n`?school_category_id=` / `?structure_id=`-ээр шүүнэ. `ҮЭ — Алдааны шалгалт\n(сөрөг тест)` фолдер энэ бүх ирмэгийн тохиолдлыг гүйлгэнэ.",
   "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
  },
  "auth": {
@@ -369,6 +369,26 @@
   },
   {
    "key": "ts_created",
+   "value": ""
+  },
+  {
+   "key": "new_news_id",
+   "value": ""
+  },
+  {
+   "key": "new_news_block_id",
+   "value": ""
+  },
+  {
+   "key": "new_news_block2_id",
+   "value": ""
+  },
+  {
+   "key": "new_news_block3_id",
+   "value": ""
+  },
+  {
+   "key": "new_news_menu_id",
    "value": ""
   }
  ],
@@ -13106,6 +13126,1854 @@
          "var pid = Number(pm.collectionVariables.get('poll_id'));",
          "pm.test('судалгаа арилсан', () => pm.expect(j.some(f => f.id === sid)).to.be.false);",
          "pm.test('санал асуулга арилсан', () => pm.expect(j.some(f => f.id === pid)).to.be.false);"
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Мэдээ 1 — Мэдээ (news)",
+   "item": [
+    {
+     "name": "Нэмэх (ноорог) → new_news_id",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/admin/news",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "news"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"title\": \"Postman тест мэдээ\",\n  \"category\": \"Мэдээ\",\n  \"author\": \"Д. Батаа\",\n  \"summary\": \"Товч танилцуулга\",\n  \"status\": \"draft\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "var j = pm.response.json();",
+         "if (j.id !== undefined && j.id !== null) { pm.collectionVariables.set('new_news_id', j.id); }",
+         "pm.test('new_news_id хадгалагдсан', () => pm.expect(pm.collectionVariables.get('new_news_id')).to.exist);",
+         "pm.test('ноорогт published_at хоосон', () => pm.expect(pm.response.json().published_at).to.be.null);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Жагсаалт (хуудаслалт)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/admin/news?page=1&per_page=20",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "news"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1"
+        },
+        {
+         "key": "per_page",
+         "value": "20"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('data массив', () => pm.expect(j.data).to.be.an('array'));",
+         "pm.test('total тоо', () => pm.expect(j.total).to.be.a('number'));",
+         "pm.test('current_page = 1', () => pm.expect(j.current_page).to.eql(1));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Жагсаалт — ангиллаар шүүх",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/admin/news?category=%D0%9C%D1%8D%D0%B4%D1%8D%D1%8D",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "news"
+       ],
+       "query": [
+        {
+         "key": "category",
+         "value": "%D0%9C%D1%8D%D0%B4%D1%8D%D1%8D"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('зөвхөн Мэдээ ангилал', () => pm.response.json().data.forEach(n => pm.expect(n.category).to.eql('Мэдээ')));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Жагсаалт — хайлт (search)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/admin/news?search=Postman",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "news"
+       ],
+       "query": [
+        {
+         "key": "search",
+         "value": "Postman"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('дор хаяж 1 олдов', () => pm.expect(pm.response.json().total).to.be.above(0));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Нэгийг авах (blocks-той)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/admin/news/{{new_news_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "news",
+        "{{new_news_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('blocks массив', () => pm.expect(pm.response.json().blocks).to.be.an('array'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Засах",
+     "request": {
+      "method": "PUT",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/admin/news/{{new_news_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "news",
+        "{{new_news_id}}"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"title\": \"Postman тест мэдээ (засав)\",\n  \"summary\": \"Шинэчилсэн товч\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('гарчиг солигдов', () => pm.expect(pm.response.json().title).to.eql('Postman тест мэдээ (засав)'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "— PATCH-аар мөн",
+     "request": {
+      "method": "PATCH",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/admin/news/{{new_news_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "news",
+        "{{new_news_id}}"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"title\": \"Postman тест мэдээ (засав)\",\n  \"summary\": \"Шинэчилсэн товч\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Нийтлэх (status=published)",
+     "request": {
+      "method": "PATCH",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/admin/news/{{new_news_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "news",
+        "{{new_news_id}}"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"status\": \"published\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('published болов', () => pm.expect(j.status).to.eql('published'));",
+         "pm.test('published_at тавигдав', () => pm.expect(j.published_at).to.not.be.null);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Цэс — Мэдээний ангилалтай → new_news_menu_id",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/menu",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "menu"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"title\": \"Postman Сургалт цэс\",\n  \"type\": \"news\",\n  \"news_category\": \"Сургалт\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "var j = pm.response.json();",
+         "if (j.id !== undefined && j.id !== null) { pm.collectionVariables.set('new_news_menu_id', j.id); }",
+         "pm.test('new_news_menu_id хадгалагдсан', () => pm.expect(pm.collectionVariables.get('new_news_menu_id')).to.exist);",
+         "pm.test('news_category хадгалагдав', () => pm.expect(pm.response.json().news_category).to.eql('Сургалт'));"
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Мэдээ 2 — Блок (news_block)",
+   "item": [
+    {
+     "name": "Текст блок → new_news_block_id",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/admin/news/{{new_news_id}}/blocks",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "news",
+        "{{new_news_id}}",
+        "blocks"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"type\": \"text\",\n  \"text\": \"<p>Энэ сарын 12-наас...</p>\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "var j = pm.response.json();",
+         "if (j.id !== undefined && j.id !== null) { pm.collectionVariables.set('new_news_block_id', j.id); }",
+         "pm.test('new_news_block_id хадгалагдсан', () => pm.expect(pm.collectionVariables.get('new_news_block_id')).to.exist);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Зураг блок → new_news_block2_id",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/admin/news/{{new_news_id}}/blocks",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "news",
+        "{{new_news_id}}",
+        "blocks"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"type\": \"image\",\n  \"url\": \"/uploads/content/hall.jpg\",\n  \"caption\": \"Хурлын танхим\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "var j = pm.response.json();",
+         "if (j.id !== undefined && j.id !== null) { pm.collectionVariables.set('new_news_block2_id', j.id); }",
+         "pm.test('new_news_block2_id хадгалагдсан', () => pm.expect(pm.collectionVariables.get('new_news_block2_id')).to.exist);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Видео блок → new_news_block3_id",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/admin/news/{{new_news_id}}/blocks",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "news",
+        "{{new_news_id}}",
+        "blocks"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"type\": \"video\",\n  \"youtube_url\": \"https://www.youtube.com/watch?v=abc\",\n  \"title\": \"Видео танилцуулга\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "var j = pm.response.json();",
+         "if (j.id !== undefined && j.id !== null) { pm.collectionVariables.set('new_news_block3_id', j.id); }",
+         "pm.test('new_news_block3_id хадгалагдсан', () => pm.expect(pm.collectionVariables.get('new_news_block3_id')).to.exist);",
+         "pm.test('youtube_url буцав', () => pm.expect(pm.response.json().youtube_url).to.be.a('string'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Блокуудын жагсаалт",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/admin/news/{{new_news_id}}/blocks",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "news",
+        "{{new_news_id}}",
+        "blocks"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('3 блок', () => pm.expect(pm.response.json().length).to.eql(3));",
+         "pm.test('эрэмбэлэгдсэн', () => { var b = pm.response.json(); pm.expect(b[0].sort_order).to.be.below(b[2].sort_order); });"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Нэг блок авах",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/admin/news_blocks/{{new_news_block_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "news_blocks",
+        "{{new_news_block_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Блок засах",
+     "request": {
+      "method": "PUT",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/admin/news_blocks/{{new_news_block_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "news_blocks",
+        "{{new_news_block_id}}"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"text\": \"<p>Шинэчилсэн текст</p>\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('текст солигдов', () => pm.expect(pm.response.json().text).to.eql('<p>Шинэчилсэн текст</p>'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "— PATCH-аар мөн",
+     "request": {
+      "method": "PATCH",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/admin/news_blocks/{{new_news_block_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "news_blocks",
+        "{{new_news_block_id}}"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"text\": \"<p>Шинэчилсэн текст</p>\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Эрэмбэлэх (reorder)",
+     "request": {
+      "method": "PUT",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/admin/news/{{new_news_id}}/blocks/reorder",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "news",
+        "{{new_news_id}}",
+        "blocks",
+        "reorder"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"order\": [\n    {\n      \"id\": \"{{new_news_block2_id}}\",\n      \"sort_order\": 1\n    },\n    {\n      \"id\": \"{{new_news_block_id}}\",\n      \"sort_order\": 2\n    },\n    {\n      \"id\": \"{{new_news_block3_id}}\",\n      \"sort_order\": 3\n    }\n  ]\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('3 блок эрэмбэлэгдэв', () => pm.expect(pm.response.json().updated.length).to.eql(3));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "— PATCH-аар мөн",
+     "request": {
+      "method": "PATCH",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/admin/news/{{new_news_id}}/blocks/reorder",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "news",
+        "{{new_news_id}}",
+        "blocks",
+        "reorder"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"order\": [\n    {\n      \"id\": \"{{new_news_block_id}}\",\n      \"sort_order\": 1\n    },\n    {\n      \"id\": \"{{new_news_block2_id}}\",\n      \"sort_order\": 2\n    },\n    {\n      \"id\": \"{{new_news_block3_id}}\",\n      \"sort_order\": 3\n    }\n  ]\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Мэдээ 3 — Портал (ТОКЕНГҮЙ)",
+   "item": [
+    {
+     "name": "Жагсаалт (нийтлэгдсэн)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/portal/news",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "portal",
+        "news"
+       ]
+      },
+      "auth": {
+       "type": "noauth"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('data массив', () => pm.expect(j.data).to.be.an('array'));",
+         "pm.test('зөвхөн published', () => j.data.forEach(n => pm.expect(n.status).to.eql('published')));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Ангиллаар шүүх",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/portal/news?category=%D0%9C%D1%8D%D0%B4%D1%8D%D1%8D",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "portal",
+        "news"
+       ],
+       "query": [
+        {
+         "key": "category",
+         "value": "%D0%9C%D1%8D%D0%B4%D1%8D%D1%8D"
+        }
+       ]
+      },
+      "auth": {
+       "type": "noauth"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('зөвхөн Мэдээ', () => pm.response.json().data.forEach(n => pm.expect(n.category).to.eql('Мэдээ')));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Нэгийг нээх (blocks-той)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/portal/news/{{new_news_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "portal",
+        "news",
+        "{{new_news_id}}"
+       ]
+      },
+      "auth": {
+       "type": "noauth"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('blocks ирэв', () => pm.expect(pm.response.json().blocks.length).to.eql(3));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Порталын тохиргоо (public)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/public/portal_settings",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "public",
+        "portal_settings"
+       ]
+      },
+      "auth": {
+       "type": "noauth"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('phones жагсаалт', () => pm.expect(pm.response.json().phones).to.be.an('array'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Порталын тохиргоо (/api/portal/ хувилбар)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/portal/portal_settings",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "portal",
+        "portal_settings"
+       ]
+      },
+      "auth": {
+       "type": "noauth"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Мэдээ 4 — Порталын тохиргоо (portal_settings)",
+   "item": [
+    {
+     "name": "Одоогийн тохиргоо",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/portal_settings",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "portal_settings"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('phones жагсаалт', () => pm.expect(j.phones).to.be.an('array'));",
+         "pm.collectionVariables.set('portal_settings_backup', JSON.stringify(j));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Бүхэлд нь хадгалах (PUT)",
+     "request": {
+      "method": "PUT",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/portal_settings",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "portal_settings"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"logo_url\": null,\n  \"header_title\": \"МБШУ-ны ҮЭ-ийн Холбоо\",\n  \"header_subtitle\": \"Хөдөлмөрийн хүний төлөө\",\n  \"hero_badge\": \"1924 оноос эхлэлтэй салбарын үйлдвэрчний эвлэлийн холбоо\",\n  \"hero_title\": \"Боловсрол, шинжлэх ухааны салбарын ажилтнуудын эрх ашгийн төлөө\",\n  \"hero_text\": \"Монголын Боловсрол, Шинжлэх Ухааны Үйлдвэрчний Эвлэлийн Холбоо.\",\n  \"phones\": [\n    \"323555\",\n    \"313609\",\n    \"326328\",\n    \"70126927\"\n  ],\n  \"website\": \"fmesu.mn\",\n  \"facebook_url\": \"https://www.facebook.com/groups/1629671727055980/\",\n  \"youtube_url\": \"\",\n  \"address\": \"210646 Улаанбаатар хот, Чингэлтэй дүүрэг, 1-р хороо\",\n  \"map_embed_url\": null\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('4 утас', () => pm.expect(j.phones.length).to.eql(4));",
+         "pm.test('хоосон youtube_url -> null', () => pm.expect(j.youtube_url).to.be.null);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "— PATCH-аар мөн",
+     "request": {
+      "method": "PATCH",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/portal_settings",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "portal_settings"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"header_title\": \"МБШУ-ны ҮЭ-ийн Холбоо\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Сэргээх (PUT — анхны утга)",
+     "request": {
+      "method": "PUT",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/portal_settings",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "portal_settings"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"logo_url\": null,\n  \"header_title\": \"МБШУ-ны ҮЭ-ийн Холбоо\",\n  \"header_subtitle\": \"Хөдөлмөрийн хүний төлөө\",\n  \"hero_badge\": \"1924 оноос эхлэлтэй салбарын үйлдвэрчний эвлэлийн холбоо\",\n  \"hero_title\": \"Боловсрол, шинжлэх ухааны салбарын ажилтнуудын эрх ашгийн төлөө\",\n  \"hero_text\": \"Монголын Боловсрол, Шинжлэх Ухааны Үйлдвэрчний Эвлэлийн Холбоо нь салбарын ажилтнуудын хөдөлмөрлөх эрх, хууль ёсны ашиг сонирхлыг хамгаалах, нийгмийн баталгааг сайжруулах зорилготой нэгдэл юм.\",\n  \"phones\": [\n    \"323555\",\n    \"313609\",\n    \"326328\",\n    \"70126927\"\n  ],\n  \"website\": \"fmesu.mn\",\n  \"facebook_url\": \"https://www.facebook.com/groups/1629671727055980/\",\n  \"youtube_url\": null,\n  \"address\": \"210646 Улаанбаатар хот, Чингэлтэй дүүрэг, 1-р хороо, Бага тойруу /15160/, Сүхбаатарын талбай, МҮЭ-ийн ордон 221, 315, 316, 317 тоот\",\n  \"map_embed_url\": null\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Мэдээ 5 — Алдааны шалгалт (сөрөг тест)",
+   "item": [
+    {
+     "name": "Буруу ангилал → 400",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/admin/news",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "news"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"title\": \"Буруу\",\n  \"category\": \"Зар\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Гарчиггүй → 400",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/admin/news",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "news"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"category\": \"Мэдээ\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Буруу төлөв → 400",
+     "request": {
+      "method": "PATCH",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/admin/news/{{new_news_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "news",
+        "{{new_news_id}}"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"status\": \"archived\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "url-гүй зураг блок → 400",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/admin/news/{{new_news_id}}/blocks",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "news",
+        "{{new_news_id}}",
+        "blocks"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"type\": \"image\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Буруу блокийн төрөл → 400",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/admin/news/{{new_news_id}}/blocks",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "news",
+        "{{new_news_id}}",
+        "blocks"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"type\": \"audio\",\n  \"url\": \"/x.mp3\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Өөр мэдээний блокийг эрэмбэлэх → 404",
+     "request": {
+      "method": "PUT",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/admin/news/{{new_news_id}}/blocks/reorder",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "news",
+        "{{new_news_id}}",
+        "blocks",
+        "reorder"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"order\": [\n    {\n      \"id\": 999999,\n      \"sort_order\": 1\n    }\n  ]\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 404', () => pm.response.to.have.status(404));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Байхгүй мэдээ → 404",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/admin/news/999999",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "news",
+        "999999"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 404', () => pm.response.to.have.status(404));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Буруу метод (POST /news/<id>) → 405",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/admin/news/{{new_news_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "news",
+        "{{new_news_id}}"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"title\": \"x\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 405', () => pm.response.to.have.status(405));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Токенгүй admin/news → 401",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/admin/news",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "news"
+       ]
+      },
+      "auth": {
+       "type": "noauth"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 401', () => pm.response.to.have.status(401));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Токенгүй portal_settings → 401",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/portal_settings",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "portal_settings"
+       ]
+      },
+      "auth": {
+       "type": "noauth"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 401', () => pm.response.to.have.status(401));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "news_category нь page цэсэнд → 400",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/menu",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "menu"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"title\": \"Буруу цэс\",\n  \"type\": \"page\",\n  \"news_category\": \"Мэдээ\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Утасгүй тохиргоо (PUT) → 400",
+     "request": {
+      "method": "PUT",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/portal_settings",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "portal_settings"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"header_title\": \"зөвхөн энэ\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Буруу facebook_url → 400",
+     "request": {
+      "method": "PATCH",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/portal_settings",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "portal_settings"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"facebook_url\": \"javascript:alert(1)\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Google Maps биш embed → 400",
+     "request": {
+      "method": "PATCH",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/portal_settings",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "portal_settings"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"map_embed_url\": \"https://evil.example/x\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));"
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Мэдээ 6 — Цэвэрлэгээ (cascade шалгах)",
+   "item": [
+    {
+     "name": "Блок устгах",
+     "request": {
+      "method": "DELETE",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/admin/news_blocks/{{new_news_block3_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "news_blocks",
+        "{{new_news_block3_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Мэдээ устгах (блокууд cascade)",
+     "request": {
+      "method": "DELETE",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/admin/news/{{new_news_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "news",
+        "{{new_news_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Устгасны дараа → 404",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/admin/news/{{new_news_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "news",
+        "{{new_news_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 404', () => pm.response.to.have.status(404));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Блокууд ч устсан → 404",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/admin/news_blocks/{{new_news_block_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "news_blocks",
+        "{{new_news_block_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 404', () => pm.response.to.have.status(404));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Мэдээний цэс устгах",
+     "request": {
+      "method": "DELETE",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/menu/{{new_news_menu_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "menu",
+        "{{new_news_menu_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
         ]
        }
       }

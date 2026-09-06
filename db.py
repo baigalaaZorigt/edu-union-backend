@@ -332,6 +332,7 @@ CREATE TABLE IF NOT EXISTS menu (
     sort_order   INTEGER DEFAULT 0,           -- Эрэмбэ (нэг эцэг дотор)
     is_visible   INTEGER DEFAULT 1,           -- Порталд харагдах эсэх (0/1)
     external_url TEXT,                        -- type='external' үед заавал
+    news_category TEXT,                       -- type='news' үед: Мэдээ / Сургалт / NULL (бүгд)
     created_at   TEXT,
     updated_at   TEXT,
     FOREIGN KEY (parent_id) REFERENCES menu(id) ON DELETE CASCADE
@@ -374,7 +375,81 @@ CREATE TABLE IF NOT EXISTS page_block (
 CREATE INDEX IF NOT EXISTS idx_menu_parent ON menu(parent_id);
 CREATE INDEX IF NOT EXISTS idx_page_menu ON page(menu_id);
 CREATE INDEX IF NOT EXISTS idx_page_block_page ON page_block(page_id);
+
+-- portal_settings — ПОРТАЛЫН ТОХИРГОО: бүхэл системд ГАНЦ мөр (singleton, id=1).
+-- Толгой хэсэг, нүүрийн баннер, холбоо барих мэдээлэл, газрын зураг — өмнө нь
+-- portal.html дотор хатуу бичигдсэн байсныг админаас удирдах боломжтой болгов.
+-- Жагсаалт/CRUD хэрэггүй: зөвхөн GET (унших) ба PUT/PATCH (бүхэлд нь дарж хадгалах).
+CREATE TABLE IF NOT EXISTS portal_settings (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,   -- үргэлж 1
+    logo_url        TEXT,                     -- /api/upload-аас ирсэн лого
+    header_title    TEXT,                     -- лого хажуугийн гарчиг
+    header_subtitle TEXT,                     -- лого хажуугийн дэд гарчиг
+    hero_badge      TEXT,                     -- баннерын дээд тэмдэглэгээ
+    hero_title      TEXT,                     -- баннерын гарчиг
+    hero_text       TEXT,                     -- баннерын тайлбар (урт текст)
+    phones          TEXT,                     -- JSON массив: ["323555", ...]
+    website         TEXT,
+    facebook_url    TEXT,
+    youtube_url     TEXT,
+    address         TEXT,                     -- хаягийн бүтэн текст
+    map_embed_url   TEXT,                     -- Google Maps embed iframe-ийн src
+    created_at      TEXT,
+    updated_at      TEXT
+);
 """
+
+# ─── Мэдээ, зар (news) ──────────────────────────────────────────────────────
+# Портал дээр КАРТЛАГ жагсаалтаар харагдаж, нээхэд эрэмбэтэй блокуудаас бүрдсэн
+# контент гарч ирнэ. Блокийн бүтэц нь page_block-той ЯГ ИЖИЛ (text/image/video/
+# file/link) — ялгаа нь зөвхөн эцэг нь `page` биш `news` байна. Ингэснээр
+# frontend-ийн блок засварлагч дахин бичигдэлгүй хоёуланд нь ажиллана.
+#   category — "Мэдээ" / "Сургалт" (menu.news_category-оор цэс тус бүрд шүүгдэнэ)
+#   status   — draft / published; published болмогц published_at сервер талд тавигдана
+SCHEMA_NEWS = """
+CREATE TABLE IF NOT EXISTS news (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    title           TEXT NOT NULL,
+    category        TEXT NOT NULL DEFAULT 'Мэдээ',   -- Мэдээ / Сургалт
+    author          TEXT,                            -- нийтлэсэн хүний нэр
+    cover_image_url TEXT,                            -- картын зураг (/api/upload)
+    summary         TEXT,                            -- картад харагдах товч танилцуулга
+    status          TEXT NOT NULL DEFAULT 'draft',   -- draft / published
+    published_at    TEXT,                            -- нийтэлсэн хугацаа
+    created_by      INTEGER,                         -- app_user.id
+    updated_by      INTEGER,
+    created_at      TEXT,
+    updated_at      TEXT,
+    deleted_at      TEXT,
+    FOREIGN KEY (created_by) REFERENCES app_user(id) ON DELETE SET NULL,
+    FOREIGN KEY (updated_by) REFERENCES app_user(id) ON DELETE SET NULL
+);
+
+-- news_block — page_block-той ижил полиморф блок (эцэг нь news).
+--   text  -> text
+--   image -> url, caption
+--   video -> url (YouTube), title
+--   file  -> url, name, mime_type, size
+--   link  -> url, title
+CREATE TABLE IF NOT EXISTS news_block (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    news_id    INTEGER NOT NULL,
+    type       TEXT NOT NULL,                 -- text / image / video / file / link
+    sort_order INTEGER DEFAULT 0,             -- блокийн эрэмбэ (↑↓)
+    text       TEXT,                          -- type=text: rich text (HTML)
+    url        TEXT,                          -- image/video/file/link: холбоос
+    title      TEXT,                          -- video/link: гарчиг
+    caption    TEXT,                          -- image: тайлбар
+    name       TEXT,                          -- file: харагдах нэр
+    mime_type  TEXT,                          -- file: ж: application/pdf
+    size       INTEGER,                       -- file: байтаар
+    FOREIGN KEY (news_id) REFERENCES news(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_news_list ON news(category, status);
+CREATE INDEX IF NOT EXISTS idx_news_block_news ON news_block(news_id);
+"""
+
 
 # ─── Судалгаа / Санал асуулга (survey & poll) ───────────────────────────────
 # Нэг engine — form.type нь survey (судалгаа) эсвэл poll (санал асуулга).
@@ -672,6 +747,9 @@ PERMISSION_RESOURCES = [
     ("page_file", "Хуудасны файл"),
     ("page_video", "Хуудасны видео"),
     ("upload", "Файл байршуулах"),
+    ("news", "Мэдээ, зар"),
+    ("news_block", "Мэдээний блок"),
+    ("portal_settings", "Порталын тохиргоо"),
     # --- Судалгаа / Санал асуулга (survey & poll) ---
     ("form", "Судалгаа / Санал асуулга"),
     ("form_question", "Маягтын асуулт"),
@@ -922,6 +1000,10 @@ _MIGRATIONS = {
         ("type", "TEXT"),
         ("registration_number", "TEXT"),
         ("founded_date", "TEXT"),
+    ],
+    # Мэдээний цэс аль ангиллыг харуулахыг заана (NULL = бүх ангилал)
+    "menu": [
+        ("news_category", "TEXT"),
     ],
 }
 
@@ -1360,6 +1442,21 @@ def _pg_tables(conn):
         "WHERE table_schema='public' AND table_type='BASE TABLE' ORDER BY table_name")]
 
 
+def _pg_migrate(conn):
+    """Хуучин Postgres DB-д дутуу баганыг нөхнө (_MIGRATIONS-ийн PG хувилбар).
+
+    `CREATE TABLE IF NOT EXISTS` нь БАЙГАА хүснэгтийг өөрчилдөггүй тул схемд шинэ
+    багана нэмэхэд SQLite тал `_migrate()`-ээр, Postgres тал эндээс нөхөгдөнө.
+    `ADD COLUMN IF NOT EXISTS` тул дахин ажиллуулахад аюулгүй.
+    """
+    existing = set(_pg_tables(conn))
+    for table, cols in _MIGRATIONS.items():
+        if table not in existing:
+            continue
+        for name, decl in cols:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {name} {decl}")
+
+
 def _pg_timestamps(conn):
     """Бүх хүснэгтэд created_at/updated_at багана ба тэдгээрийн trigger (PG хувилбар)."""
     conn.executescript(_PG_TS_FN)
@@ -1399,7 +1496,8 @@ def pg_sync_sequences(conn=None):
 def init_db():
     conn = get_db()
     # Лавлахууд (SCHEMA_REF) нь union/user-ийн FK-ийн бай тул ЭХЭЛЖ үүснэ.
-    scripts = [SCHEMA, SCHEMA_REF, SCHEMA_UNION, SCHEMA_USER, SCHEMA_CONTENT, SCHEMA_FORM]
+    scripts = [SCHEMA, SCHEMA_REF, SCHEMA_UNION, SCHEMA_USER, SCHEMA_CONTENT,
+               SCHEMA_NEWS, SCHEMA_FORM]
     if IS_PG:
         alters = []
         for sc in scripts:
@@ -1408,6 +1506,7 @@ def init_db():
             alters += fks
         for a in alters:
             conn.executescript(a)
+        _pg_migrate(conn)            # хуучин PG DB-д дутуу багана нэмэх
         _pg_timestamps(conn)
     else:
         for sc in scripts:
@@ -1558,6 +1657,52 @@ def seed_menu():
     n = conn.execute("SELECT COUNT(*) FROM menu").fetchone()[0]
     conn.close()
     print("Порталын цэс ачаалагдлаа:", n)
+
+
+# Порталын тохиргооны АНХДАГЧ утгууд — portal.html дотор хатуу бичигдсэн байсан
+# текстүүд. Хүснэгт хоосон үед л (эхний деплой) энэ мөр үүсэх тул админ засчихаад
+# дахин seed ажиллуулахад утга нь буцаж дарагдахгүй.
+DEFAULT_PORTAL_SETTINGS = {
+    "logo_url": None,
+    "header_title": "МБШУ-ны ҮЭ-ийн Холбоо",
+    "header_subtitle": "Хөдөлмөрийн хүний төлөө",
+    "hero_badge": "1924 оноос эхлэлтэй салбарын үйлдвэрчний эвлэлийн холбоо",
+    "hero_title": "Боловсрол, шинжлэх ухааны салбарын ажилтнуудын эрх ашгийн төлөө",
+    "hero_text": "Монголын Боловсрол, Шинжлэх Ухааны Үйлдвэрчний Эвлэлийн Холбоо нь "
+                 "салбарын ажилтнуудын хөдөлмөрлөх эрх, хууль ёсны ашиг сонирхлыг "
+                 "хамгаалах, нийгмийн баталгааг сайжруулах зорилготой нэгдэл юм.",
+    "phones": ["323555", "313609", "326328", "70126927"],
+    "website": "fmesu.mn",
+    "facebook_url": "https://www.facebook.com/groups/1629671727055980/",
+    "youtube_url": None,
+    "address": "210646 Улаанбаатар хот, Чингэлтэй дүүрэг, 1-р хороо, Бага тойруу "
+               "/15160/, Сүхбаатарын талбай, МҮЭ-ийн ордон 221, 315, 316, 317 тоот",
+    "map_embed_url": None,
+}
+
+
+def seed_portal_settings():
+    """Порталын тохиргооны ганц мөрийг анхдагч утгуудаар үүсгэнэ (хоосон үед л)."""
+    init_db()
+    conn = get_db()
+    if conn.execute("SELECT COUNT(*) FROM portal_settings").fetchone()[0]:
+        conn.close()
+        print("Порталын тохиргоо аль хэдийн бий — алгаслаа.")
+        return
+    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    d = DEFAULT_PORTAL_SETTINGS
+    conn.execute(
+        "INSERT INTO portal_settings(id, logo_url, header_title, header_subtitle, "
+        "hero_badge, hero_title, hero_text, phones, website, facebook_url, "
+        "youtube_url, address, map_embed_url, created_at, updated_at) "
+        "VALUES (1,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        (d["logo_url"], d["header_title"], d["header_subtitle"], d["hero_badge"],
+         d["hero_title"], d["hero_text"], json.dumps(d["phones"], ensure_ascii=False),
+         d["website"], d["facebook_url"], d["youtube_url"], d["address"],
+         d["map_embed_url"], now, now))
+    conn.commit()
+    conn.close()
+    print("Порталын тохиргоо ачаалагдлаа.")
 
 
 def seed_users():
@@ -1761,6 +1906,7 @@ def seed_all():
     seed_structure()
     seed_union()
     seed_menu()
+    seed_portal_settings()
     seed_users()
     pg_sync_sequences()      # PG: гараас өгсөн id-ийн дараа дарааллыг тааруулна
 
@@ -1783,6 +1929,7 @@ def ensure_seeded():
                 or empty("salary_scale") or empty("position") or empty("profession")
                 or empty("reward_type") or empty("structure"))
     need_menu = empty("menu")
+    need_settings = empty("portal_settings")
     conn.close()
 
     # Лавлахууд эхэлнэ — seed_union() тэдгээрийн id-г заадаг (school_category_id).
@@ -1799,6 +1946,8 @@ def ensure_seeded():
         seed_union()
     if need_menu:
         seed_menu()
+    if need_settings:
+        seed_portal_settings()
     # Эрх/дүрийг ҮРГЭЛЖ синк хийнэ (idempotent): шинэ resource-ийн эрхүүд нэмэгдэж,
     # admin бүх эрхээ авна. Анхны admin хэрэглэгч зөвхөн app_user хоосон үед л үүснэ.
     seed_users()

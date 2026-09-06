@@ -4,6 +4,7 @@
   menu (Цэс) — порталын дээд цэс. `type` нь цэс дээр дарахад юу харагдахыг заана:
       page     — динамик контент хуудас (админ бүрэн удирдана)
       news / survey / poll / contact / home — кодод суусан функциональ хуудсууд
+      (news цэс нь `news_category`-оор "Мэдээ"/"Сургалт"-ыг салгаж харуулна)
       external — зөвхөн external_url руу үсэрнэ
   page (Контент хуудас) — type='page' цэс бүрд НЭГ бичлэг (гарчиг, cover, төлөв).
   page_block (Блок) — хуудасны агуулга: text / image / video / file / link блокууд
@@ -51,7 +52,12 @@ DOC_TYPES = {
 MENU_TYPES = ("page", "news", "survey", "poll", "contact", "home", "external")
 
 # Цэсний засаж/оруулж болох талбарууд (slug тусад нь боловсруулагдана)
-MENU_FIELDS = ("parent_id", "title", "type", "sort_order", "is_visible", "external_url")
+MENU_FIELDS = ("parent_id", "title", "type", "sort_order", "is_visible", "external_url",
+               "news_category")
+
+# type='news' цэс аль ангиллын мэдээг харуулахыг заана (news_core-той ижил жагсаалт).
+# NULL = бүх ангилал (хуучин цэсүүд ингэж ажиллана).
+NEWS_CATEGORIES = ("Мэдээ", "Сургалт")
 
 # Хуудасны засаж болох талбарууд
 PAGE_FIELDS = ("title", "body", "cover_image", "status")
@@ -146,6 +152,14 @@ def _validate_menu(conn, data, current=None):
         if not url:
             conn.close()
             abort(400, description="type='external' үед external_url заавал")
+    if data.get("news_category"):
+        if mtype != "news":
+            conn.close()
+            abort(400, description="news_category зөвхөн type='news' цэсэнд хамаарна")
+        if data["news_category"] not in NEWS_CATEGORIES:
+            conn.close()
+            abort(400, description=("news_category буруу. Сонголт: "
+                                    + ", ".join(NEWS_CATEGORIES) + " (эсвэл хоосон = бүгд)"))
     return mtype
 
 
@@ -233,8 +247,12 @@ def _insert_block(conn, page_id, btype, values):
         "SELECT * FROM page_block WHERE id=?", (cur.lastrowid,)).fetchone()
 
 
-def _remove_upload(url):
-    """Бидний өөрсдийн байршуулсан файл бол дискнээс арилгана (гадаад URL-д хүрэхгүй)."""
+def remove_upload(url):
+    """Бидний өөрсдийн байршуулсан файл бол дискнээс арилгана (гадаад URL-д хүрэхгүй).
+
+    admin/news.py мөн үүнийг ашиглана — мэдээний блок/ковер зураг ч /api/upload-аар
+    ирдэг тул устгах логик нэг дор байх ёстой.
+    """
     if not url or not url.startswith(UPLOAD_URL_PREFIX):
         return
     path = os.path.join(UPLOAD_DIR, os.path.basename(url))
@@ -260,7 +278,7 @@ def _delete_block(bid, btype=None, label="Блок"):
     conn.execute("DELETE FROM page_block WHERE id=?", (bid,))
     conn.commit()
     conn.close()
-    _remove_upload(row["url"])
+    remove_upload(row["url"])
     return jsonify(deleted=bid)
 
 
@@ -325,10 +343,11 @@ def create_menu():
     try:
         cur = conn.execute(
             "INSERT INTO menu(parent_id, title, slug, type, sort_order, is_visible, "
-            "external_url, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?)",
+            "external_url, news_category, created_at, updated_at) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?)",
             (parent_id, data["title"], slug, mtype, sort_order,
              1 if data.get("is_visible", True) else 0,
-             data.get("external_url"), now, now))
+             data.get("external_url"), data.get("news_category") or None, now, now))
     except Exception:
         conn.close()
         abort(409, description="Энэ slug аль хэдийн бүртгэгдсэн байна")
@@ -392,6 +411,8 @@ def update_menu(mid):
             val = _check_parent(conn, val, mid)
         elif f == "is_visible":
             val = 1 if val else 0
+        elif f == "news_category":
+            val = val or None       # хоосон = бүх ангилал
         fields.append(f)
         values.append(val)
     if "slug" in data or "title" in data:
@@ -439,7 +460,7 @@ def delete_menu(mid):
     if cur.rowcount == 0:
         abort(404, description="Цэс олдсонгүй")
     for url in urls:
-        _remove_upload(url)
+        remove_upload(url)
     return jsonify(deleted=mid)
 
 
@@ -533,7 +554,7 @@ def update_page(pid):
         abort(404, description="Контент хуудас олдсонгүй")
     # Cover солигдвол хуучин зургийг дискнээс арилгана.
     if "cover_image" in data and old and old["cover_image"] != data["cover_image"]:
-        _remove_upload(old["cover_image"])
+        remove_upload(old["cover_image"])
     return jsonify(dict(row))
 
 
@@ -631,7 +652,7 @@ def update_page_block(bid):
     new = conn.execute("SELECT * FROM page_block WHERE id=?", (bid,)).fetchone()
     conn.close()
     if "url" in fields and row["url"] != new["url"]:
-        _remove_upload(row["url"])      # солигдсон хуучин файлыг арилгана
+        remove_upload(row["url"])      # солигдсон хуучин файлыг арилгана
     return jsonify(_public_block(new))
 
 

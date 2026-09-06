@@ -32,6 +32,16 @@ are in Mongolian (Cyrillic). The backend serves **two sites**, each in its own f
     `page` (Контент хуудас, one per `type='page'` menu) → `page_block` (ordered content blocks:
     text / image / video / file / link), plus `/api/upload` for images and documents.
   - `forms.py` — the admin half of the survey / poll engine (`/api/admin/...`).
+  - `news.py` — the admin half of Мэдээ, зар (`/api/admin/news...`): the card list plus
+    its `news_block` content blocks.
+  - `settings.py` — `portal_settings`, the portal's **singleton** settings row
+    (header, hero banner, contacts, map) — `/api/portal_settings` + a token-free
+    `/api/public/portal_settings`.
+
+Мэдээ (news) spans both sites the same way as the survey engine: `news_core.py` (validation,
+`public_*` shaping) is imported by `admin/news.py` (`/api/admin/news...` — build, block, publish)
+and `client/news.py` (`/api/portal/news...` — list and read, token-free). See
+`news_api_spec.md`; the portal settings live in `portal_settings_api_spec.md`.
 
 The survey / poll engine spans both sites and shares one domain core at the repo root:
 `forms_core.py` (validation, `public_*` shaping, result aggregation) is imported by
@@ -46,17 +56,22 @@ run.py              # entry point: create_app() + registers both sites' blueprin
 db.py               # single source of schema + seed (shared by both sites)
 helpers.py          # shared route helpers (rows, require, json_body, error handlers)
 forms_core.py       # survey/poll домэйний цөм (хоёр site хуваалцана)
+news_core.py        # мэдээ (news) домэйний цөм (хоёр site хуваалцана)
 client/             # ── CLIENT SITE ──
   admin_units.py    #   blueprint "admin_units": /api/au1|au2|au3, /api/school_category
   union.py          #   blueprint "union": /api/horoo|organization|member|contact|salary*|...
                     #   (holboo — зөвхөн хүснэгт + seed; API маршрут байхгүй)
   forms.py          #   blueprint "portal_forms": /api/portal/forms... (НЭЭЛТТЭЙ — токенгүй)
+  news.py           #   blueprint "portal_news": /api/portal/news... (НЭЭЛТТЭЙ — токенгүй)
 admin/              # ── ADMIN SITE ──
   users.py          #   blueprint "users": /api/permission|role|user, /api/login
   content.py        #   blueprint "content": /api/menu|page|page_block|page_image|
                     #   page_file|page_video|upload  (порталын динамик цэс + контент)
   forms.py          #   blueprint "admin_forms": /api/admin/forms|questions|options|
                     #   documents, .../results  (судалгаа/санал асуулга барих + үр дүн)
+  news.py           #   blueprint "admin_news": /api/admin/news|news_blocks (мэдээ, зар)
+  settings.py       #   blueprint "portal_settings": /api/portal_settings +
+                    #   /api/public/portal_settings (порталын толгой/баннер/холбоо барих)
 data/
   seed/             # JSON seed data loaded by db.py (admin_unit1|2|3.json)
   sources/          # original .xlsx sources (reference only, not read by code)
@@ -97,15 +112,16 @@ gunicorn run:app               # production WSGI server (loads the module-level 
   (`seed_all()`) locally to force a full re-seed.
 - `python db.py` runs `seed()` (loads `data/seed/admin_unit*.json`), the reference seeds
   (`seed_school_category()`, `seed_salary_scale()`, `seed_education_degree()`, `seed_position()`,
-  `seed_profession()`, `seed_reward_type()`), then `seed_union()`, `seed_menu()` (the portal's default menu tree) and
+  `seed_profession()`, `seed_reward_type()`), then `seed_union()`, `seed_menu()` (the portal's default menu tree),
+  `seed_portal_settings()` (the singleton settings row, from `DEFAULT_PORTAL_SETTINGS`) and
   `seed_users()`. **References must be seeded before
   `seed_union()`** — its sample organization points at `school_category_id`, and the FK pragma
   rejects the insert otherwise. All use `INSERT OR IGNORE` / empty-table guards, so re-running is safe.
 - `seed_users()` creates the first admin account **only when `app_user` is empty**: `admin` / `admin123`.
 - No test suite or linter is configured — `docs/edu-union-backend.postman_collection.json` is the
   de-facto test suite. It runs **top to bottom** (Postman Runner or
-  `newman run docs/edu-union-backend.postman_collection.json --env-var base_url=...`): 342 requests,
-  562 assertions, and repeatable — three consecutive runs leave every table's row count
+  `newman run docs/edu-union-backend.postman_collection.json --env-var base_url=...`): 388 requests,
+  637 assertions, and repeatable — three consecutive runs leave every table's row count
   unchanged. (One known red on a *fresh* DB: `ҮЭ — Гишүүний боловсрол / Нэгийг авах` reads
   `member_education_id`=1, but `seed_union()` creates no `member_education` row.) **Keep it that way when adding requests:** run "0. Нэвтрэлт" first (it stores
   `{{token}}`), have each folder's `Нэмэх` save the new id into a `{{new_*}}` variable, and point
@@ -114,7 +130,10 @@ gunicorn run:app               # production WSGI server (loads the module-level 
   both verbs, are exercised**; if you add a `PUT` route, add its `PATCH` twin too. The
   `ҮЭ — Алдааны шалгалт (сөрөг тест)` is the union-side negative folder: it creates one
   organization, drives every 400/405/401 path through it (bad category, bad `org_code`, wrong
-  method, no token) and deletes it again. The
+  method, no token) and deletes it again. The `Мэдээ 1..6` folders cover news + portal settings
+  the same way — one news item is built, blocked, reordered, published, read back through the
+  token-free portal, then deleted; `Мэдээ 4` overwrites the settings singleton and **restores its
+  seeded values** in the same folder, so the row is left as it was found. The
   `Судалгаа 1..8` folders additionally show the pattern for **public** endpoints: every
   `/api/portal/` request carries `"auth": {"type": "noauth"}` so the run proves a guest can
   submit without a token, and the cleanup folder deletes forms with `?hard=1` (a form with
@@ -132,7 +151,9 @@ gunicorn run:app               # production WSGI server (loads the module-level 
   `to_char(x,'FM00')`, `julianday('now') - julianday(x)` → `CURRENT_DATE - x::date`. Rows come back
   as a `dict` subclass so both `row["col"]` and `row[0]` work, like `sqlite3.Row`. Three things do
   **not** translate and are branched instead: `_migrate()` (SQLite-only legacy patching — a fresh
-  Postgres never needs it), the timestamp triggers (`_pg_timestamps()` installs a `set_timestamps()`
+  Postgres never needs it, but an *existing* one still needs new columns, which is what
+  `_pg_migrate()` does: it replays `_MIGRATIONS` as `ALTER TABLE … ADD COLUMN IF NOT EXISTS`,
+  since `CREATE TABLE IF NOT EXISTS` never alters a table that already exists), the timestamp triggers (`_pg_timestamps()` installs a `set_timestamps()`
   plpgsql function), and the schema itself. **`lastrowid` is `RETURNING id`, never `lastval()`** —
   `lastval()` reads the session's last sequence value, so an INSERT nested inside a handler (menu →
   `_ensure_page()`) would hand back the wrong id.
@@ -141,9 +162,9 @@ gunicorn run:app               # production WSGI server (loads the module-level 
   their own ids, so `pg_sync_sequences()` re-aligns each sequence after seeding), and **every
   `FOREIGN KEY` line is lifted out of `CREATE TABLE` into a deferred `ALTER TABLE`** — SQLite
   tolerates a forward reference to a table created later in the script, Postgres does not.
-- **Two sites, one Flask app.** `run.py` builds the app via `create_app()` and registers six
-  blueprints — `admin_units` + `union` + `portal_forms` (client site) and `users` + `content` +
-  `admin_forms` (admin site). Blueprints are plain route modules; they do **not** register their
+- **Two sites, one Flask app.** `run.py` builds the app via `create_app()` and registers nine
+  blueprints — `admin_units` + `union` + `portal_forms` + `portal_news` (client site) and
+  `users` + `content` + `admin_forms` + `admin_news` + `portal_settings` (admin site). Blueprints are plain route modules; they do **not** register their
   own error handlers. **A new blueprint is invisible until it is registered here** — that is the
   one step `CREATE TABLE`/route decorators cannot do for you.
 - **CORS is hand-rolled in `run.py`** (`add_cors_headers` via `app.after_request`) — no extra
@@ -155,15 +176,16 @@ gunicorn run:app               # production WSGI server (loads the module-level 
   origin outside the list simply gets no `Access-Control-Allow-Origin` header back — the response
   itself is unchanged, since the browser is what enforces this.
 - **Auth is enforced globally in `auth.py`.** `run.py` registers `app.before_request(require_auth)`,
-  so **every request except `/api/login` and anything under `/uploads/` or `/api/portal/`
-  (`PUBLIC_PREFIXES`) requires a Bearer token** (`Authorization: Bearer <jwt>`)
+  so **every request except `/api/login` and anything under `/uploads/`, `/api/portal/` or
+  `/api/public/` (`PUBLIC_PREFIXES`) requires a Bearer token** (`Authorization: Bearer <jwt>`)
   → else 401. Tokens are stateless **JWTs** (PyJWT, HS256) with `sub`/`iat`/`exp` claims, signed with
   `SECRET_KEY` (env; set it in production), valid 12h. `/api/login` returns the token. **Authorization is derived, not hand-wired**:
   `require_auth()` maps the URL's first path segment → resource (au1/au2/au3 → `admin_unit`) and the
   HTTP method → action (GET→read, POST→create, PUT/PATCH→update, DELETE→delete), then requires the
   `resource.action` permission on the user's role → else 403. For the survey/poll routes it first
   strips the `admin`/`portal` site segment (`SITE_PREFIXES`), then lets **later** path segments
-  override both halves — `SUB_RESOURCE` (`.../questions/9/answers` → `form_result`) and
+  override both halves — `SUB_RESOURCE` (`.../questions/9/answers` → `form_result`,
+  `.../news/41/blocks` → `news_block`) and
   `SUB_ACTION` (`POST .../publish` → `update`, not `create`). So **adding a new `/api/<resource>`
   route automatically needs `<resource>.{action}` permissions** — add the resource to
   `PERMISSION_RESOURCES` in `db.py` (which is the cross-product source for the seeded CRUD permissions).
@@ -286,6 +308,37 @@ gunicorn run:app               # production WSGI server (loads the module-level 
   echo their `url` as `youtube_url` for spec compatibility.
 - **`/api/page` route ids differ by method** (this is what the spec asks for):
   `GET /api/page/<menu_id>` takes the **menu** id, `PUT /api/page/<id>` takes the **page** id.
+- **Мэдээ (news) reuses the page-block idea on its own table.** `news` is the card (title,
+  `category`, `author`, `cover_image_url`, `summary`, `status`) and `news_block` is the same
+  polymorphic `text`/`image`/`video`/`file`/`link` block as `page_block` — so the frontend's
+  block editor works for both without a rewrite. `category` is validated against
+  `NEWS_CATEGORIES` (`Мэдээ` / `Сургалт`) → 400 (**the spec asks for 422; this repo answers 400
+  everywhere and `register_error_handlers` has no 422 handler**). `status` walks
+  `draft → published`, and the **server** stamps `published_at` on the first transition to
+  `published` — a later unpublish/republish keeps the original date so the portal ordering does
+  not jump. `DELETE` is a real delete (cascade to blocks); the `deleted_at` column exists per
+  spec and every read filters on it, but nothing sets it yet.
+- **A "Мэдээ" menu picks its category with `menu.news_category`.** `NULL` means *all* categories,
+  so the seeded `news` menu keeps working; the admin creates one menu per category
+  (`news_category='Мэдээ'` / `'Сургалт'`) and the portal calls
+  `GET /api/portal/news?category=<that value>`. `_validate_menu()` rejects a `news_category` on
+  any menu that is not `type='news'`. **Cyrillic query values must be percent-encoded** — a
+  raw-bytes `?category=Мэдээ` (curl without `--data-urlencode`) reaches Flask mangled and gets a
+  400; browsers and axios/fetch encode it automatically.
+- **`portal_settings` is a singleton, not a resource.** One row for the whole system: no list,
+  no id in the URL, just `GET` and `PUT`/`PATCH` on `/api/portal_settings`. `PUT` **overwrites
+  the whole row** (fields you omit become `NULL` — the frontend knows every field), `PATCH`
+  merges. `phones` is stored as a JSON string but is **always a list** in JSON (`_public()`),
+  and at least one number is required. `map_embed_url` must contain `google.com/maps/embed`
+  (it goes straight into an iframe `src`) and the other URL fields must start with `http(s)://`.
+  `GET` **auto-creates** the row from `DEFAULT_PORTAL_SETTINGS` (db.py) when it is missing, so a
+  fresh deploy needs no manual step. The portal reads it token-free at
+  `/api/public/portal_settings` (and `/api/portal/portal_settings`, the same handler) —
+  `/api/public/` is the read-only public namespace added to `PUBLIC_PREFIXES`.
+- **News and settings images go through the existing `POST /api/upload`** — no new upload
+  endpoint. `admin/news.py` and `admin/settings.py` import `remove_upload()` from
+  `admin/content.py` (renamed from `_remove_upload`), so a replaced cover, a deleted block or a
+  swapped logo takes its bytes off disk too, and only ever under `UPLOAD_URL_PREFIX`.
 - **Portal uploads are two-step.** `POST /api/upload` (multipart, `file`) validates the extension
   and size — images (jpg/jpeg/png/webp) ≤ 5 MB, documents (pdf/doc/docx/xls/xlsx) ≤ 20 MB — saves
   to `CONTENT_UPLOAD_DIR` (`uploads/content/<uuid>.<ext>`) and returns `{url, name, mime_type,
@@ -364,5 +417,8 @@ gunicorn run:app               # production WSGI server (loads the module-level 
 - Union / user ids are INTEGER autoincrement; routes use `<int:...>` converters.
 - List endpoints support optional filter query params (`?au1_code=`, `?holboo_id=`,
   `?horoo_id=` (horoo only), `?school_category_id=` (organization), `?organization_id=`, `?owner_type=&owner_id=`, `?resource=`, `?role_id=`, `?status=`).
+  The paginated list endpoints (`/api/admin/forms`, `/api/admin/news`, `/api/portal/news`) also
+  take `?search=&page=&per_page=`; **news answers in the news spec's shape**
+  (`{data, total, per_page, current_page, pages}`), forms in its own (`{items, total, page, …}`).
 - Imports are absolute (`from db import get_db`, `from client.union import bp`) and assume the repo
   root is on `sys.path` — always run from the repo root (`python run.py`).
