@@ -37,6 +37,10 @@ PATH_RESOURCE = {
     "documents": "form_document",
     # Мэдээ — /api/admin/news_blocks/<id> -> news_block
     "news_blocks": "news_block",
+    # Санал хүсэлт / Өргөдөл гомдол — хүснэгт нь олон тоот, эрх нь нэгэн тоот
+    "suggestions": "suggestion", "complaints": "complaint",
+    # Мэдэгдэл — /api/admin/notifications -> notification
+    "notifications": "notification",
 }
 
 # /api/<site>/... хэлбэрийн site угтварууд — эрхийг ДАРААГИЙН хэсгээс гаргана
@@ -71,6 +75,17 @@ PUBLIC_PATHS = {"/api/login"}
 # /api/public/  — порталд зориулсан "зөвхөн унших" нээлттэй харагдацууд
 #                 (ж: /api/public/portal_settings — portal.html-ийн толгой/баннер).
 PUBLIC_PREFIXES = ("/uploads/", "/api/portal/", "/api/public/")
+
+# Токен ШААРДАХ ч тусгай эрх шаардахгүй "өөрийн" (self-service) замууд.
+# Нэвтэрсэн хэрэглэгч бүр дүрээсээ үл хамааран өөрийн нууц үгээ солих, өөрийн
+# хамрах хүрээгээ унших/бичих, onboarding-оо дуусгах эрхтэй
+# (specialist_onboarding_api_spec.md §3-§4). Эдгээр маршрут ҮРГЭЛЖ g.user-ээр л
+# ажилладаг тул өөр хэрэглэгчийн өгөгдөлд хүрэх аргагүй.
+# Мөн 🔔 inbox (/api/notifications...) — нэвтэрсэн хэрэглэгч бүр ӨӨРТӨӨ ирсэн
+# мэдэгдлээ уншиж, уншсан болгоно. Админы илгээх тал нь /api/admin/notifications
+# тул эрх (notification.*) шаардсан хэвээр.
+SELF_PATHS = {"/api/change_password", "/api/me", "/api/notifications"}
+SELF_PREFIXES = ("/api/me/", "/api/notifications/")
 
 
 def make_token(user_id):
@@ -166,7 +181,9 @@ def require_auth():
         abort(401, description="Нэвтрэх шаардлагатай (Authorization: Bearer <token>)")
     g.user = _load_user(header[len("Bearer "):].strip())
 
-    # 2) Эрх — зам+методоос гарган тулгах
+    # 2) Эрх — зам+методоос гарган тулгах ("өөрийн" замууд эрхээс хамаарахгүй)
+    if request.path in SELF_PATHS or request.path.startswith(SELF_PREFIXES):
+        return
     need = _required_permission()
     if need and need not in _user_permission_codes(g.user):
         abort(403, description=f"Танд энэ үйлдлийн эрх алга: {need}")

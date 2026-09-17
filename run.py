@@ -24,6 +24,7 @@ from client.admin_units import bp as admin_units_bp
 from client.union import bp as union_bp, MAX_FILE_SIZE
 from client.forms import bp as portal_forms_bp
 from client.news import bp as portal_news_bp
+from client.feedback import bp as portal_feedback_bp
 
 # --- admin site ---
 from admin.users import bp as users_bp
@@ -31,6 +32,9 @@ from admin.content import bp as content_bp
 from admin.forms import bp as admin_forms_bp
 from admin.news import bp as admin_news_bp
 from admin.settings import bp as portal_settings_bp
+from admin.feedback import bp as admin_feedback_bp
+from admin.notifications import bp as notifications_bp
+from admin.dashboard import bp as admin_dashboard_bp
 
 
 # Порталын client өөр домэйн/портоос (ж: React dev сервер :3000) хандах тул
@@ -81,6 +85,7 @@ def create_app():
     app.register_blueprint(union_bp)
     app.register_blueprint(portal_forms_bp)   # /api/portal/... — судалгаа бөглөх
     app.register_blueprint(portal_news_bp)    # /api/portal/news — мэдээ унших (токенгүй)
+    app.register_blueprint(portal_feedback_bp)  # /api/portal/suggestions|complaints (токенгүй)
 
     # Admin site — хэрэглэгчийн удирдлага + порталын цэс/контент
     app.register_blueprint(users_bp)
@@ -88,6 +93,9 @@ def create_app():
     app.register_blueprint(admin_forms_bp)    # /api/admin/... — судалгаа/санал асуулга
     app.register_blueprint(admin_news_bp)     # /api/admin/news... — мэдээ, зар
     app.register_blueprint(portal_settings_bp)  # /api/portal_settings — порталын тохиргоо
+    app.register_blueprint(admin_feedback_bp)   # /api/admin/suggestions|complaints
+    app.register_blueprint(notifications_bp)    # /api/admin/notifications + /api/notifications
+    app.register_blueprint(admin_dashboard_bp)  # /api/admin/dashboard/summary
 
     register_error_handlers(app)  # 400/401/403/404/409 -> {"error": ...} JSON
     ensure_seeded()               # схем + хоосон бол автоматаар seed (Render дээр ч ажиллана)

@@ -5,16 +5,23 @@
   role (Дүр)        — role_permission-оор дамжуулан ОЛОН эрхтэй (M:N)
   app_user (Хэрэглэгч) — role_id-аар нэг дүр СОНГОЖ, дүрийнхээ бүх эрхийг удамшуулна
   user_scope (Хамрах хүрээ) — тухайн хэрэглэгч АЛЬ өгөгдлийг харахыг заана (1:1)
+
+Мөн "өөрийн" (self-service) маршрутууд — /api/change_password, /api/me/...
+(specialist_onboarding_api_spec.md): анх нэвтрэхэд нууц үг солих, дараа нь
+хамрах хүрээгээ баталгаажуулж onboarding-оо дуусгах. Эдгээр нь ҮРГЭЛЖ g.user
+дээр ажиллах тул auth.py тусгай эрх шаардахгүй (SELF_PATHS / SELF_PREFIXES).
 """
 import json
 from datetime import datetime, timezone
 
-from flask import Blueprint, jsonify, request, abort
+from flask import Blueprint, jsonify, request, abort, g
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from db import get_db
 from helpers import rows, require, json_body
 from auth import make_token
+from scope_core import (RURAL, SCHOOL_TYPE_CATEGORY, is_specialist,
+                        public_scope, load_scope, org_condition)
 
 bp = Blueprint("users", __name__)
 
@@ -22,17 +29,24 @@ ACTIONS = ("create", "read", "update", "delete")
 
 # --- Хамрах хүрээ (user_scope, user_scope_api_spec.md) ---
 # Сургуулийн төрлийн тогтвортой кодууд (бүтэн нэрийг frontend харуулна).
-SCHOOL_TYPES = ("general", "preschool", "higher", "vocational", "science", "rural")
-# "ХОН" — зөвхөн энэ төрөлд тодорхой сургуулиудыг (organization_ids) сонгоно,
+# rural-аас бусад бүр нь ангиллын id-тай харгалзах ёстой тул жагсаалтыг
+# scope_core.SCHOOL_TYPE_CATEGORY-ЭЭС гаргана — зөрөх (шүүлт хоосон буцаах)
+# боломжгүй болно.
+SCHOOL_TYPES = tuple(SCHOOL_TYPE_CATEGORY) + (RURAL,)
+# "ХОН" (RURAL) — зөвхөн энэ төрөлд тодорхой сургуулиудыг (organization_ids) сонгоно,
 # бусад төрөлд ганц дүүрэг (district_au2_code) сонгоно.
-RURAL = "rural"
 SCOPE_FIELDS = ("school_type", "district_au2_code", "organization_ids", "organization_id")
 EMPTY_SCOPE = {"school_type": None, "district_au2_code": None,
                "organization_ids": [], "organization_id": None}
 
 # Хэрэглэгчийн засаж/оруулж болох талбарууд (password, username-ээс бусад тусад нь).
 # Нэр нь овог/нэр гэж ТУСДАА хадгалагдана (member-тэй ижил зарчим).
-USER_FIELDS = ("last_name", "first_name", "email", "role_id", "structure_id", "is_active")
+# `must_change_password`-ыг админ дахин 1 болгож, нууц үг сэргээсний дараа
+# хэрэглэгчээс дахин солиулж болно.
+USER_FIELDS = ("last_name", "first_name", "email", "role_id", "structure_id", "is_active",
+               "must_change_password")
+# DB-д 0/1 болж хадгалагдах логик талбарууд
+BOOL_FIELDS = ("is_active", "must_change_password")
 
 # Хэрэглэгчийг дүр ба бүтцийн удирдлагынх нь нэртэй хамт унших SELECT
 USER_SELECT = (
@@ -49,31 +63,18 @@ def public_user(row):
 
     Нэр нь last_name (Овог) + first_name (Нэр) гэж ТУСАД нь хадгалагдана —
     `full_name` гэсэн талбар байхгүй (хадгалахгүй, буцаахгүй).
+
+    Анхны нэвтрэлтийн 2 талбарыг frontend-д тохиромжтой boolean-оор буцаана
+    (specialist_onboarding_api_spec.md §3.1). `onboarding_completed` нь зөвхөн
+    Зөвлөх мэргэжилтэнд утга учиртай — бусад дүрд onboarding алхам байхгүй тул
+    ҮРГЭЛЖ true (шууд Dashboard руу).
     """
     d = dict(row)
     d.pop("password_hash", None)
+    d["must_change_password"] = bool(d.get("must_change_password"))
+    d["onboarding_completed"] = (
+        bool(d.get("onboarding_completed_at")) if is_specialist(row) else True)
     return d
-
-
-def public_scope(row):
-    """user_scope мөрийг JSON-д тохирсон dict болгоно (мөр байхгүй бол None).
-
-    organization_ids нь DB-д JSON текстээр хадгалагддаг — гадагшаа ҮРГЭЛЖ массив.
-    """
-    if row is None:
-        return None
-    d = dict(row)
-    try:
-        ids = json.loads(d.get("organization_ids") or "[]")
-    except ValueError:
-        ids = []
-    d["organization_ids"] = ids if isinstance(ids, list) else []
-    return d
-
-
-def _load_scope(conn, uid):
-    return public_scope(
-        conn.execute("SELECT * FROM user_scope WHERE user_id=?", (uid,)).fetchone())
 
 
 def _require_user(conn, uid):
@@ -414,7 +415,7 @@ def get_user(uid):
     out = public_user(row)
     # Дүрээс удамшсан бодит эрхүүд
     out["permissions"] = _role_perms(conn, row["role_id"]) if row["role_id"] else []
-    out["scope"] = _load_scope(conn, uid)
+    out["scope"] = load_scope(conn, uid)
     conn.close()
     return jsonify(out)
 
@@ -429,11 +430,15 @@ def create_user():
     try:
         cur = conn.execute(
             "INSERT INTO app_user(username, password_hash, last_name, first_name, "
-            "email, role_id, structure_id, is_active) VALUES (?,?,?,?,?,?,?,?)",
+            "email, role_id, structure_id, is_active, must_change_password) "
+            "VALUES (?,?,?,?,?,?,?,?,?)",
             (data["username"], generate_password_hash(data["password"], method="pbkdf2"),
              data.get("last_name"), data.get("first_name"), data.get("email"),
              data.get("role_id"), data.get("structure_id"),
-             1 if data.get("is_active", 1) else 0))
+             1 if data.get("is_active", 1) else 0,
+             # Админ өгсөн анхны нууц үг (ихэвчлэн утасны дугаар) — хэрэглэгч
+             # анх нэвтрэхэд ЗААВАЛ солино (спек §2). Хүсвэл 0-ээр дарж болно.
+             1 if data.get("must_change_password", 1) else 0))
         conn.commit()
     except Exception:
         conn.close()
@@ -450,11 +455,11 @@ def update_user(uid):
     _check_role(conn, data)
     _check_structure(conn, data)
     cols, vals = [], []
-    for f in USER_FIELDS:  # last_name, first_name, email, role_id, is_active
+    for f in USER_FIELDS:  # last_name, first_name, email, role_id, is_active ...
         if f in data:
             cols.append(f)
-            # is_active-г л 0/1 болгоно; бусад талбарыг хэвээр нь дамжуулна
-            vals.append((1 if data[f] else 0) if f == "is_active" else data[f])
+            # Логик талбаруудыг л 0/1 болгоно; бусдыг хэвээр нь дамжуулна
+            vals.append((1 if data[f] else 0) if f in BOOL_FIELDS else data[f])
     if data.get("password"):  # шинэ нууц үг өгвөл дахин hash хийнэ
         cols.append("password_hash")
         vals.append(generate_password_hash(data["password"], method="pbkdf2"))
@@ -489,17 +494,17 @@ def delete_user(uid):
 
 
 # ============ user_scope (Хамрах хүрээ) — user_scope_api_spec.md ============
-@bp.route("/api/user/<int:uid>/scope", methods=["GET"])
-def get_user_scope(uid):
+# Маршрутын БИЕ нь /api/user/<uid>/scope (админ) ба /api/me/scope (өөрөө)
+# хоёрт хуваалцагдана — ялгаа нь зөвхөн АЛЬ хэрэглэгчийн id-г авахад.
+def _scope_get(uid):
     conn = get_db()
     _require_user(conn, uid)
-    out = _load_scope(conn, uid)
+    out = load_scope(conn, uid)
     conn.close()
     return jsonify(out)          # мөр байхгүй бол null
 
 
-@bp.route("/api/user/<int:uid>/scope", methods=["PUT", "PATCH"])
-def save_user_scope(uid):
+def _scope_save(uid):
     """Хамрах хүрээг хадгална (upsert).
 
     PUT   — БҮХЭЛД нь дарж бичнэ (илгээгээгүй талбар хоосон болно).
@@ -510,7 +515,7 @@ def save_user_scope(uid):
     _require_user(conn, uid)
     scope = dict(EMPTY_SCOPE)
     if request.method == "PATCH":
-        scope.update({k: v for k, v in (_load_scope(conn, uid) or {}).items()
+        scope.update({k: v for k, v in (load_scope(conn, uid) or {}).items()
                       if k in SCOPE_FIELDS})
     for f in SCOPE_FIELDS:
         if f in data:
@@ -527,13 +532,12 @@ def save_user_scope(uid):
         (uid, scope["school_type"], scope["district_au2_code"],
          json.dumps(scope["organization_ids"]), scope["organization_id"], now))
     conn.commit()
-    out = _load_scope(conn, uid)
+    out = load_scope(conn, uid)
     conn.close()
     return jsonify(out)
 
 
-@bp.route("/api/user/<int:uid>/scope", methods=["DELETE"])
-def delete_user_scope(uid):
+def _scope_delete(uid):
     conn = get_db()
     _require_user(conn, uid)
     cur = conn.execute("DELETE FROM user_scope WHERE user_id=?", (uid,))
@@ -542,6 +546,21 @@ def delete_user_scope(uid):
     if cur.rowcount == 0:
         abort(404, description="Хамрах хүрээ бүртгэгдээгүй байна")
     return jsonify(deleted=uid)
+
+
+@bp.route("/api/user/<int:uid>/scope", methods=["GET"])
+def get_user_scope(uid):
+    return _scope_get(uid)
+
+
+@bp.route("/api/user/<int:uid>/scope", methods=["PUT", "PATCH"])
+def save_user_scope(uid):
+    return _scope_save(uid)
+
+
+@bp.route("/api/user/<int:uid>/scope", methods=["DELETE"])
+def delete_user_scope(uid):
+    return _scope_delete(uid)
 
 
 # ---- Нэвтрэлт (нээлттэй) — амжилттай бол Bearer токен буцаана ----
@@ -559,8 +578,118 @@ def login():
         abort(400, description="Хэрэглэгчийн эрх идэвхгүй байна")
     out = public_user(row)
     out["permissions"] = _role_perms(conn, row["role_id"]) if row["role_id"] else []
-    out["scope"] = _load_scope(conn, row["id"])
+    out["scope"] = load_scope(conn, row["id"])
     conn.close()
     # Дараагийн хүсэлтүүдэд ашиглах токен: Authorization: Bearer <token>
     out["token"] = make_token(row["id"])
     return jsonify(out)
+
+
+# ==== Өөрийн эрхээр (self-service) — specialist_onboarding_api_spec.md §3-§4 ====
+# auth.py эдгээрт токен шаардана ч ТУСГАЙ ЭРХ шаардахгүй (SELF_PATHS /
+# SELF_PREFIXES) — хэрэглэгч зөвхөн ӨӨРИЙН өгөгдөлд хүрнэ.
+def _me_id():
+    """Токен эзэмшигчийн id (before_request нь g.user-ыг ачаалсан байх ёстой)."""
+    user = getattr(g, "user", None)
+    if user is None:
+        abort(401, description="Нэвтрэх шаардлагатай")
+    return user["id"]
+
+
+@bp.route("/api/change_password", methods=["POST"])
+def change_password():
+    """Нэвтэрсэн хэрэглэгч өөрийн нууц үгээ солино (спек §3.2).
+
+    Амжилттай бол `must_change_password` нь 0 болж, анхны нэвтрэлтийн түгжээ
+    тайлагдана. Одоогийн нууц үг буруу бол 422.
+    """
+    data = json_body()
+    require(data, ["current_password", "new_password"])
+    uid = _me_id()
+    conn = get_db()
+    row = conn.execute("SELECT password_hash FROM app_user WHERE id=?", (uid,)).fetchone()
+    if not row:
+        conn.close()
+        abort(404, description="Хэрэглэгч олдсонгүй")
+    if not check_password_hash(row["password_hash"], data["current_password"]):
+        conn.close()
+        abort(422, description="Одоогийн нууц үг буруу байна")
+    conn.execute(
+        "UPDATE app_user SET password_hash=?, must_change_password=0 WHERE id=?",
+        (generate_password_hash(data["new_password"], method="pbkdf2"), uid))
+    conn.commit()
+    conn.close()
+    return jsonify(status=True)
+
+
+@bp.route("/api/me", methods=["GET"])
+def get_me():
+    """Өөрийн профайл — /api/login-тэй ижил хэлбэр (токеноос бусад).
+
+    Нууц үг солих / onboarding-ийн дараа frontend-д төлөвөө дахин уншихад.
+    """
+    uid = _me_id()
+    conn = get_db()
+    row = conn.execute(USER_SELECT + " WHERE u.id=?", (uid,)).fetchone()
+    if not row:
+        conn.close()
+        abort(404, description="Хэрэглэгч олдсонгүй")
+    out = public_user(row)
+    out["permissions"] = _role_perms(conn, row["role_id"]) if row["role_id"] else []
+    out["scope"] = load_scope(conn, uid)
+    conn.close()
+    return jsonify(out)
+
+
+@bp.route("/api/me/scope", methods=["GET"])
+def get_my_scope():
+    """Өөрийн хамрах хүрээ — админ урьдчилан тохируулсан бол бөглөгдөж ирнэ (§4.1)."""
+    return _scope_get(_me_id())
+
+
+@bp.route("/api/me/scope", methods=["PUT", "PATCH"])
+def save_my_scope():
+    """Өөрийн хамрах хүрээг баталгаажуулах/засах (payload нь /api/user/<id>/scope-той ижил)."""
+    return _scope_save(_me_id())
+
+
+@bp.route("/api/me/organizations", methods=["GET"])
+def list_my_organizations():
+    """Өөрийн хамрах хүрээнд багтах байгууллагууд (§4.2).
+
+    Мэргэжилтэн эндээс дутуу мэдээллийг хараад `PUT /api/organization/<id>`-ээр
+    бөглөнө — ямар ч талбар ЗААВАЛ биш, зарим нь хоосон үлдэж болно.
+    """
+    conn = get_db()
+    cond, params = org_condition(conn, alias="o")
+    sql = ("SELECT o.id, o.name, o.contact_name, o.phone1, o.phone2, o.email "
+           "FROM organization o")
+    if cond:
+        sql += " WHERE " + cond
+    data = rows(conn.execute(sql + " ORDER BY o.id", params).fetchall())
+    conn.close()
+    return jsonify(items=data)
+
+
+@bp.route("/api/me/onboarding/complete", methods=["POST"])
+def complete_my_onboarding():
+    """Onboarding-ийг дууссан гэж тэмдэглэнэ (§4.3).
+
+    Ямар ч талбар бөглөгдсөн байхыг ШАЛГАХГҮЙ — энэ дэлгэцийг дахин
+    харуулахгүй гэдгийг л тэмдэглэх зорилготой.
+    """
+    uid = _me_id()
+    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    conn = get_db()
+    cur = conn.execute(
+        "UPDATE app_user SET onboarding_completed_at=COALESCE(onboarding_completed_at, ?) "
+        "WHERE id=?", (now, uid))
+    conn.commit()
+    if cur.rowcount == 0:
+        conn.close()
+        abort(404, description="Хэрэглэгч олдсонгүй")
+    row = conn.execute(
+        "SELECT onboarding_completed_at FROM app_user WHERE id=?", (uid,)).fetchone()
+    conn.close()
+    return jsonify(status=True, onboarding_completed=True,
+                   onboarding_completed_at=row["onboarding_completed_at"])

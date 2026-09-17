@@ -27,13 +27,22 @@ are in Mongolian (Cyrillic). The backend serves **two sites**, each in its own f
     metadata in SQLite, bytes on disk under `uploads/member/`.
 - **`admin/`** — the admin site: access control + portal CMS.
   - `users.py` — `permission` → `role` (M:N via `role_permission`) → `app_user`, plus `/api/login`
-    and `user_scope` (Хамрах хүрээ — which *data* a user may see, 1:1 with `app_user`).
+    and `user_scope` (Хамрах хүрээ — which *data* a user may see, 1:1 with `app_user`), plus the
+    **self-service** routes a Зөвлөх мэргэжилтэн needs on first login: `/api/change_password`,
+    `/api/me`, `/api/me/scope`, `/api/me/organizations`, `/api/me/onboarding/complete`
+    (`specialist_onboarding_api_spec.md`).
   - `content.py` — the portal's dynamic menu & content: `menu` (Цэс, 2 levels deep, typed) →
     `page` (Контент хуудас, one per `type='page'` menu) → `page_block` (ordered content blocks:
     text / image / video / file / link), plus `/api/upload` for images and documents.
   - `forms.py` — the admin half of the survey / poll engine (`/api/admin/...`).
   - `news.py` — the admin half of Мэдээ, зар (`/api/admin/news...`): the card list plus
     its `news_block` content blocks.
+  - `feedback.py` — the admin half of Санал хүсэлт / Өргөдөл гомдол
+    (`GET|DELETE /api/admin/suggestions|complaints`).
+  - `notifications.py` — Мэдэгдэл: the admin send side (`/api/admin/notifications`) **and**
+    every user's own 🔔 inbox (`/api/notifications`), which needs no permission.
+  - `dashboard.py` — `GET /api/admin/dashboard/summary`: the one aggregate call behind the
+    dashboard's cards, bar chart and gender donut.
   - `settings.py` — `portal_settings`, the portal's **singleton** settings row
     (header, hero banner, contacts, map) — `/api/portal_settings` + a token-free
     `/api/public/portal_settings`.
@@ -42,6 +51,17 @@ are in Mongolian (Cyrillic). The backend serves **two sites**, each in its own f
 `public_*` shaping) is imported by `admin/news.py` (`/api/admin/news...` — build, block, publish)
 and `client/news.py` (`/api/portal/news...` — list and read, token-free). See
 `news_api_spec.md`; the portal settings live in `portal_settings_api_spec.md`.
+
+Хамрах хүрээ (`user_scope`) does the same across both sites: `scope_core.py` turns one
+user's scope into the SQL that `client/union.py` adds to `GET /api/member` /
+`GET /api/organization` and that `admin/users.py` uses for `/api/me/organizations`. See
+`specialist_onboarding_api_spec.md` and `user_scope_api_spec.md`.
+
+Санал хүсэлт / Өргөдөл гомдол follows the same split at a much smaller scale:
+`feedback_core.py` (validation, pagination, `public_row`) is imported by
+`client/feedback.py` (`POST /api/portal/suggestions|complaints` — token-free) and
+`admin/feedback.py` (`GET|DELETE /api/admin/suggestions|complaints`). See
+`feedback_api_spec.md`.
 
 The survey / poll engine spans both sites and shares one domain core at the repo root:
 `forms_core.py` (validation, `public_*` shaping, result aggregation) is imported by
@@ -57,12 +77,17 @@ db.py               # single source of schema + seed (shared by both sites)
 helpers.py          # shared route helpers (rows, require, json_body, error handlers)
 forms_core.py       # survey/poll домэйний цөм (хоёр site хуваалцана)
 news_core.py        # мэдээ (news) домэйний цөм (хоёр site хуваалцана)
+scope_core.py       # хамрах хүрээ -> SQL шүүлт (хоёр site хуваалцана)
+feedback_core.py    # санал хүсэлт / өргөдөл гомдлын цөм (хоёр site хуваалцана)
+send_due_notifications.py  # cron: хуваарьт мэдэгдлийг илгээх (dispatch_due)
 client/             # ── CLIENT SITE ──
   admin_units.py    #   blueprint "admin_units": /api/au1|au2|au3, /api/school_category
   union.py          #   blueprint "union": /api/horoo|organization|member|contact|salary*|...
                     #   (holboo — зөвхөн хүснэгт + seed; API маршрут байхгүй)
   forms.py          #   blueprint "portal_forms": /api/portal/forms... (НЭЭЛТТЭЙ — токенгүй)
   news.py           #   blueprint "portal_news": /api/portal/news... (НЭЭЛТТЭЙ — токенгүй)
+  feedback.py       #   blueprint "portal_feedback": /api/portal/suggestions|complaints
+                    #   (НЭЭЛТТЭЙ — токенгүй маягт илгээх)
 admin/              # ── ADMIN SITE ──
   users.py          #   blueprint "users": /api/permission|role|user, /api/login
   content.py        #   blueprint "content": /api/menu|page|page_block|page_image|
@@ -70,6 +95,9 @@ admin/              # ── ADMIN SITE ──
   forms.py          #   blueprint "admin_forms": /api/admin/forms|questions|options|
                     #   documents, .../results  (судалгаа/санал асуулга барих + үр дүн)
   news.py           #   blueprint "admin_news": /api/admin/news|news_blocks (мэдээ, зар)
+  feedback.py       #   blueprint "admin_feedback": /api/admin/suggestions|complaints
+  notifications.py  #   blueprint "notifications": /api/admin/notifications + /api/notifications
+  dashboard.py      #   blueprint "admin_dashboard": /api/admin/dashboard/summary
   settings.py       #   blueprint "portal_settings": /api/portal_settings +
                     #   /api/public/portal_settings (порталын толгой/баннер/холбоо барих)
 data/
@@ -120,14 +148,14 @@ gunicorn run:app               # production WSGI server (loads the module-level 
 - `seed_users()` creates the first admin account **only when `app_user` is empty**: `admin` / `admin123`.
 - No test suite or linter is configured — `docs/edu-union-backend.postman_collection.json` is the
   de-facto test suite. It runs **top to bottom** (Postman Runner or
-  `newman run docs/edu-union-backend.postman_collection.json --env-var base_url=...`): 388 requests,
-  637 assertions, and repeatable — three consecutive runs leave every table's row count
+  `newman run docs/edu-union-backend.postman_collection.json --env-var base_url=...`): 480 requests,
+  809 assertions, and repeatable — three consecutive runs leave every table's row count
   unchanged. (One known red on a *fresh* DB: `ҮЭ — Гишүүний боловсрол / Нэгийг авах` reads
   `member_education_id`=1, but `seed_union()` creates no `member_education` row.) **Keep it that way when adding requests:** run "0. Нэвтрэлт" first (it stores
   `{{token}}`), have each folder's `Нэмэх` save the new id into a `{{new_*}}` variable, and point
   that folder's `Засах`/`Устгах` at `{{new_*}}` only — never at a seeded row. Every `Засах` is
-  followed by a `— PATCH-аар мөн` twin (same body, status-only assertion) so that **all 197 routes,
-  both verbs, are exercised**; if you add a `PUT` route, add its `PATCH` twin too. The
+  followed by a `— PATCH-аар мөн` twin (same body, status-only assertion) so that **every route,
+  both verbs, is exercised**; if you add a `PUT` route, add its `PATCH` twin too. The
   `ҮЭ — Алдааны шалгалт (сөрөг тест)` is the union-side negative folder: it creates one
   organization, drives every 400/405/401 path through it (bad category, bad `org_code`, wrong
   method, no token) and deletes it again. The `Мэдээ 1..6` folders cover news + portal settings
@@ -138,7 +166,20 @@ gunicorn run:app               # production WSGI server (loads the module-level 
   `/api/portal/` request carries `"auth": {"type": "noauth"}` so the run proves a guest can
   submit without a token, and the cleanup folder deletes forms with `?hard=1` (a form with
   answers is otherwise only soft-deleted, which would leave the row count changed). `GET`s may read seed
-  rows (`{{au1_code}}`=011 etc.). A folder that creates N rows must delete all N. Pointing a `PUT`
+  rows (`{{au1_code}}`=011 etc.). The `Санал хүсэлт 1` folder sends both feedback forms
+  token-free, walks the validation rejections, then reads them back through the admin list
+  (search / paging / `per_page` cap) and deletes all four rows it made. The
+  `Мэдэгдэл 1` folder sends a notification to a **role-less** user (proving the inbox needs no
+  permission while `/api/admin/notifications` still answers 403 to them) and cleans its `sent`
+  row up with `?hard=1`, since a plain `DELETE` on a sent notification is a 422 by design. The
+  `Мэргэжилтэн 1` folder covers the specialist flow
+  end to end: it builds its own role + two organizations (one in scope, one out) + user, logs
+  in with the initial password, changes it, fills the scope through `/api/me/scope`, then
+  proves `GET /api/member` / `GET /api/organization` come back **filtered** and that the
+  out-of-scope organization answers 403 — all under `{{spec_token}}`, not `{{token}}`.
+  **Postman runs every test script in one sandbox**, so declare script locals with `var`
+  (a second `const data` anywhere in the collection is a `SyntaxError`, not a failed test).
+  A folder that creates N rows must delete all N. Pointing a `PUT`
   at `/api/role/1` or a `DELETE` at `/api/user/1` wipes the admin's grants or the admin account
   itself and every later request 403s.
 
@@ -162,9 +203,10 @@ gunicorn run:app               # production WSGI server (loads the module-level 
   their own ids, so `pg_sync_sequences()` re-aligns each sequence after seeding), and **every
   `FOREIGN KEY` line is lifted out of `CREATE TABLE` into a deferred `ALTER TABLE`** — SQLite
   tolerates a forward reference to a table created later in the script, Postgres does not.
-- **Two sites, one Flask app.** `run.py` builds the app via `create_app()` and registers nine
-  blueprints — `admin_units` + `union` + `portal_forms` + `portal_news` (client site) and
-  `users` + `content` + `admin_forms` + `admin_news` + `portal_settings` (admin site). Blueprints are plain route modules; they do **not** register their
+- **Two sites, one Flask app.** `run.py` builds the app via `create_app()` and registers thirteen
+  blueprints — `admin_units` + `union` + `portal_forms` + `portal_news` + `portal_feedback`
+  (client site) and `users` + `content` + `admin_forms` + `admin_news` + `portal_settings` +
+  `admin_feedback` + `notifications` + `admin_dashboard` (admin site). Blueprints are plain route modules; they do **not** register their
   own error handlers. **A new blueprint is invisible until it is registered here** — that is the
   one step `CREATE TABLE`/route decorators cannot do for you.
 - **CORS is hand-rolled in `run.py`** (`add_cors_headers` via `app.after_request`) — no extra
@@ -189,8 +231,14 @@ gunicorn run:app               # production WSGI server (loads the module-level 
   `SUB_ACTION` (`POST .../publish` → `update`, not `create`). So **adding a new `/api/<resource>`
   route automatically needs `<resource>.{action}` permissions** — add the resource to
   `PERMISSION_RESOURCES` in `db.py` (which is the cross-product source for the seeded CRUD permissions).
+  The one exception is `SELF_PATHS` / `SELF_PREFIXES` (`/api/change_password`, `/api/me`,
+  `/api/me/...`, `/api/notifications...`): they still need a token but **no permission at all**,
+  because they only ever touch `g.user`'s own row — a Зөвлөх мэргэжилтэн must be able to change
+  their password and confirm their scope without being granted `user.*` over everybody, and
+  every user must be able to read their own 🔔 inbox without `notification.read` (which is the
+  *admin send* permission).
 - **Error handling is centralized.** `register_error_handlers(app)` in `run.py` maps
-  400/401/403/404/405/409 to `{"error": ...}` JSON for the whole app — including unmatched-URL 404s and
+  400/401/403/404/405/409/**422** to `{"error": ...}` JSON for the whole app — including unmatched-URL 404s and
   aborts raised inside any blueprint (Flask falls back to app-level handlers for blueprint errors).
 - **Shared helpers live in `helpers.py`.** `rows()` (Row→dict list), `require(data, fields)`
   (required-field check → 400), `json_body()` (parse JSON body or 400), and
@@ -348,6 +396,54 @@ gunicorn run:app               # production WSGI server (loads the module-level 
   needs `upload.create`. `_remove_upload()` deletes a file from disk when its block/cover is
   deleted or replaced, and only ever touches paths under `UPLOAD_URL_PREFIX` (external URLs are
   left alone). **On Render the disk is ephemeral** — same persistent-disk caveat as member PDFs.
+- **Мэдэгдэл is one notification plus a fan-out table** (`notification_api_spec.md`).
+  `notifications` holds what was written; **sending** copies one `notification_recipients` row
+  per addressee (`UNIQUE(notification_id, user_id)` + `INSERT OR IGNORE`, so sending twice is a
+  no-op) and that row's `read_at` is the unread badge. `audience_type` is `all` (every **active**
+  user), `role` (active users with that `role_id`) or `picked` — and because a *scheduled*
+  `picked` notification must remember its list until send time, `audience_user_ids` stores it as
+  a JSON string (the `user_scope.organization_ids` pattern; it is the one column beyond the
+  spec's DDL). `POST` with no `scheduled_at` sends immediately (`status='sent'`), with one it
+  waits (`status='scheduled'`), and an explicit `status='draft'` just saves — which is what makes
+  the spec's own "only draft/scheduled may be deleted" rule reachable. A `sent` notification
+  answers **422** on delete, with `?hard=1` as the deliberate escape hatch (same as
+  `DELETE /api/admin/forms/<id>?hard=1`) — the Postman collection needs it to stay row-neutral.
+- **Scheduled notifications have no scheduler — `dispatch_due()` is called from two places.**
+  There is no celery/APScheduler here and a background thread under `gunicorn --preload` would
+  fan out once per worker, so `dispatch_due(conn)` (idempotent, and it claims each row with
+  `UPDATE … WHERE status='scheduled'` so concurrent runs cannot double-send) is invoked by
+  `send_due_notifications.py` (for cron) *and* lazily at the top of
+  `GET /api/admin/notifications` and `GET /api/notifications`. **Cron is deliberately not
+  installed** (decided 2026-09-17) — the lazy call is the whole mechanism in production, so a
+  scheduled notification goes out the moment anybody opens the list or their inbox. In practice
+  that is quick, because the admin layout's 🔔 polls the inbox on every page; the script stays in
+  the repo for the day someone wants exact-minute delivery. Don't add a cron/timer, a background
+  thread or an APScheduler job without asking. Timestamps are `now_str()`'s
+  `"YYYY-MM-DD HH:MM:SS"`, which compares correctly as text, so `scheduled_at <= ?` is plain SQL.
+- **The dashboard is one aggregate query set, and it obeys the scope** (`dashboard_api_spec.md`).
+  `GET /api/admin/dashboard/summary` returns `total_members`, `total_organizations`,
+  `by_category` and `gender`. `by_category` is driven by the **real `school_category` rows**, not
+  a hard-coded six, and uses correlated subqueries so a category with no organizations still
+  comes back as a zero row (id 17 has `short_name: null` — the spec allows serving it or hiding
+  it, and this returns everything and lets the frontend choose). `gender` counts
+  `member.gender` `'эр'`/`'эм'`, so the two need not add up to `total_members`. Every count runs
+  through `scope_core`'s `org_condition()` / `member_condition()`, so a Зөвлөх мэргэжилтэн sees
+  only their own schools' numbers with no extra query param — exactly like `/api/member`.
+- **Санал хүсэлт / Өргөдөл гомдол are two plain tables, not an engine** (`feedback_api_spec.md`).
+  `suggestions` (name/email/phone/**message**) and `complaints` (…/**description** + optional
+  `file_url`/`file_name`) are the only **plural** table names in the schema — that is what the
+  spec's DDL asks for, so `auth.py`'s `PATH_RESOURCE` maps them back to the singular permission
+  resources `suggestion.*` / `complaint.*` (the same trick as `forms` → `form`).
+  `feedback_core.KINDS` parameterizes the pair — one `validate()` / `list_page()` / `insert()`
+  serves both tables, so the six routes are thin. The portal side is **token-free** (`/api/portal/`
+  is in `PUBLIC_PREFIXES`) and returns `201 {status, id, message}` with a Mongolian confirmation;
+  the admin side has **no "get one" route** (the list already carries `message`/`description`, so
+  the 👁 modal reads what it already fetched) and **no status-change route** — the `status` column
+  exists and stays `'new'`, which is what the spec asks for in V1. Validation is `400` everywhere
+  (blank/missing field, e-mail shape, phone = 8 Mongolian digits after stripping `+976`, spaces
+  and dashes, and the spec's `VARCHAR` lengths, which SQLite would otherwise ignore). A complaint's
+  attachment goes through the existing `POST /api/upload`; `DELETE` calls
+  `remove_upload()` so the bytes leave the disk too, exactly like a news cover.
 - **The survey / poll engine is one `form` table, not two features.** `form.type` is `survey`
   (судалгаа) or `poll` (санал асуулга — may carry PDFs); everything else — questions, options,
   submissions, results — is shared. `form.status` walks `draft → published → closed`
@@ -392,12 +488,38 @@ gunicorn run:app               # production WSGI server (loads the module-level 
   type); a **Сургуулийн менежер** picks a single `organization_id`. `_validate_scope()` enforces
   that split → 400, and checks the district against `admin_unit2` and every id against
   `organization`. `organization_ids` is stored as a JSON string but is **always a list** in JSON
-  (`public_scope()`). `PUT` overwrites the whole row, `PATCH` merges. Changing a user's `role_id`
-  **deletes their scope row** — an old scope would otherwise be silently reused by a new role.
-  No new permission: the routes sit under `/api/user/...`, so `user.read` / `user.update` /
-  `user.delete` already cover them.
-  **Not yet done** (spec §8, deliberately a separate job): using the scope to *filter*
-  `GET /api/member` / `GET /api/organization` for the logged-in user.
+  (`public_scope()`, now in `scope_core.py`). `PUT` overwrites the whole row, `PATCH` merges.
+  Changing a user's `role_id` **deletes their scope row** — an old scope would otherwise be
+  silently reused by a new role. No new permission: the routes sit under `/api/user/...`, so
+  `user.read` / `user.update` / `user.delete` already cover them, and the same three handler
+  bodies (`_scope_get` / `_scope_save` / `_scope_delete`) serve `/api/me/scope`, where the id
+  comes from the token instead of the URL.
+- **The scope is *enforced*, not just stored** (`scope_core.py`, `specialist_onboarding_api_spec.md`
+  §5). `_org_where()` turns one `user_scope` row into a WHERE clause on `organization`:
+  `organization_id` → that one school (Сургуулийн менежер); `school_type='rural'` →
+  `organization_ids` (ХОН); any other `school_type` → `school_category_id` (via
+  `SCHOOL_TYPE_CATEGORY`, which maps `preschool/general/vocational/higher/science` onto the
+  **seeded ids 11–15**) **and** `au2_code = district_au2_code`. The filter hangs off the
+  **scope row, not the role name** — admin (and anyone else without a row) gets `None` and sees
+  everything, which is exactly the spec's "Admin болон бусад дүр → шүүлтгүй". `client/union.py`
+  adds `org_condition()` / `member_condition()` to `GET /api/organization` / `GET /api/member`
+  (so the frontend sends no extra query param) and calls `require_org_in_scope()` /
+  `require_member_in_scope()` → **403** on the detail read and on every write. A rural scope with
+  an empty `organization_ids` yields `0 = 1`, i.e. an empty list — not "everything".
+  **Not extended to the sub-resources** (`member_education`, `member_reward`, `member_file`,
+  `contact`, `salary_request`): a specialist with those permissions can still read them by
+  `?member_id=`. The spec lists only member/organization; widening it is the next job.
+- **Anх нэвтрэлт: `app_user.must_change_password` + `onboarding_completed_at`**
+  (`specialist_onboarding_api_spec.md` §2-§4). Both columns default to **0/NULL**, so existing
+  accounts (the seeded `admin` included) are never forced to change anything — `POST /api/user`
+  writes `must_change_password = 1` **explicitly** for every account an admin creates.
+  `POST /api/change_password` verifies `current_password` (wrong → **422**, the one place this
+  repo answers 422) and clears the flag. `public_user()` returns both as booleans:
+  `must_change_password`, plus `onboarding_completed`, which is **true for every role but
+  Зөвлөх мэргэжилтэн** (matched on `role.name`, case/space-insensitively, by
+  `scope_core.is_specialist()`) — nobody else has an onboarding step.
+  `POST /api/me/onboarding/complete` stamps the date with `COALESCE`, so calling it twice keeps
+  the first one and **no field is ever required** to be filled, by design.
 - **An `organization` carries its own primary contact details** — `phone1`, `phone2`, `email`,
   `contact_name` are plain columns (the registration form fills them in directly). `contact` rows
   still work for an organization and are the way to record a *third* phone, a fax, or a second
@@ -417,8 +539,11 @@ gunicorn run:app               # production WSGI server (loads the module-level 
 - Union / user ids are INTEGER autoincrement; routes use `<int:...>` converters.
 - List endpoints support optional filter query params (`?au1_code=`, `?holboo_id=`,
   `?horoo_id=` (horoo only), `?school_category_id=` (organization), `?organization_id=`, `?owner_type=&owner_id=`, `?resource=`, `?role_id=`, `?status=`).
-  The paginated list endpoints (`/api/admin/forms`, `/api/admin/news`, `/api/portal/news`) also
+  The paginated list endpoints (`/api/admin/forms`, `/api/admin/news`, `/api/portal/news`,
+  `/api/admin/suggestions`, `/api/admin/complaints`, `/api/admin/notifications`) also
   take `?search=&page=&per_page=`; **news answers in the news spec's shape**
-  (`{data, total, per_page, current_page, pages}`), forms in its own (`{items, total, page, …}`).
+  (`{data, total, per_page, current_page, pages}`), forms and feedback in the other
+  (`{items, total, page, per_page, pages}`). `per_page` is capped at 100 and a non-numeric
+  `page`/`per_page` is a 400.
 - Imports are absolute (`from db import get_db`, `from client.union import bp`) and assume the repo
   root is on `sys.path` — always run from the repo root (`python run.py`).

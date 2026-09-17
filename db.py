@@ -249,6 +249,11 @@ CREATE TABLE IF NOT EXISTS app_user (
     role_id       INTEGER,              -- Сонгосон дүр (FK) — эндээс эрхээ авна
     structure_id  INTEGER,              -- Бүтцийн удирдлага (structure.id)
     is_active     INTEGER DEFAULT 1,    -- Идэвхтэй эсэх (0/1)
+    -- Анхны нэвтрэлт (specialist_onboarding_api_spec.md §2). Анхдагч нь 0 —
+    -- POST /api/user нь шинэ хэрэглэгчид 1-ийг ТОДОРХОЙ бичнэ, ингэснээр хуучин
+    -- (эсвэл seed-ийн) хэрэглэгчид нууц үг солихыг шаардахгүй.
+    must_change_password    INTEGER DEFAULT 0,  -- Нууц үг солих шаардлагатай эсэх (0/1)
+    onboarding_completed_at TEXT,               -- Зөвлөх мэргэжилтний onboarding дууссан огноо
     FOREIGN KEY (role_id) REFERENCES role(id) ON DELETE SET NULL,
     FOREIGN KEY (structure_id) REFERENCES structure(id) ON DELETE SET NULL
 );
@@ -448,6 +453,90 @@ CREATE TABLE IF NOT EXISTS news_block (
 
 CREATE INDEX IF NOT EXISTS idx_news_list ON news(category, status);
 CREATE INDEX IF NOT EXISTS idx_news_block_news ON news_block(news_id);
+"""
+
+
+# ─── Санал хүсэлт, Өргөдөл гомдол (feedback_api_spec.md) ────────────────────
+# Хоёр бие даасан ЖИЖИГ маягт — survey/news шиг "engine" биш тул нэг дундын
+# загвар руу оруулаагүй (спекийн 1-р хэсэг). Порталаас ТОКЕНГҮЙ ирж, админ
+# зөвхөн жагсаалт харж, устгана.
+SCHEMA_FEEDBACK = """
+CREATE TABLE IF NOT EXISTS suggestions (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    name       TEXT NOT NULL,                 -- Нэр
+    email      TEXT NOT NULL,                 -- И-мэйл
+    phone      TEXT NOT NULL,                 -- Утас
+    message    TEXT NOT NULL,                 -- Санал хүсэлт
+    status     TEXT NOT NULL DEFAULT 'new',   -- new / reviewed (V1-д зөвхөн 'new')
+    created_at TEXT,
+    updated_at TEXT
+);
+
+-- Өргөдөл, гомдол — санал хүсэлттэй ижил, дээрээс нь ХАВСРАЛТ (заавал биш).
+-- Файлыг одоо байгаа POST /api/upload-аар байршуулж, буцаж ирсэн url-ийг
+-- file_url-д хадгална (Мэдээ/Цэсний блоктой ЯГ ижил урсгал) — шинэ upload
+-- маршрут байхгүй.
+CREATE TABLE IF NOT EXISTS complaints (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    name        TEXT NOT NULL,
+    email       TEXT NOT NULL,
+    phone       TEXT NOT NULL,
+    description TEXT NOT NULL,                -- Тайлбар
+    file_url    TEXT,                         -- /uploads/content/<uuid>.<ext>
+    file_name   TEXT,                         -- хэрэглэгчид харагдах файлын нэр
+    status      TEXT NOT NULL DEFAULT 'new',
+    created_at  TEXT,
+    updated_at  TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_suggestions_created ON suggestions(created_at);
+CREATE INDEX IF NOT EXISTS idx_complaints_created ON complaints(created_at);
+"""
+
+
+# ─── Мэдэгдэл (notification_api_spec.md) ────────────────────────────────────
+# Админ бичиж илгээнэ -> fan-out -> хэрэглэгч бүр өөрийн inbox-доо (🔔) хүлээж авна.
+# Нэг мэдэгдэл (notifications) + хүлээн авагч бүрт нэг мөр (notification_recipients).
+SCHEMA_NOTIFY = """
+CREATE TABLE IF NOT EXISTS notifications (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    title         TEXT NOT NULL,                 -- гарчиг (≤300)
+    body          TEXT NOT NULL,                 -- үндсэн текст
+    type          TEXT NOT NULL DEFAULT 'info',  -- info / reminder / urgent
+    image_url     TEXT,                          -- POST /api/upload-ийн url
+    audience_type TEXT NOT NULL,                 -- all / role / picked
+    role_id       INTEGER,                       -- audience_type='role' үед
+    -- audience_type='picked' үед сонгосон хэрэглэгчдийн id (JSON массив текстээр,
+    -- user_scope.organization_ids-тэй ижил хэв маяг). Хуваарьт мэдэгдлийг
+    -- ИЛГЭЭХ МӨЧИД fan-out хийх тул сонголтыг хадгалах шаардлагатай.
+    audience_user_ids TEXT,
+    status        TEXT NOT NULL DEFAULT 'draft', -- draft / scheduled / sent
+    scheduled_at  TEXT,                          -- хуваарьт цаг (ирээдүйд илгээх)
+    sent_at       TEXT,                          -- fan-out болсон цаг
+    created_by    INTEGER,                       -- app_user.id (илгээсэн админ)
+    created_at    TEXT,
+    updated_at    TEXT,
+    FOREIGN KEY (role_id) REFERENCES role(id) ON DELETE SET NULL,
+    FOREIGN KEY (created_by) REFERENCES app_user(id) ON DELETE SET NULL
+);
+
+-- Fan-out: илгээх мөчид хамрах хэрэглэгч бүрт НЭГ мөр. read_at нь уншсан эсэх.
+-- UNIQUE(notification_id, user_id) нь дахин илгээхийг (давхар inbox мөр) хаана —
+-- ингэснээр хуваарьт мэдэгдлийг хэд ч удаа "dispatch" хийхэд аюулгүй.
+CREATE TABLE IF NOT EXISTS notification_recipients (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    notification_id INTEGER NOT NULL,
+    user_id         INTEGER NOT NULL,
+    read_at         TEXT,                        -- NULL = уншаагүй
+    created_at      TEXT,
+    updated_at      TEXT,
+    UNIQUE (notification_id, user_id),
+    FOREIGN KEY (notification_id) REFERENCES notifications(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES app_user(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_notify_status ON notifications(status, scheduled_at);
+CREATE INDEX IF NOT EXISTS idx_notify_rcpt_user ON notification_recipients(user_id, read_at);
 """
 
 
@@ -749,6 +838,10 @@ PERMISSION_RESOURCES = [
     ("upload", "Файл байршуулах"),
     ("news", "Мэдээ, зар"),
     ("news_block", "Мэдээний блок"),
+    ("suggestion", "Санал хүсэлт"),
+    ("complaint", "Өргөдөл, гомдол"),
+    ("notification", "Мэдэгдэл"),
+    ("dashboard", "Хянах самбар"),
     ("portal_settings", "Порталын тохиргоо"),
     # --- Судалгаа / Санал асуулга (survey & poll) ---
     ("form", "Судалгаа / Санал асуулга"),
@@ -995,6 +1088,11 @@ _MIGRATIONS = {
         ("last_name", "TEXT"),
         ("first_name", "TEXT"),
         ("structure_id", "INTEGER"),
+        # Анхны нэвтрэлт / onboarding — анхдагч 0 тул БАЙГАА хэрэглэгчид
+        # (админ ч гэсэн) нууц үг солихыг шаардахгүй; шинээр үүсгэсэн
+        # хэрэглэгч POST /api/user дээр 1 болно.
+        ("must_change_password", "INTEGER DEFAULT 0"),
+        ("onboarding_completed_at", "TEXT"),
     ],
     "horoo": [
         ("type", "TEXT"),
@@ -1004,6 +1102,11 @@ _MIGRATIONS = {
     # Мэдээний цэс аль ангиллыг харуулахыг заана (NULL = бүх ангилал)
     "menu": [
         ("news_category", "TEXT"),
+    ],
+    # picked хаяглалтын хэрэглэгчид (JSON) — схемд хожим нэмэгдсэн тул хуучин
+    # хүснэгт дээр `CREATE TABLE IF NOT EXISTS` нөхөж чадахгүй.
+    "notifications": [
+        ("audience_user_ids", "TEXT"),
     ],
 }
 
@@ -1497,7 +1600,7 @@ def init_db():
     conn = get_db()
     # Лавлахууд (SCHEMA_REF) нь union/user-ийн FK-ийн бай тул ЭХЭЛЖ үүснэ.
     scripts = [SCHEMA, SCHEMA_REF, SCHEMA_UNION, SCHEMA_USER, SCHEMA_CONTENT,
-               SCHEMA_NEWS, SCHEMA_FORM]
+               SCHEMA_NEWS, SCHEMA_FEEDBACK, SCHEMA_NOTIFY, SCHEMA_FORM]
     if IS_PG:
         alters = []
         for sc in scripts:

@@ -390,6 +390,78 @@
   {
    "key": "new_news_menu_id",
    "value": ""
+  },
+  {
+   "key": "spec_perm_ids",
+   "value": ""
+  },
+  {
+   "key": "spec_token",
+   "value": ""
+  },
+  {
+   "key": "spec_onboarded_at",
+   "value": ""
+  },
+  {
+   "key": "new_spec_role_id",
+   "value": ""
+  },
+  {
+   "key": "new_spec_user_id",
+   "value": ""
+  },
+  {
+   "key": "new_spec_org_in",
+   "value": ""
+  },
+  {
+   "key": "new_spec_org_out",
+   "value": ""
+  },
+  {
+   "key": "new_suggestion_id",
+   "value": ""
+  },
+  {
+   "key": "new_suggestion_id2",
+   "value": ""
+  },
+  {
+   "key": "new_complaint_id",
+   "value": ""
+  },
+  {
+   "key": "new_complaint_file_id",
+   "value": ""
+  },
+  {
+   "key": "notify_token",
+   "value": ""
+  },
+  {
+   "key": "new_notify_user_id",
+   "value": ""
+  },
+  {
+   "key": "new_notification_id",
+   "value": ""
+  },
+  {
+   "key": "new_notification_sched_id",
+   "value": ""
+  },
+  {
+   "key": "new_notification_draft_id",
+   "value": ""
+  },
+  {
+   "key": "dash_total_orgs",
+   "value": ""
+  },
+  {
+   "key": "dash_total_members",
+   "value": ""
   }
  ],
  "item": [
@@ -14974,6 +15046,3733 @@
         "type": "text/javascript",
         "exec": [
          "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Мэргэжилтэн 1 — Анхны нэвтрэлт, onboarding, хамрах хүрээгээр шүүх",
+   "description": "specialist_onboarding_api_spec.md — Зөвлөх мэргэжилтний анхны нэвтрэлт (must_change_password → /api/change_password), onboarding (/api/me/scope, /api/me/organizations, /api/me/onboarding/complete) ба /api/member, /api/organization-ийн хамрах хүрээгээр АВТОМАТ шүүлт (§5).\n\nХавтас нь өөрөө бүх өгөгдлөө үүсгэж (дүр, 2 байгууллага, хэрэглэгч) төгсгөлд нь устгана — мөрийн тоо өөрчлөгдөхгүй. Мэргэжилтний хүсэлтүүд {{spec_token}}-оор, админы хүсэлтүүд {{token}}-оор явна.",
+   "item": [
+    {
+     "name": "Бэлтгэл: эрхийн id-ууд → {{spec_perm_ids}}",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/permission",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "permission"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var spNeed = ['organization.read','organization.update','member.read',",
+         "              'member.create','member.update','member.delete'];",
+         "var spIds = pm.response.json().filter(p => spNeed.includes(p.code)).map(p => p.id);",
+         "pm.test('6 эрх олдлоо', () => pm.expect(spIds).to.have.lengthOf(6));",
+         "pm.collectionVariables.set('spec_perm_ids', JSON.stringify(spIds));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Бэлтгэл: 'Зөвлөх мэргэжилтэн' дүр → {{new_spec_role_id}}",
+     "request": {
+      "method": "POST",
+      "url": {
+       "raw": "{{base_url}}/api/role",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "role"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"name\": \"Зөвлөх мэргэжилтэн\",\n  \"description\": \"Хариуцсан сургуулиудын хамрах хүрээтэй мэргэжилтэн\",\n  \"permission_ids\": {{spec_perm_ids}}\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "pm.collectionVariables.set('new_spec_role_id', pm.response.json().id);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Бэлтгэл: хүрээнд БАЙХ байгууллага → {{new_spec_org_in}}",
+     "request": {
+      "method": "POST",
+      "url": {
+       "raw": "{{base_url}}/api/organization",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "organization"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"name\": \"Хүрээнд байгаа тест сургууль\",\n  \"school_category_id\": 12,\n  \"au1_code\": \"{{au1_code}}\",\n  \"au2_code\": \"{{au2_code}}\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "pm.collectionVariables.set('new_spec_org_in', pm.response.json().id);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Бэлтгэл: хүрээнд БАЙХГҮЙ байгууллага → {{new_spec_org_out}}",
+     "request": {
+      "method": "POST",
+      "url": {
+       "raw": "{{base_url}}/api/organization",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "organization"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"name\": \"Хүрээнээс гадуур тест сургууль\",\n  \"school_category_id\": 14\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "pm.collectionVariables.set('new_spec_org_out', pm.response.json().id);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Бэлтгэл: мэргэжилтэн хэрэглэгч → {{new_spec_user_id}}",
+     "request": {
+      "method": "POST",
+      "url": {
+       "raw": "{{base_url}}/api/user",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "user"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"username\": \"spec99112233\",\n  \"password\": \"99112233\",\n  \"last_name\": \"Тест\",\n  \"first_name\": \"Мэргэжилтэн\",\n  \"role_id\": {{new_spec_role_id}}\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "var spU = pm.response.json();",
+         "pm.test('шинэ хэрэглэгч нууц үг солих ёстой',",
+         "  () => pm.expect(spU.must_change_password).to.be.true);",
+         "pm.test('onboarding дуусаагүй',",
+         "  () => pm.expect(spU.onboarding_completed).to.be.false);",
+         "pm.collectionVariables.set('new_spec_user_id', spU.id);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Анх нэвтрэх (утасны дугаараар) → {{spec_token}}",
+     "request": {
+      "method": "POST",
+      "auth": {
+       "type": "noauth"
+      },
+      "url": {
+       "raw": "{{base_url}}/api/login",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "login"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"username\": \"spec99112233\",\n  \"password\": \"99112233\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var spB = pm.response.json();",
+         "pm.test('must_change_password = true',",
+         "  () => pm.expect(spB.must_change_password).to.be.true);",
+         "pm.test('onboarding_completed = false',",
+         "  () => pm.expect(spB.onboarding_completed).to.be.false);",
+         "pm.test('дүр нь Зөвлөх мэргэжилтэн',",
+         "  () => pm.expect(spB.role_name).to.eql('Зөвлөх мэргэжилтэн'));",
+         "pm.collectionVariables.set('spec_token', spB.token);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Нууц үг солих — одоогийнх буруу → 422",
+     "request": {
+      "method": "POST",
+      "auth": {
+       "type": "bearer",
+       "bearer": [
+        {
+         "key": "token",
+         "value": "{{spec_token}}",
+         "type": "string"
+        }
+       ]
+      },
+      "url": {
+       "raw": "{{base_url}}/api/change_password",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "change_password"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"current_password\": \"buruu\",\n  \"new_password\": \"Шинэ_нууц123\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 422', () => pm.response.to.have.status(422));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Нууц үг солих — new_password дутуу → 400",
+     "request": {
+      "method": "POST",
+      "auth": {
+       "type": "bearer",
+       "bearer": [
+        {
+         "key": "token",
+         "value": "{{spec_token}}",
+         "type": "string"
+        }
+       ]
+      },
+      "url": {
+       "raw": "{{base_url}}/api/change_password",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "change_password"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"current_password\": \"99112233\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Нууц үг солих",
+     "request": {
+      "method": "POST",
+      "auth": {
+       "type": "bearer",
+       "bearer": [
+        {
+         "key": "token",
+         "value": "{{spec_token}}",
+         "type": "string"
+        }
+       ]
+      },
+      "url": {
+       "raw": "{{base_url}}/api/change_password",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "change_password"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"current_password\": \"99112233\",\n  \"new_password\": \"Шинэ_нууц123\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('status = true', () => pm.expect(pm.response.json().status).to.be.true);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Хуучин нууц үгээр нэвтрэхгүй → 400",
+     "request": {
+      "method": "POST",
+      "auth": {
+       "type": "noauth"
+      },
+      "url": {
+       "raw": "{{base_url}}/api/login",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "login"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"username\": \"spec99112233\",\n  \"password\": \"99112233\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Шинэ нууц үгээр нэвтрэх → {{spec_token}}",
+     "request": {
+      "method": "POST",
+      "auth": {
+       "type": "noauth"
+      },
+      "url": {
+       "raw": "{{base_url}}/api/login",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "login"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"username\": \"spec99112233\",\n  \"password\": \"Шинэ_нууц123\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var spB = pm.response.json();",
+         "pm.test('нууц үг солигдсон тул must_change_password = false',",
+         "  () => pm.expect(spB.must_change_password).to.be.false);",
+         "pm.test('onboarding хэвээр дуусаагүй',",
+         "  () => pm.expect(spB.onboarding_completed).to.be.false);",
+         "pm.collectionVariables.set('spec_token', spB.token);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Өөрийн профайл (/api/me)",
+     "request": {
+      "method": "GET",
+      "auth": {
+       "type": "bearer",
+       "bearer": [
+        {
+         "key": "token",
+         "value": "{{spec_token}}",
+         "type": "string"
+        }
+       ]
+      },
+      "url": {
+       "raw": "{{base_url}}/api/me",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "me"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('өөрийн id', () => pm.expect(String(pm.response.json().id))",
+         "  .to.eql(pm.collectionVariables.get('new_spec_user_id').toString()));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Өөрийн хамрах хүрээ (хоосон үед null)",
+     "request": {
+      "method": "GET",
+      "auth": {
+       "type": "bearer",
+       "bearer": [
+        {
+         "key": "token",
+         "value": "{{spec_token}}",
+         "type": "string"
+        }
+       ]
+      },
+      "url": {
+       "raw": "{{base_url}}/api/me/scope",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "me",
+        "scope"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('null буцаана', () => pm.expect(pm.response.json()).to.be.null);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Өөрийн хамрах хүрээ — дүүрэггүй ЕБС → 400",
+     "request": {
+      "method": "PUT",
+      "auth": {
+       "type": "bearer",
+       "bearer": [
+        {
+         "key": "token",
+         "value": "{{spec_token}}",
+         "type": "string"
+        }
+       ]
+      },
+      "url": {
+       "raw": "{{base_url}}/api/me/scope",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "me",
+        "scope"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"school_type\": \"general\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Өөрийн хамрах хүрээг хадгалах (ЕБС + дүүрэг)",
+     "request": {
+      "method": "PUT",
+      "auth": {
+       "type": "bearer",
+       "bearer": [
+        {
+         "key": "token",
+         "value": "{{spec_token}}",
+         "type": "string"
+        }
+       ]
+      },
+      "url": {
+       "raw": "{{base_url}}/api/me/scope",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "me",
+        "scope"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"school_type\": \"general\",\n  \"district_au2_code\": \"{{au2_code}}\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var spS = pm.response.json();",
+         "pm.test('school_type', () => pm.expect(spS.school_type).to.eql('general'));",
+         "pm.test('дүүрэг', () => pm.expect(spS.district_au2_code)",
+         "  .to.eql(pm.collectionVariables.get('au2_code')));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "PATCH-аар мөн (өөрийн хамрах хүрээ)",
+     "request": {
+      "method": "PATCH",
+      "auth": {
+       "type": "bearer",
+       "bearer": [
+        {
+         "key": "token",
+         "value": "{{spec_token}}",
+         "type": "string"
+        }
+       ]
+      },
+      "url": {
+       "raw": "{{base_url}}/api/me/scope",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "me",
+        "scope"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"school_type\": \"general\",\n  \"district_au2_code\": \"{{au2_code}}\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Өөрийн байгууллагууд (/api/me/organizations)",
+     "request": {
+      "method": "GET",
+      "auth": {
+       "type": "bearer",
+       "bearer": [
+        {
+         "key": "token",
+         "value": "{{spec_token}}",
+         "type": "string"
+        }
+       ]
+      },
+      "url": {
+       "raw": "{{base_url}}/api/me/organizations",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "me",
+        "organizations"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var spItems = pm.response.json().items;",
+         "pm.test('items массив', () => pm.expect(spItems).to.be.an('array'));",
+         "var spIds = spItems.map(o => String(o.id));",
+         "pm.test('хүрээнд байгаа нь орсон', () => pm.expect(spIds)",
+         "  .to.include(String(pm.collectionVariables.get('new_spec_org_in'))));",
+         "pm.test('хүрээнээс гадуурх нь ороогүй', () => pm.expect(spIds)",
+         "  .to.not.include(String(pm.collectionVariables.get('new_spec_org_out'))));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Байгууллагын жагсаалт — хамрах хүрээгээр шүүгдэнэ",
+     "request": {
+      "method": "GET",
+      "auth": {
+       "type": "bearer",
+       "bearer": [
+        {
+         "key": "token",
+         "value": "{{spec_token}}",
+         "type": "string"
+        }
+       ]
+      },
+      "url": {
+       "raw": "{{base_url}}/api/organization",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "organization"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var spData = pm.response.json();",
+         "var spAu2 = pm.collectionVariables.get('au2_code');",
+         "pm.test('бүгд ЕБС + тухайн дүүрэг', () => spData.forEach(o => {",
+         "  pm.expect(o.school_category_id).to.eql(12);",
+         "  pm.expect(o.au2_code).to.eql(spAu2);",
+         "}));",
+         "var spIds = spData.map(o => String(o.id));",
+         "pm.test('хүрээнд байгаа нь харагдана', () => pm.expect(spIds)",
+         "  .to.include(String(pm.collectionVariables.get('new_spec_org_in'))));",
+         "pm.test('хүрээнээс гадуурх нь харагдахгүй', () => pm.expect(spIds)",
+         "  .to.not.include(String(pm.collectionVariables.get('new_spec_org_out'))));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Гишүүдийн жагсаалт — хамрах хүрээгээр шүүгдэнэ",
+     "request": {
+      "method": "GET",
+      "auth": {
+       "type": "bearer",
+       "bearer": [
+        {
+         "key": "token",
+         "value": "{{spec_token}}",
+         "type": "string"
+        }
+       ]
+      },
+      "url": {
+       "raw": "{{base_url}}/api/member",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('массив', () => pm.expect(pm.response.json()).to.be.an('array'));",
+         "pm.test('бүгд хүрээний байгууллагын гишүүд', () =>",
+         "  pm.expect(pm.response.json().map(m => String(m.organization_id))).to.not.include(",
+         "    String(pm.collectionVariables.get('new_spec_org_out'))));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Хүрээнд байгаа байгууллага харах",
+     "request": {
+      "method": "GET",
+      "auth": {
+       "type": "bearer",
+       "bearer": [
+        {
+         "key": "token",
+         "value": "{{spec_token}}",
+         "type": "string"
+        }
+       ]
+      },
+      "url": {
+       "raw": "{{base_url}}/api/organization/{{new_spec_org_in}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "organization",
+        "{{new_spec_org_in}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Хүрээнд байгаа байгууллагын мэдээллийг бөглөх",
+     "request": {
+      "method": "PATCH",
+      "auth": {
+       "type": "bearer",
+       "bearer": [
+        {
+         "key": "token",
+         "value": "{{spec_token}}",
+         "type": "string"
+        }
+       ]
+      },
+      "url": {
+       "raw": "{{base_url}}/api/organization/{{new_spec_org_in}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "organization",
+        "{{new_spec_org_in}}"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"contact_name\": \"Мэргэжилтэн бөглөв\",\n  \"phone1\": \"99112233\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Хүрээнээс гадуурх байгууллага харах → 403",
+     "request": {
+      "method": "GET",
+      "auth": {
+       "type": "bearer",
+       "bearer": [
+        {
+         "key": "token",
+         "value": "{{spec_token}}",
+         "type": "string"
+        }
+       ]
+      },
+      "url": {
+       "raw": "{{base_url}}/api/organization/{{new_spec_org_out}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "organization",
+        "{{new_spec_org_out}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 403', () => pm.response.to.have.status(403));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Хүрээнээс гадуурх байгууллага засах → 403",
+     "request": {
+      "method": "PATCH",
+      "auth": {
+       "type": "bearer",
+       "bearer": [
+        {
+         "key": "token",
+         "value": "{{spec_token}}",
+         "type": "string"
+        }
+       ]
+      },
+      "url": {
+       "raw": "{{base_url}}/api/organization/{{new_spec_org_out}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "organization",
+        "{{new_spec_org_out}}"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"contact_name\": \"болохгүй\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 403', () => pm.response.to.have.status(403));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Хүрээнээс гадуур гишүүн нэмэх → 403",
+     "request": {
+      "method": "POST",
+      "auth": {
+       "type": "bearer",
+       "bearer": [
+        {
+         "key": "token",
+         "value": "{{spec_token}}",
+         "type": "string"
+        }
+       ]
+      },
+      "url": {
+       "raw": "{{base_url}}/api/member",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"organization_id\": {{new_spec_org_out}},\n  \"first_name\": \"Болохгүй\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 403', () => pm.response.to.have.status(403));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Эрх байхгүй нөөц (хэрэглэгчийн жагсаалт) → 403",
+     "request": {
+      "method": "GET",
+      "auth": {
+       "type": "bearer",
+       "bearer": [
+        {
+         "key": "token",
+         "value": "{{spec_token}}",
+         "type": "string"
+        }
+       ]
+      },
+      "url": {
+       "raw": "{{base_url}}/api/user",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "user"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 403', () => pm.response.to.have.status(403));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Токенгүй /api/me/scope → 401",
+     "request": {
+      "method": "GET",
+      "auth": {
+       "type": "noauth"
+      },
+      "url": {
+       "raw": "{{base_url}}/api/me/scope",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "me",
+        "scope"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 401', () => pm.response.to.have.status(401));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Onboarding дуусгах",
+     "request": {
+      "method": "POST",
+      "auth": {
+       "type": "bearer",
+       "bearer": [
+        {
+         "key": "token",
+         "value": "{{spec_token}}",
+         "type": "string"
+        }
+       ]
+      },
+      "url": {
+       "raw": "{{base_url}}/api/me/onboarding/complete",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "me",
+        "onboarding",
+        "complete"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var spB = pm.response.json();",
+         "pm.test('status = true', () => pm.expect(spB.status).to.be.true);",
+         "pm.test('огноо тавигдсан',",
+         "  () => pm.expect(spB.onboarding_completed_at).to.be.a('string'));",
+         "pm.collectionVariables.set('spec_onboarded_at', spB.onboarding_completed_at);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Дахин дуусгахад огноо хөдлөхгүй",
+     "request": {
+      "method": "POST",
+      "auth": {
+       "type": "bearer",
+       "bearer": [
+        {
+         "key": "token",
+         "value": "{{spec_token}}",
+         "type": "string"
+        }
+       ]
+      },
+      "url": {
+       "raw": "{{base_url}}/api/me/onboarding/complete",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "me",
+        "onboarding",
+        "complete"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('эхний огноо хэвээр', () => pm.expect(",
+         "  pm.response.json().onboarding_completed_at).to.eql(",
+         "  pm.collectionVariables.get('spec_onboarded_at')));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Дараагийн нэвтрэлтэд onboarding_completed = true",
+     "request": {
+      "method": "POST",
+      "auth": {
+       "type": "noauth"
+      },
+      "url": {
+       "raw": "{{base_url}}/api/login",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "login"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"username\": \"spec99112233\",\n  \"password\": \"Шинэ_нууц123\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('onboarding дууссан', () => pm.expect(",
+         "  pm.response.json().onboarding_completed).to.be.true);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Цэвэрлэх: мэргэжилтэн хэрэглэгч (scope нь cascade)",
+     "request": {
+      "method": "DELETE",
+      "url": {
+       "raw": "{{base_url}}/api/user/{{new_spec_user_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "user",
+        "{{new_spec_user_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Цэвэрлэх: хүрээнд байсан байгууллага",
+     "request": {
+      "method": "DELETE",
+      "url": {
+       "raw": "{{base_url}}/api/organization/{{new_spec_org_in}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "organization",
+        "{{new_spec_org_in}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Цэвэрлэх: хүрээнээс гадуурх байгууллага",
+     "request": {
+      "method": "DELETE",
+      "url": {
+       "raw": "{{base_url}}/api/organization/{{new_spec_org_out}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "organization",
+        "{{new_spec_org_out}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Цэвэрлэх: 'Зөвлөх мэргэжилтэн' дүр",
+     "request": {
+      "method": "DELETE",
+      "url": {
+       "raw": "{{base_url}}/api/role/{{new_spec_role_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "role",
+        "{{new_spec_role_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Санал хүсэлт 1 — Портал (ТОКЕНГҮЙ) + Админ",
+   "description": "feedback_api_spec.md — Санал хүсэлт (suggestions) ба Өргөдөл, гомдол (complaints). Порталын 2 маягт ТОКЕНГҮЙ илгээгдэж (§3), админ зөвхөн жагсаалт (хайлт + хуудаслалт) харж, устгана (§4). Жагсаалт нь message / description-ийг ХАМТ буцаадаг тул 'нэгийг авах' маршрут байхгүй.\n\nХавсралт нь `POST /api/upload`-ийн буцаасан url-ээр дамждаг — энэ хавтас файл сонгуулахгүйн тулд url-ийг гараар өгдөг. Үүсгэсэн 4 мөрөө бүгдийг төгсгөлд устгадаг тул мөрийн тоо өөрчлөгдөхгүй.",
+   "item": [
+    {
+     "name": "Санал хүсэлт илгээх (ТОКЕНГҮЙ) → {{new_suggestion_id}}",
+     "request": {
+      "method": "POST",
+      "auth": {
+       "type": "noauth"
+      },
+      "url": {
+       "raw": "{{base_url}}/api/portal/suggestions",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "portal",
+        "suggestions"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"name\": \"Б. Оюунчимэг\",\n  \"email\": \"oyunchimeg@example.mn\",\n  \"phone\": \"89999901\",\n  \"message\": \"Гишүүдийн хурлыг жилд 2 удаа зохион байгуулах хэрэгтэй байна.\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "var fbS = pm.response.json();",
+         "pm.test('status = true', () => pm.expect(fbS.status).to.be.true);",
+         "pm.test('монгол баталгаажуулалт', () => pm.expect(fbS.message)",
+         "  .to.eql('Таны санал хүсэлт бүртгэгдлээ.'));",
+         "pm.collectionVariables.set('new_suggestion_id', fbS.id);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Өргөдөл, гомдол илгээх (ТОКЕНГҮЙ) → {{new_complaint_id}}",
+     "request": {
+      "method": "POST",
+      "auth": {
+       "type": "noauth"
+      },
+      "url": {
+       "raw": "{{base_url}}/api/portal/complaints",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "portal",
+        "complaints"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"name\": \"Т. Батжаргал\",\n  \"email\": \"batjargal@example.mn\",\n  \"phone\": \"89999902\",\n  \"description\": \"Цалингийн зөрчилтэй холбоотой гомдол.\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "var fbC = pm.response.json();",
+         "pm.test('status = true', () => pm.expect(fbC.status).to.be.true);",
+         "pm.collectionVariables.set('new_complaint_id', fbC.id);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Өргөдөл — хавсралттай → {{new_complaint_file_id}}",
+     "request": {
+      "method": "POST",
+      "auth": {
+       "type": "noauth"
+      },
+      "url": {
+       "raw": "{{base_url}}/api/portal/complaints",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "portal",
+        "complaints"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"name\": \"Хавсралттай гомдол\",\n  \"email\": \"att@example.mn\",\n  \"phone\": \"89999903\",\n  \"description\": \"Хавсралт бүхий гомдол.\",\n  \"file_url\": \"/uploads/content/postman-test.pdf\",\n  \"file_name\": \"gomdol_batjargal.pdf\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "pm.collectionVariables.set('new_complaint_file_id', pm.response.json().id);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "+976 угтвартай, зураастай дугаар ч болно → {{new_suggestion_id2}}",
+     "request": {
+      "method": "POST",
+      "auth": {
+       "type": "noauth"
+      },
+      "url": {
+       "raw": "{{base_url}}/api/portal/suggestions",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "portal",
+        "suggestions"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"name\": \"Зай, зураастай дугаар\",\n  \"email\": \"a@b.mn\",\n  \"phone\": \"+976 8999-9904\",\n  \"message\": \"Хэлбэржүүлсэн дугаарын тест.\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "pm.collectionVariables.set('new_suggestion_id2', pm.response.json().id);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Заавал талбар дутуу → 400",
+     "request": {
+      "method": "POST",
+      "auth": {
+       "type": "noauth"
+      },
+      "url": {
+       "raw": "{{base_url}}/api/portal/suggestions",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "portal",
+        "suggestions"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"name\": \"Дутуу\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "И-мэйл буруу → 400",
+     "request": {
+      "method": "POST",
+      "auth": {
+       "type": "noauth"
+      },
+      "url": {
+       "raw": "{{base_url}}/api/portal/suggestions",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "portal",
+        "suggestions"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"name\": \"Тест\",\n  \"email\": \"buruu-email\",\n  \"phone\": \"89999905\",\n  \"message\": \"текст\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Утас буруу урттай → 400",
+     "request": {
+      "method": "POST",
+      "auth": {
+       "type": "noauth"
+      },
+      "url": {
+       "raw": "{{base_url}}/api/portal/complaints",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "portal",
+        "complaints"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"name\": \"Тест\",\n  \"email\": \"a@b.mn\",\n  \"phone\": \"123\",\n  \"description\": \"текст\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Зөвхөн зайтай тайлбар → 400",
+     "request": {
+      "method": "POST",
+      "auth": {
+       "type": "noauth"
+      },
+      "url": {
+       "raw": "{{base_url}}/api/portal/complaints",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "portal",
+        "complaints"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"name\": \"Тест\",\n  \"email\": \"a@b.mn\",\n  \"phone\": \"89999906\",\n  \"description\": \"   \"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Порталын маягтыг GET-ээр → 405",
+     "request": {
+      "method": "GET",
+      "auth": {
+       "type": "noauth"
+      },
+      "url": {
+       "raw": "{{base_url}}/api/portal/suggestions",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "portal",
+        "suggestions"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 405', () => pm.response.to.have.status(405));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Токенгүй админ жагсаалт → 401",
+     "request": {
+      "method": "GET",
+      "auth": {
+       "type": "noauth"
+      },
+      "url": {
+       "raw": "{{base_url}}/api/admin/suggestions",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "suggestions"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 401', () => pm.response.to.have.status(401));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Санал хүсэлтийн жагсаалт",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/admin/suggestions",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "suggestions"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "var fbPage = pm.response.json();",
+         "pm.test('хуудаслалтын хэлбэр', () => pm.expect(fbPage).to.have.all.keys(",
+         "  'items','total','page','per_page','pages'));",
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('шинээр илгээсэн нь орсон', () => pm.expect(",
+         "  fbPage.items.map(i => String(i.id))).to.include(",
+         "  String(pm.collectionVariables.get('new_suggestion_id'))));",
+         "pm.test('дэлгэрэнгүй талбарууд шууд ирнэ', () => pm.expect(fbPage.items[0])",
+         "  .to.have.all.keys('id','name','email','phone','message','status','created_at'));",
+         "pm.test('шинэ нь дээрээ', () => pm.expect(fbPage.items[0].id)",
+         "  .to.be.at.least(fbPage.items[fbPage.items.length - 1].id));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Өргөдөл, гомдлын жагсаалт",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/admin/complaints",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "complaints"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "var fbPage = pm.response.json();",
+         "pm.test('хуудаслалтын хэлбэр', () => pm.expect(fbPage).to.have.all.keys(",
+         "  'items','total','page','per_page','pages'));",
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('хавсралтын талбарууд бий', () => pm.expect(fbPage.items[0])",
+         "  .to.have.all.keys('id','name','email','phone','description','file_url',",
+         "  'file_name','status','created_at'));",
+         "var fbAtt = fbPage.items.find(i => String(i.id) ===",
+         "  String(pm.collectionVariables.get('new_complaint_file_id')));",
+         "pm.test('хавсралт хадгалагдсан', () => pm.expect(fbAtt.file_name)",
+         "  .to.eql('gomdol_batjargal.pdf'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Хайлт (?search=утсаар)",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/admin/suggestions?search=89999901",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "suggestions"
+       ],
+       "query": [
+        {
+         "key": "search",
+         "value": "89999901"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "var fbPage = pm.response.json();",
+         "pm.test('хуудаслалтын хэлбэр', () => pm.expect(fbPage).to.have.all.keys(",
+         "  'items','total','page','per_page','pages'));",
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('яг нэг олдоно', () => pm.expect(fbPage.total).to.eql(1));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Хайлт — олдохгүй",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/admin/complaints?search=ZZZ-OLDOHGUI",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "complaints"
+       ],
+       "query": [
+        {
+         "key": "search",
+         "value": "ZZZ-OLDOHGUI"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "var fbPage = pm.response.json();",
+         "pm.test('хуудаслалтын хэлбэр', () => pm.expect(fbPage).to.have.all.keys(",
+         "  'items','total','page','per_page','pages'));",
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('хоосон', () => pm.expect(fbPage.total).to.eql(0));",
+         "pm.test('pages = 0', () => pm.expect(fbPage.pages).to.eql(0));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Хуудаслалт (?per_page=1&page=2)",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/admin/suggestions?per_page=1&page=2",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "suggestions"
+       ],
+       "query": [
+        {
+         "key": "per_page",
+         "value": "1"
+        },
+        {
+         "key": "page",
+         "value": "2"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "var fbPage = pm.response.json();",
+         "pm.test('хуудаслалтын хэлбэр', () => pm.expect(fbPage).to.have.all.keys(",
+         "  'items','total','page','per_page','pages'));",
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('1 мөр', () => pm.expect(fbPage.items).to.have.lengthOf(1));",
+         "pm.test('per_page = 1', () => pm.expect(fbPage.per_page).to.eql(1));",
+         "pm.test('page = 2', () => pm.expect(fbPage.page).to.eql(2));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "per_page тааз (100)",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/admin/suggestions?per_page=9999",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "suggestions"
+       ],
+       "query": [
+        {
+         "key": "per_page",
+         "value": "9999"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "var fbPage = pm.response.json();",
+         "pm.test('хуудаслалтын хэлбэр', () => pm.expect(fbPage).to.have.all.keys(",
+         "  'items','total','page','per_page','pages'));",
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('100-аар хязгаарлагдана',",
+         "  () => pm.expect(fbPage.per_page).to.eql(100));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "page нь тоо биш → 400",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/admin/suggestions?page=abc",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "suggestions"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "abc"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Байхгүйг устгах → 404",
+     "request": {
+      "method": "DELETE",
+      "url": {
+       "raw": "{{base_url}}/api/admin/suggestions/99999999",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "suggestions",
+        "99999999"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 404', () => pm.response.to.have.status(404));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Цэвэрлэх: санал хүсэлт",
+     "request": {
+      "method": "DELETE",
+      "url": {
+       "raw": "{{base_url}}/api/admin/suggestions/{{new_suggestion_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "suggestions",
+        "{{new_suggestion_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Цэвэрлэх: санал хүсэлт 2",
+     "request": {
+      "method": "DELETE",
+      "url": {
+       "raw": "{{base_url}}/api/admin/suggestions/{{new_suggestion_id2}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "suggestions",
+        "{{new_suggestion_id2}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Цэвэрлэх: өргөдөл",
+     "request": {
+      "method": "DELETE",
+      "url": {
+       "raw": "{{base_url}}/api/admin/complaints/{{new_complaint_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "complaints",
+        "{{new_complaint_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Цэвэрлэх: хавсралттай өргөдөл",
+     "request": {
+      "method": "DELETE",
+      "url": {
+       "raw": "{{base_url}}/api/admin/complaints/{{new_complaint_file_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "complaints",
+        "{{new_complaint_file_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Устгасны дараа дахин устгах → 404",
+     "request": {
+      "method": "DELETE",
+      "url": {
+       "raw": "{{base_url}}/api/admin/suggestions/{{new_suggestion_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "suggestions",
+        "{{new_suggestion_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 404', () => pm.response.to.have.status(404));"
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Мэдэгдэл 1 — Илгээх (админ) + 🔔 Inbox",
+   "description": "notification_api_spec.md — админ мэдэгдэл бичиж илгээнэ (§3), fan-out-аар хэрэглэгч бүрийн inbox-д тусна (§4). Хавтас нь ДҮРГҮЙ хэрэглэгч үүсгэдэг нь санаатай: 🔔 inbox (`/api/notifications`) нь ямар ч эрх шаардахгүй (зөвхөн өөрийн мөрүүд), гэтэл тэр хэрэглэгч `/api/admin/notifications`-д хүрэхэд 403 авна.\n\nИлгээгдсэн (`sent`) мэдэгдлийг ердийн `DELETE` нь 422-оор татгалздаг тул цэвэрлэгээ нь `?hard=1`-ээр явна (forms-ийн адил гаргалгаа) — ингэснээр цуглуулга мөрийн тоог хөдөлгөхгүй.",
+   "item": [
+    {
+     "name": "Бэлтгэл: дүргүй хэрэглэгч → {{new_notify_user_id}}",
+     "request": {
+      "method": "POST",
+      "url": {
+       "raw": "{{base_url}}/api/user",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "user"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"username\": \"notify_inbox_user\",\n  \"password\": \"pass1234\",\n  \"last_name\": \"Мэдэгдэл\",\n  \"first_name\": \"Хүлээн авагч\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "pm.collectionVariables.set('new_notify_user_id', pm.response.json().id);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Бэлтгэл: тэр хэрэглэгчээр нэвтрэх → {{notify_token}}",
+     "request": {
+      "method": "POST",
+      "auth": {
+       "type": "noauth"
+      },
+      "url": {
+       "raw": "{{base_url}}/api/login",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "login"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"username\": \"notify_inbox_user\",\n  \"password\": \"pass1234\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var nfL = pm.response.json();",
+         "pm.test('эрхгүй хэрэглэгч', () => pm.expect(nfL.permissions)",
+         "  .to.have.lengthOf(0));",
+         "pm.collectionVariables.set('notify_token', nfL.token);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Inbox эхэндээ хоосон",
+     "request": {
+      "method": "GET",
+      "auth": {
+       "type": "bearer",
+       "bearer": [
+        {
+         "key": "token",
+         "value": "{{notify_token}}",
+         "type": "string"
+        }
+       ]
+      },
+      "url": {
+       "raw": "{{base_url}}/api/notifications",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "notifications"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var nfB = pm.response.json();",
+         "pm.test('уншаагүй 0', () => pm.expect(nfB.unread_count).to.eql(0));",
+         "pm.test('items хоосон', () => pm.expect(nfB.items).to.eql([]));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "body дутуу → 400",
+     "request": {
+      "method": "POST",
+      "url": {
+       "raw": "{{base_url}}/api/admin/notifications",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "notifications"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"title\": \"Гарчиг\",\n  \"audience_type\": \"all\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "audience_type буруу → 400",
+     "request": {
+      "method": "POST",
+      "url": {
+       "raw": "{{base_url}}/api/admin/notifications",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "notifications"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"title\": \"x\",\n  \"body\": \"y\",\n  \"audience_type\": \"buruu\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "type буруу → 400",
+     "request": {
+      "method": "POST",
+      "url": {
+       "raw": "{{base_url}}/api/admin/notifications",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "notifications"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"title\": \"x\",\n  \"body\": \"y\",\n  \"audience_type\": \"all\",\n  \"type\": \"buruu\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "role — role_id дутуу → 400",
+     "request": {
+      "method": "POST",
+      "url": {
+       "raw": "{{base_url}}/api/admin/notifications",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "notifications"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"title\": \"x\",\n  \"body\": \"y\",\n  \"audience_type\": \"role\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "picked — user_ids хоосон → 400",
+     "request": {
+      "method": "POST",
+      "url": {
+       "raw": "{{base_url}}/api/admin/notifications",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "notifications"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"title\": \"x\",\n  \"body\": \"y\",\n  \"audience_type\": \"picked\",\n  \"user_ids\": []\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "all + role_id хамт → 400",
+     "request": {
+      "method": "POST",
+      "url": {
+       "raw": "{{base_url}}/api/admin/notifications",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "notifications"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"title\": \"x\",\n  \"body\": \"y\",\n  \"audience_type\": \"all\",\n  \"role_id\": 1\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "scheduled_at буруу хэлбэр → 400",
+     "request": {
+      "method": "POST",
+      "url": {
+       "raw": "{{base_url}}/api/admin/notifications",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "notifications"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"title\": \"x\",\n  \"body\": \"y\",\n  \"audience_type\": \"all\",\n  \"scheduled_at\": \"margaash\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Илгээх: picked → {{new_notification_id}}",
+     "request": {
+      "method": "POST",
+      "url": {
+       "raw": "{{base_url}}/api/admin/notifications",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "notifications"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"audience_type\": \"picked\",\n  \"user_ids\": [{{new_notify_user_id}}],\n  \"type\": \"reminder\",\n  \"title\": \"Гишүүнчлэлийн хураамж сануулга\",\n  \"body\": \"Хураамжаа хугацаандаа тушаана уу.\",\n  \"image_url\": \"/uploads/content/banner.jpg\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "var nfN = pm.response.json();",
+         "pm.test('шууд илгээгдсэн', () => pm.expect(nfN.status).to.eql('sent'));",
+         "pm.test('sent_at тавигдсан', () => pm.expect(nfN.sent_at).to.be.a('string'));",
+         "pm.test('хүлээн авагч 1', () => pm.expect(nfN.recipient_count).to.eql(1));",
+         "pm.test('уншсан 0', () => pm.expect(nfN.read_count).to.eql(0));",
+         "pm.collectionVariables.set('new_notification_id', nfN.id);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Inbox-д тусав (🔔)",
+     "request": {
+      "method": "GET",
+      "auth": {
+       "type": "bearer",
+       "bearer": [
+        {
+         "key": "token",
+         "value": "{{notify_token}}",
+         "type": "string"
+        }
+       ]
+      },
+      "url": {
+       "raw": "{{base_url}}/api/notifications",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "notifications"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var nfB = pm.response.json();",
+         "pm.test('уншаагүй 1', () => pm.expect(nfB.unread_count).to.eql(1));",
+         "pm.test('спекийн талбарууд', () => pm.expect(nfB.items[0])",
+         "  .to.have.all.keys('id','title','body','type','image_url','sent_at',",
+         "  'read_at','created_at'));",
+         "pm.test('read_at хоосон', () => pm.expect(nfB.items[0].read_at).to.be.null);",
+         "pm.test('мэдэгдлийн id', () => pm.expect(String(nfB.items[0].id)).to.eql(",
+         "  String(pm.collectionVariables.get('new_notification_id'))));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Уншсан болгох",
+     "request": {
+      "method": "POST",
+      "auth": {
+       "type": "bearer",
+       "bearer": [
+        {
+         "key": "token",
+         "value": "{{notify_token}}",
+         "type": "string"
+        }
+       ]
+      },
+      "url": {
+       "raw": "{{base_url}}/api/notifications/{{new_notification_id}}/read",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "notifications",
+        "{{new_notification_id}}",
+        "read"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('status = true',",
+         "  () => pm.expect(pm.response.json().status).to.be.true);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Уншаагүй нь хоосон болов (?unread=1)",
+     "request": {
+      "method": "GET",
+      "auth": {
+       "type": "bearer",
+       "bearer": [
+        {
+         "key": "token",
+         "value": "{{notify_token}}",
+         "type": "string"
+        }
+       ]
+      },
+      "url": {
+       "raw": "{{base_url}}/api/notifications?unread=1",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "notifications"
+       ],
+       "query": [
+        {
+         "key": "unread",
+         "value": "1"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var nfB = pm.response.json();",
+         "pm.test('уншаагүй 0', () => pm.expect(nfB.unread_count).to.eql(0));",
+         "pm.test('items хоосон', () => pm.expect(nfB.items).to.eql([]));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Админ талд read_count 1 болов",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/admin/notifications/{{new_notification_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "notifications",
+        "{{new_notification_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var nfN = pm.response.json();",
+         "pm.test('уншсан 1', () => pm.expect(nfN.read_count).to.eql(1));",
+         "pm.test('хүлээн авагч 1', () => pm.expect(nfN.recipient_count).to.eql(1));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Дахин уншихад эхний цаг хадгалагдана",
+     "request": {
+      "method": "POST",
+      "auth": {
+       "type": "bearer",
+       "bearer": [
+        {
+         "key": "token",
+         "value": "{{notify_token}}",
+         "type": "string"
+        }
+       ]
+      },
+      "url": {
+       "raw": "{{base_url}}/api/notifications/{{new_notification_id}}/read",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "notifications",
+        "{{new_notification_id}}",
+        "read"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Өөрт ирээгүй мэдэгдлийг уншсан болгох → 404",
+     "request": {
+      "method": "POST",
+      "auth": {
+       "type": "bearer",
+       "bearer": [
+        {
+         "key": "token",
+         "value": "{{notify_token}}",
+         "type": "string"
+        }
+       ]
+      },
+      "url": {
+       "raw": "{{base_url}}/api/notifications/99999999/read",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "notifications",
+        "99999999",
+        "read"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 404', () => pm.response.to.have.status(404));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Inbox нь токенгүй бол 401",
+     "request": {
+      "method": "GET",
+      "auth": {
+       "type": "noauth"
+      },
+      "url": {
+       "raw": "{{base_url}}/api/notifications",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "notifications"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 401', () => pm.response.to.have.status(401));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Эрхгүй хэрэглэгч админ жагсаалт → 403",
+     "request": {
+      "method": "GET",
+      "auth": {
+       "type": "bearer",
+       "bearer": [
+        {
+         "key": "token",
+         "value": "{{notify_token}}",
+         "type": "string"
+        }
+       ]
+      },
+      "url": {
+       "raw": "{{base_url}}/api/admin/notifications",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "notifications"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 403', () => pm.response.to.have.status(403));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Хуваарьт мэдэгдэл → {{new_notification_sched_id}}",
+     "request": {
+      "method": "POST",
+      "url": {
+       "raw": "{{base_url}}/api/admin/notifications",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "notifications"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"audience_type\": \"all\",\n  \"title\": \"Хуваарьт мэдэгдэл\",\n  \"body\": \"Ирээдүйд илгээгдэнэ.\",\n  \"scheduled_at\": \"2030-01-02T03:04\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "var nfS = pm.response.json();",
+         "pm.test('scheduled', () => pm.expect(nfS.status).to.eql('scheduled'));",
+         "pm.test('хэлбэржүүлсэн огноо', () => pm.expect(nfS.scheduled_at)",
+         "  .to.eql('2030-01-02 03:04:00'));",
+         "pm.test('fan-out хийгдээгүй',",
+         "  () => pm.expect(nfS.recipient_count).to.eql(0));",
+         "pm.collectionVariables.set('new_notification_sched_id', nfS.id);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Ноорог мэдэгдэл → {{new_notification_draft_id}}",
+     "request": {
+      "method": "POST",
+      "url": {
+       "raw": "{{base_url}}/api/admin/notifications",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "notifications"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"audience_type\": \"all\",\n  \"title\": \"Ноорог\",\n  \"body\": \"Хадгалаад илгээхгүй.\",\n  \"status\": \"draft\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "var nfD = pm.response.json();",
+         "pm.test('draft', () => pm.expect(nfD.status).to.eql('draft'));",
+         "pm.test('fan-out хийгдээгүй',",
+         "  () => pm.expect(nfD.recipient_count).to.eql(0));",
+         "pm.collectionVariables.set('new_notification_draft_id', nfD.id);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Жагсаалт (хуудаслалт)",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/admin/notifications",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "notifications"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var nfP = pm.response.json();",
+         "pm.test('хуудаслалтын хэлбэр', () => pm.expect(nfP).to.have.all.keys(",
+         "  'items','total','page','per_page','pages'));",
+         "pm.test('тоологдсон талбарууд', () => pm.expect(nfP.items[0])",
+         "  .to.include.all.keys('role_name','recipient_count','read_count'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Шүүлт ?status=scheduled",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/admin/notifications?status=scheduled",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "notifications"
+       ],
+       "query": [
+        {
+         "key": "status",
+         "value": "scheduled"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('зөвхөн scheduled', () => pm.response.json().items.forEach(",
+         "  i => pm.expect(i.status).to.eql('scheduled')));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Шүүлт ?type=reminder",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/admin/notifications?type=reminder",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "notifications"
+       ],
+       "query": [
+        {
+         "key": "type",
+         "value": "reminder"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('зөвхөн reminder', () => pm.response.json().items.forEach(",
+         "  i => pm.expect(i.type).to.eql('reminder')));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Хайлт ?search=",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/admin/notifications?search=Ноорог",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "notifications"
+       ],
+       "query": [
+        {
+         "key": "search",
+         "value": "Ноорог"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('нэгээс багагүй олдоно',",
+         "  () => pm.expect(pm.response.json().total).to.be.at.least(1));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "page нь тоо биш → 400",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/admin/notifications?page=abc",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "notifications"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "abc"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Илгээгдсэнийг устгах → 422",
+     "request": {
+      "method": "DELETE",
+      "url": {
+       "raw": "{{base_url}}/api/admin/notifications/{{new_notification_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "notifications",
+        "{{new_notification_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 422', () => pm.response.to.have.status(422));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Байхгүйг устгах → 404",
+     "request": {
+      "method": "DELETE",
+      "url": {
+       "raw": "{{base_url}}/api/admin/notifications/99999999",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "notifications",
+        "99999999"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 404', () => pm.response.to.have.status(404));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Цэвэрлэх: ноорог (draft — зөвшөөрөгдөнө)",
+     "request": {
+      "method": "DELETE",
+      "url": {
+       "raw": "{{base_url}}/api/admin/notifications/{{new_notification_draft_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "notifications",
+        "{{new_notification_draft_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Цэвэрлэх: хуваарьт (scheduled — цуцлах)",
+     "request": {
+      "method": "DELETE",
+      "url": {
+       "raw": "{{base_url}}/api/admin/notifications/{{new_notification_sched_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "notifications",
+        "{{new_notification_sched_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Цэвэрлэх: илгээгдсэн (?hard=1)",
+     "request": {
+      "method": "DELETE",
+      "url": {
+       "raw": "{{base_url}}/api/admin/notifications/{{new_notification_id}}?hard=1",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "notifications",
+        "{{new_notification_id}}"
+       ],
+       "query": [
+        {
+         "key": "hard",
+         "value": "1"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('устсан', () => pm.expect(pm.response.json().deleted)",
+         "  .to.not.be.undefined);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Цэвэрлэх: хүлээн авагч хэрэглэгч (recipients cascade)",
+     "request": {
+      "method": "DELETE",
+      "url": {
+       "raw": "{{base_url}}/api/user/{{new_notify_user_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "user",
+        "{{new_notify_user_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Хянах самбар 1 — Нэгтгэсэн тоо",
+   "description": "dashboard_api_spec.md — `GET /api/admin/dashboard/summary` нь нийт гишүүн / байгууллага, ангилал тус бүрийн тоо (багана диаграм + картууд), хүйсийн харьцаа (донат)-г НЭГ дуудалтаар буцаана. Ангиллын жагсаалт нь `school_category`-ийн бодит мөрүүдээс динамик.\n\nЗөвлөх мэргэжилтэн нэвтрэхэд тоо нь `user_scope`-оор автоматаар шүүгдэнэ (§4) — үүнийг `Мэргэжилтэн 1` хавтасны логиктой ижил `scope_core` хангана. Энэ хавтас нь админаар (шүүлтгүй) гүйж, тоонуудыг жагсаалтын урттай тулгана.",
+   "item": [
+    {
+     "name": "Нэгтгэсэн тоо (админ — шүүлтгүй)",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/admin/dashboard/summary",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "dashboard",
+        "summary"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var dbS = pm.response.json();",
+         "pm.test('спекийн 4 талбар', () => pm.expect(dbS).to.have.all.keys(",
+         "  'total_members','total_organizations','by_category','gender'));",
+         "pm.test('gender нь male/female', () => pm.expect(dbS.gender)",
+         "  .to.have.all.keys('male','female'));",
+         "pm.test('ангиллын мөрийн хэлбэр', () => pm.expect(dbS.by_category[0])",
+         "  .to.have.all.keys('school_category_id','short_name','full_name',",
+         "  'organization_count','member_count'));",
+         "pm.test('ангилал нь лавлахаас динамик (1-ээс дээш мөр)',",
+         "  () => pm.expect(dbS.by_category.length).to.be.at.least(1));",
+         "pm.test('хүйсийн нийлбэр нийт гишүүнээс их биш',",
+         "  () => pm.expect(dbS.gender.male + dbS.gender.female)",
+         "  .to.be.at.most(dbS.total_members));",
+         "pm.collectionVariables.set('dash_total_orgs', dbS.total_organizations);",
+         "pm.collectionVariables.set('dash_total_members', dbS.total_members);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Байгууллагын жагсаалттай тоо таарна",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/organization",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "organization"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('total_organizations = жагсаалтын урт', () => pm.expect(",
+         "  pm.response.json().length).to.eql(Number(",
+         "  pm.collectionVariables.get('dash_total_orgs'))));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Гишүүдийн жагсаалттай тоо таарна",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/member",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('total_members = жагсаалтын урт', () => pm.expect(",
+         "  pm.response.json().length).to.eql(Number(",
+         "  pm.collectionVariables.get('dash_total_members'))));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Токенгүй → 401",
+     "request": {
+      "method": "GET",
+      "auth": {
+       "type": "noauth"
+      },
+      "url": {
+       "raw": "{{base_url}}/api/admin/dashboard/summary",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "dashboard",
+        "summary"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 401', () => pm.response.to.have.status(401));"
         ]
        }
       }

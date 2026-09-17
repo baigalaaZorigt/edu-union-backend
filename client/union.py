@@ -3,6 +3,11 @@
 Түвшин: holboo (Холбоо) -> horoo (Хороо) -> organization (Гишүүн байгууллага) -> member (Гишүүн)
 Нэмэлт: contact (Холбоо барих) — хороо/байгууллага/гишүүнд полиморфоор харьяалагдана
 (нэг эзэмшигч ОЛОН утас/факс/и-мэйлтэй байж болно).
+
+Байгууллага ба гишүүний маршрутууд нь хэрэглэгчийн ХАМРАХ ХҮРЭЭГЭЭР
+(`scope_core`) автоматаар шүүгдэнэ — frontend тусдаа шүүлтүүр дамжуулах
+шаардлагагүй (specialist_onboarding_api_spec.md §5). Хамрах хүрээний мөр
+байхгүй хэрэглэгч (admin г.м.) бүгдийг хэвээр харна.
 """
 import os
 import uuid
@@ -12,6 +17,8 @@ from flask import Blueprint, jsonify, request, abort, send_file
 
 from db import get_db
 from helpers import rows, require, json_body
+from scope_core import (org_condition, member_condition,
+                        require_org_in_scope, require_member_in_scope)
 
 bp = Blueprint("union", __name__)
 
@@ -373,8 +380,13 @@ def list_org():
         if request.args.get(f):
             cond.append(f"o.{f}=?")
             params.append(request.args[f])
-    sql = ORG_SELECT + (" WHERE " + " AND ".join(cond) if cond else "") + " ORDER BY o.id"
     conn = get_db()
+    # Хамрах хүрээ — серверийн талд НЭМЭГДЭХ нөхцөл (спек §5)
+    scope_cond, scope_params = org_condition(conn, alias="o")
+    if scope_cond:
+        cond.append(scope_cond)
+        params += scope_params
+    sql = ORG_SELECT + (" WHERE " + " AND ".join(cond) if cond else "") + " ORDER BY o.id"
     data = rows(conn.execute(sql, params).fetchall())
     for o in data:
         o.update(org_stats(conn, o["id"]))
@@ -385,6 +397,7 @@ def list_org():
 @bp.route("/api/organization/<int:oid>", methods=["GET"])
 def get_org(oid):
     conn = get_db()
+    require_org_in_scope(conn, oid)
     row = conn.execute(ORG_SELECT + " WHERE o.id=?", (oid,)).fetchone()
     if not row:
         conn.close()
@@ -484,6 +497,7 @@ def update_org(oid):
     if not fields:
         abort(400, description="Шинэчлэх талбар алга")
     conn = get_db()
+    require_org_in_scope(conn, oid)
     _check_ref(conn, data, "school_category_id", "school_category", "Сургуулийн ангилал")
     _check_ref(conn, data, "structure_id", "structure", "Бүтцийн удирдлага")
     _check_org_code_unique(conn, data, oid)
@@ -504,6 +518,7 @@ def update_org(oid):
 @bp.route("/api/organization/<int:oid>", methods=["DELETE"])
 def delete_org(oid):
     conn = get_db()
+    require_org_in_scope(conn, oid)
     cur = conn.execute("DELETE FROM organization WHERE id=?", (oid,))
     if cur.rowcount:
         _purge_orphan_contacts(conn)
@@ -526,8 +541,13 @@ def list_member():
     if request.args.get("is_active") is not None:
         cond.append("m.is_active=?")
         params.append(1 if request.args["is_active"] in ("1", "true", "True") else 0)
-    sql = MEMBER_SELECT + (" WHERE " + " AND ".join(cond) if cond else "") + " ORDER BY m.id"
     conn = get_db()
+    # Хамрах хүрээ — гишүүн нь харьяа байгууллагаараа дамжин шүүгдэнэ (спек §5)
+    scope_cond, scope_params = member_condition(conn, alias="m")
+    if scope_cond:
+        cond.append(scope_cond)
+        params += scope_params
+    sql = MEMBER_SELECT + (" WHERE " + " AND ".join(cond) if cond else "") + " ORDER BY m.id"
     data = rows(conn.execute(sql, params).fetchall())
     conn.close()
     return jsonify(data)
@@ -536,6 +556,7 @@ def list_member():
 @bp.route("/api/member/<int:mid>", methods=["GET"])
 def get_member(mid):
     conn = get_db()
+    require_member_in_scope(conn, mid)
     row = conn.execute(MEMBER_SELECT + " WHERE m.id=?", (mid,)).fetchone()
     if not row:
         conn.close()
@@ -571,6 +592,7 @@ def create_member():
                         (data["organization_id"],)).fetchone():
         conn.close()
         abort(400, description="organization_id (эцэг байгууллага) олдсонгүй")
+    require_org_in_scope(conn, data["organization_id"])
     _member_refs(conn, data)
     _check_au(conn, data)
     cols, vals = ["organization_id"], [data["organization_id"]]
@@ -602,6 +624,7 @@ def update_member(mid):
     if not fields:
         abort(400, description="Шинэчлэх талбар алга")
     conn = get_db()
+    require_member_in_scope(conn, mid)
     _member_refs(conn, data)
     _check_au(conn, data)
     # 4 оронтой кодыг сольсон бол 9 оронтой дугаарыг дахин үүсгэнэ
@@ -627,6 +650,7 @@ def update_member(mid):
 @bp.route("/api/member/<int:mid>", methods=["DELETE"])
 def delete_member(mid):
     conn = get_db()
+    require_member_in_scope(conn, mid)
     cur = conn.execute("DELETE FROM member WHERE id=?", (mid,))
     if cur.rowcount:
         _purge_orphan_contacts(conn)
