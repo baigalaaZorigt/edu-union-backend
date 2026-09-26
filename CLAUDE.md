@@ -158,13 +158,13 @@ python -m pytest tests -q      # the whole pytest suite (~460 tests, ~15 s)
 - The dev server binds `PORT` (env) or 5001; `debug` is on only when `FLASK_DEBUG=1`.
 - **CI/CD: every push to `main` tests and deploys itself** (`.github/workflows/deploy.yml`).
   Job `test` runs pytest on Python 3.12 (the container's version); only if it passes, job
-  `deploy` assumes the AWS role in `vars.AWS_DEPLOY_ROLE_ARN` via GitHub OIDC and sends an
-  **SSM Run Command** to the EC2 box — not SSH, because port 22 is pinned to one IP. On the box
-  it `git fetch` + `reset --hard origin/main` + `clean -fd`, then runs `deploy/remote-deploy.sh`:
-  tag the running image `:previous` → build → `ensure_seeded()` in a throwaway container →
-  `compose up -d` → wait for `healthy`; any failure rolls back to `:previous` and the old commit.
-  The job ends with an HTTPS check (portal 200, protected 401). One-time AWS setup (OIDC
-  provider, EC2 SSM role, the deploy role — all free): `bash deploy/setup-github-deploy.sh`.
+  `deploy` SSHes to the EC2 box (port 22 is open to all IPs; key-only auth) with the repo
+  secrets `EC2_SSH_KEY` (the `edu-union-key.pem` contents) and `EC2_KNOWN_HOSTS` (pinned host
+  key, `StrictHostKeyChecking=yes`). On the box it `git fetch` + `reset --hard origin/main` +
+  `clean -fd`, then runs `deploy/remote-deploy.sh`: tag the running image `:previous` → build →
+  `ensure_seeded()` in a throwaway container → `compose up -d` → wait for `healthy`; any failure
+  rolls back to `:previous` and the old commit. The job ends with an HTTPS check (portal 200,
+  protected 401).
   Manual re-run: Actions → test-and-deploy → Run workflow.
 - On AWS: `bash deploy/provision.sh` creates everything (RDS + EC2 + security groups +
   SSH key, idempotent); `DATABASE_URL=... python scripts/migrate_to_pg.py` copies SQLite → Postgres.

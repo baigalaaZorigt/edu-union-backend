@@ -1,9 +1,8 @@
 # main руу push хийх бүрд: тест → (тэнцвэл) production руу deploy.
 #
-# Deploy нь SSH биш AWS SSM Run Command-оор явна: EC2-ийн 22 порт нэг IP-д л нээлттэй тул
-# GitHub-ийн runner (IP нь байнга солигддог) SSH-ээр хүрэхгүй. AWS эрхийг OIDC-оор богино
-# хугацаагаар авна — GitHub-д AWS түлхүүр, SSH түлхүүр хадгалахгүй.
-# Анхны тохиргоо (нэг удаа): deploy/setup-github-deploy.sh
+# Deploy нь SSH-ээр явна (EC2-ийн 22 порт бүх IP-д нээлттэй). Шаардлагатай repo secret-ууд:
+#   EC2_SSH_KEY      — edu-union-key.pem-ийн агуулга
+#   EC2_KNOWN_HOSTS  — серверийн host key (MITM-ээс хамгаална; `ssh-keygen -F <ip>`-ийн мөр)
 name: test-and-deploy
 
 on:
@@ -19,8 +18,7 @@ permissions:
   contents: read
 
 env:
-  AWS_REGION: ap-northeast-1
-  INSTANCE_ID: i-03648c2bcc4e19350
+  SSH_TARGET: ec2-user@13.196.178.202
   APP_DIR: /opt/edu-union/app
   PUBLIC_URL: https://api.fmesu.mn
 
@@ -40,54 +38,31 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     environment: production
-    permissions:
-      id-token: write                # OIDC → AWS role
-      contents: read
     steps:
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Deploy (SSM → EC2)
+      - name: SSH түлхүүр
+        env:
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          EC2_KNOWN_HOSTS: ${{ secrets.EC2_KNOWN_HOSTS }}
         run: |
-          set -euo pipefail
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$EC2_SSH_KEY" > ~/.ssh/id_deploy && chmod 600 ~/.ssh/id_deploy
+          printf '%s\n' "$EC2_KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      - name: Deploy (SSH → EC2)
+        run: |
           # Сервер дээр: кодоо origin/main руу шилжүүлээд (rsync-ийн үлдэгдлийг цэвэрлэж)
           # ШИНЭ кодын remote-deploy.sh-г ажиллуулна; хуучин commit нь rollback цэг.
+          ssh -i ~/.ssh/id_deploy -o StrictHostKeyChecking=yes -o ConnectTimeout=20 \
+              -o ServerAliveInterval=30 "$SSH_TARGET" "sudo bash -s" <<SCRIPT
+          set -euo pipefail
+          cd $APP_DIR
           G="git -c safe.directory=$APP_DIR"
-          CMDS=$(jq -nc --arg app "$APP_DIR" --arg g "$G" '[
-            "set -euo pipefail",
-            "cd \($app)",
-            "PREV=$(\($g) rev-parse HEAD)",
-            "\($g) fetch --quiet origin main",
-            "\($g) reset --hard origin/main",
-            "\($g) clean -fd",
-            "bash deploy/remote-deploy.sh \"$PREV\""
-          ]')
-          CID=$(aws ssm send-command \
-            --instance-ids "$INSTANCE_ID" \
-            --document-name AWS-RunShellScript \
-            --comment "deploy ${GITHUB_SHA::7}" \
-            --parameters "{\"commands\":$CMDS,\"executionTimeout\":[\"1800\"]}" \
-            --query Command.CommandId --output text)
-          echo "SSM command: $CID"
-
-          STATUS=Pending
-          for _ in $(seq 1 180); do                  # ≤ 30 мин
-            sleep 10
-            STATUS=$(aws ssm get-command-invocation --command-id "$CID" \
-                       --instance-id "$INSTANCE_ID" --query Status --output text 2>/dev/null || echo Pending)
-            case "$STATUS" in Pending|InProgress|Delayed) continue ;; *) break ;; esac
-          done
-
-          echo "----- сервер дээрх гаралт -----"
-          aws ssm get-command-invocation --command-id "$CID" --instance-id "$INSTANCE_ID" \
-            --query StandardOutputContent --output text || true
-          echo "----- stderr -----"
-          aws ssm get-command-invocation --command-id "$CID" --instance-id "$INSTANCE_ID" \
-            --query StandardErrorContent --output text || true
-          echo "Төлөв: $STATUS"
-          [ "$STATUS" = Success ]
+          PREV=\$(\$G rev-parse HEAD)
+          \$G fetch --quiet origin main
+          \$G reset --hard origin/main
+          \$G clean -fd
+          bash deploy/remote-deploy.sh "\$PREV" </dev/null
+          SCRIPT
 
       - name: HTTPS шалгалт
         run: |

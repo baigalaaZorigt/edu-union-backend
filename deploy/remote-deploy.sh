@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# EC2 дээр ажиллах deploy (root-оор — AWS SSM Run Command дуудна, .github/workflows/deploy.yml).
+# EC2 дээр ажиллах deploy (root-оор — .github/workflows/deploy.yml нь SSH + sudo-гоор дуудна).
 #
 #   bash deploy/remote-deploy.sh <prev_commit>
 #
-# Код аль хэдийн origin/main руу шилжсэн байна (workflow-ийн SSM команд fetch + reset хийгээд
+# Код аль хэдийн origin/main руу шилжсэн байна (workflow-ийн SSH команд fetch + reset хийгээд
 # энэ скриптийг ШИНЭ кодоос нь ажиллуулна). <prev_commit> нь буцаах (rollback) цэг.
 #
 # Дараалал — алхам бүр амжилтгүй бол сайт хуучин контейнер дээрээ үлдэнэ:
@@ -43,7 +43,7 @@ say "2/5 Build"
 docker compose build || rollback "build амжилтгүй"
 
 say "3/5 ensure_seeded() — түр контейнерт"
-docker compose run --rm --no-deps app \
+docker compose run --rm --no-deps -T app \
   python -c "from core.db import ensure_seeded; ensure_seeded(); print('ensure_seeded OK')" \
   || rollback "ensure_seeded амжилтгүй (схем/migration)"
 
