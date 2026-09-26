@@ -15,15 +15,21 @@
 """
 from flask import Blueprint, jsonify
 
-from db import get_db
-from helpers import rows
-from scope_core import org_condition, member_condition
+from core.db import get_db
+from core.helpers import rows
+from core.scope_core import org_condition, member_condition
 
 bp = Blueprint("admin_dashboard", __name__)
 
 
 def _where(cond):
+    """Хамрах хүрээний нөхцөлийг WHERE болгоно (нөхцөлгүй бол хоосон)."""
     return (" WHERE " + cond) if cond else ""
+
+
+def _and(cond):
+    """Хамрах хүрээний нөхцөлийг байгаа WHERE-д залгана (нөхцөлгүй бол хоосон)."""
+    return (" AND " + cond) if cond else ""
 
 
 @bp.route("/api/admin/dashboard/summary", methods=["GET"])
@@ -44,10 +50,10 @@ def summary():
     by_category = rows(conn.execute(
         "SELECT sc.id AS school_category_id, sc.short_name, sc.full_name, "
         "  (SELECT COUNT(*) FROM organization o "
-        f"    WHERE o.school_category_id = sc.id{' AND ' + org_cond if org_cond else ''}) "
+        f"    WHERE o.school_category_id = sc.id{_and(org_cond)}) "
         "    AS organization_count, "
         "  (SELECT COUNT(*) FROM member m JOIN organization o ON o.id = m.organization_id "
-        f"    WHERE o.school_category_id = sc.id{' AND ' + mem_cond if mem_cond else ''}) "
+        f"    WHERE o.school_category_id = sc.id{_and(mem_cond)}) "
         "    AS member_count "
         "FROM school_category sc ORDER BY sc.id",
         org_args + mem_args).fetchall())

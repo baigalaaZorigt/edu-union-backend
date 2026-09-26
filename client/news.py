@@ -1,6 +1,6 @@
 """Мэдээ, зарын ПОРТАЛ тал (Blueprint).
 
-Замын угтвар: /api/portal/news... — НЭЭЛТТЭЙ (auth.py-ийн PUBLIC_PREFIXES):
+Замын угтвар: /api/portal/news... — НЭЭЛТТЭЙ (core/auth.py-ийн PUBLIC_PREFIXES):
 зочин нэвтрэхгүйгээр мэдээг уншина. Зөвхөн `status='published'` мэдээ харагдана —
 ноорог мэдээ 404 буцаана.
 
@@ -12,9 +12,9 @@
 """
 from flask import Blueprint, jsonify, request
 
-from db import get_db
-from news_core import (
-    MAX_PER_PAGE, NEWS_CATEGORIES, bad, block_list, public_news, require_news,
+from core.db import get_db
+from core.news_core import (
+    block_list, check_category, news_page, public_news, require_news,
 )
 
 bp = Blueprint("portal_news", __name__)
@@ -31,30 +31,15 @@ def list_news():
     where, args = ["deleted_at IS NULL", "status='published'"], []
     category = request.args.get("category")
     if category:
-        if category not in NEWS_CATEGORIES:
-            bad(conn, "category буруу. Сонголт: " + ", ".join(NEWS_CATEGORIES))
         where.append("category=?")
-        args.append(category)
+        args.append(check_category(conn, category))
     search = (request.args.get("search") or "").strip()
     if search:
         where.append("(title LIKE ? OR summary LIKE ?)")
         args += [f"%{search}%"] * 2
-    clause = " WHERE " + " AND ".join(where)
-
-    total = conn.execute("SELECT COUNT(*) FROM news" + clause, args).fetchone()[0]
-    try:
-        page = max(1, int(request.args.get("page", 1)))
-        per_page = min(MAX_PER_PAGE, max(1, int(request.args.get("per_page", 12))))
-    except ValueError:
-        bad(conn, "page / per_page нь тоо байх ёстой")
-    data = conn.execute(
-        "SELECT * FROM news" + clause +
-        " ORDER BY COALESCE(published_at, created_at) DESC, id DESC LIMIT ? OFFSET ?",
-        args + [per_page, (page - 1) * per_page]).fetchall()
+    out = news_page(conn, where, args, default_per_page=12)
     conn.close()
-    return jsonify(data=[public_news(r) for r in data], total=total,
-                   per_page=per_page, current_page=page,
-                   pages=(total + per_page - 1) // per_page)
+    return jsonify(out)
 
 
 @bp.route("/api/portal/news/<int:nid>", methods=["GET"])

@@ -160,7 +160,7 @@ cat <<EOF
 
   Дараагийн алхам:
    1) Өгөгдлөө зөөх (энэ машинаас):
-        DATABASE_URL="$DATABASE_URL" python3 migrate_to_pg.py
+        DATABASE_URL="$DATABASE_URL" python3 scripts/migrate_to_pg.py
    2) Домэйн: A бичлэгийг $IP рүү заагаад серверт:
         sudo certbot --nginx -d api.example.mn
 ============================================================

@@ -12,8 +12,9 @@ V1-д UI үүнийг ашиглахгүй тул спек зориуд орхи
 """
 from flask import Blueprint, jsonify, request
 
-from db import get_db
-from feedback_core import KINDS, bad, list_page
+from core.db import get_db
+from core.feedback_core import KINDS, list_page
+from core.helpers import fail
 from admin.content import remove_upload
 
 bp = Blueprint("admin_feedback", __name__)
@@ -28,15 +29,15 @@ def _list(kind):
 
 def _delete(kind, rid):
     """Мөрийг устгана; өргөдлийн хавсралт байвал дискнээс нь ч арилгана."""
-    table = KINDS[kind]["table"]
+    spec = KINDS[kind]
     conn = get_db()
-    row = conn.execute(f"SELECT * FROM {table} WHERE id=?", (rid,)).fetchone()
+    row = conn.execute(f"SELECT * FROM {spec['table']} WHERE id=?", (rid,)).fetchone()
     if not row:
-        bad(conn, KINDS[kind]["label"] + " олдсонгүй", 404)
-    conn.execute(f"DELETE FROM {table} WHERE id=?", (rid,))
+        fail(conn, 404, spec["label"] + " олдсонгүй")
+    conn.execute(f"DELETE FROM {spec['table']} WHERE id=?", (rid,))
     conn.commit()
     conn.close()
-    if "file_url" in KINDS[kind]["optional"]:
+    if "file_url" in spec["optional"]:
         remove_upload(row["file_url"])      # зөвхөн /uploads/content/-ийн доорхыг
     return jsonify(deleted=rid)
 

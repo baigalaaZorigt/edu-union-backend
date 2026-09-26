@@ -2,31 +2,29 @@
 
     python run.py                 # dev сервер (default порт 5001)
     FLASK_DEBUG=1 python run.py   # auto-reload/debug-тэй dev сервер
-    gunicorn run:app              # production (Render г.м.) — `app` объектыг ачаална
+    gunicorn run:app              # production (docker) — `app` объектыг ачаална
 
-Порт нь PORT орчны хувьсагчаас (Render/Heroku тохируулна), эс бөгөөс 5001.
+Порт нь PORT орчны хувьсагчаас, эс бөгөөс 5001.
 
 Бүтэц:
-  client/  — үйлчлүүлэгчийн site (засаг захиргаа + үйлдвэрчний эвлэлийн өгөгдөл)
-  admin/   — удирдлагын site (хэрэглэгч / эрх / дүр, порталын цэс ба контент)
-  db.py, helpers.py — хоёр site-ийн хуваалцсан суурь (DB, туслахууд)
+  admin/   — admin панелийн API (токен + эрх): засаг захиргаа, ҮЭ-ийн өгөгдөл,
+             хэрэглэгч/эрх/дүр, порталын цэс/контент, судалгаа, мэдээ, мэдэгдэл
+  client/  — порталын нээлттэй API (токенгүй): /api/portal/..., /api/public/...
+  core/    — хоёр site-ийн хуваалцсан суурь (DB, auth, туслахууд, *_core домэйн)
+  scripts/ — гараар/cron-оор ажиллуулах скриптүүд
 """
 import os
 
 from flask import Flask, request
 
-from db import ensure_seeded
-from helpers import register_error_handlers
-from auth import require_auth, SECRET_KEY
+from core.db import ensure_seeded
+from core.helpers import register_error_handlers
+from core.auth import require_auth, SECRET_KEY
 
-# --- client site ---
-from client.admin_units import bp as admin_units_bp
-from client.union import bp as union_bp, MAX_FILE_SIZE
-from client.forms import bp as portal_forms_bp
-from client.news import bp as portal_news_bp
-from client.feedback import bp as portal_feedback_bp
-
-# --- admin site ---
+# --- admin site: токен + эрх шаардана (admin панел) ---
+from admin.admin_units import bp as admin_units_bp
+from admin.union import bp as union_bp
+from admin.union.member_file import MAX_FILE_SIZE
 from admin.users import bp as users_bp
 from admin.content import bp as content_bp
 from admin.forms import bp as admin_forms_bp
@@ -35,6 +33,31 @@ from admin.settings import bp as portal_settings_bp
 from admin.feedback import bp as admin_feedback_bp
 from admin.notifications import bp as notifications_bp
 from admin.dashboard import bp as admin_dashboard_bp
+# --- client site: порталын нээлттэй (токенгүй) API ---
+from client.forms import bp as portal_forms_bp
+from client.news import bp as portal_news_bp
+from client.feedback import bp as portal_feedback_bp
+from client.settings import bp as public_settings_bp
+
+# Бүртгэх blueprint-ууд. ШИНЭ blueprint-ийг энд нэмэхгүй бол түүний маршрут харагдахгүй.
+BLUEPRINTS = (
+    # Admin site — токен + эрх (admin панел)
+    admin_units_bp,       # /api/au1|au2|au3, /api/school_category
+    union_bp,             # /api/horoo|organization|member|contact|...
+    users_bp,             # /api/permission|role|user, /api/login, /api/me
+    content_bp,           # /api/menu|page|page_block|upload
+    admin_forms_bp,       # /api/admin/... — судалгаа/санал асуулга
+    admin_news_bp,        # /api/admin/news... — мэдээ, зар
+    portal_settings_bp,   # /api/portal_settings — порталын тохиргоо
+    admin_feedback_bp,    # /api/admin/suggestions|complaints
+    notifications_bp,     # /api/admin/notifications + /api/notifications
+    admin_dashboard_bp,   # /api/admin/dashboard/summary
+    # Client site — портал, токенгүй (core/auth.py-ийн PUBLIC_PREFIXES)
+    portal_forms_bp,      # /api/portal/forms... — судалгаа бөглөх
+    portal_news_bp,       # /api/portal/news — мэдээ унших
+    portal_feedback_bp,   # /api/portal/suggestions|complaints
+    public_settings_bp,   # /api/public|portal/portal_settings
+)
 
 
 # Порталын client өөр домэйн/портоос (ж: React dev сервер :3000) хандах тул
@@ -71,34 +94,20 @@ def create_app():
     app.json.ensure_ascii = False  # Кирилл үсгийг escape хийлгүй буцаах
     app.secret_key = SECRET_KEY
     # Хүсэлтийн нийт хэмжээний тааз. Файл ТУС БҮР 10 MB-аар хязгаарлагдана
-    # (client/union.py), энэ нь олон файлыг нэг дор илгээх боломж үлдээж, сервер
+    # (admin/union/member_file.py), энэ нь олон файлыг нэг дор илгээх боломж үлдээж, сервер
     # рүү хэт том хүсэлт ирэхээс хамгаална (хэтэрвэл 413 -> {"error": ...}).
     app.config["MAX_CONTENT_LENGTH"] = MAX_FILE_SIZE * 5
 
     # Нэвтрэлт + эрхийн хяналт: /api/login болон /api/portal/, /uploads/-аас бусад
-    # бүх хүсэлтэд токен + эрх шаардана (auth.py-ийн PUBLIC_* -ыг үзнэ үү).
+    # бүх хүсэлтэд токен + эрх шаардана (core/auth.py-ийн PUBLIC_* -ыг үзнэ үү).
     app.before_request(require_auth)
     app.after_request(add_cors_headers)   # браузерын client өөр домэйнээс хандана
 
-    # Client site — засаг захиргаа + үйлдвэрчний эвлэл
-    app.register_blueprint(admin_units_bp)
-    app.register_blueprint(union_bp)
-    app.register_blueprint(portal_forms_bp)   # /api/portal/... — судалгаа бөглөх
-    app.register_blueprint(portal_news_bp)    # /api/portal/news — мэдээ унших (токенгүй)
-    app.register_blueprint(portal_feedback_bp)  # /api/portal/suggestions|complaints (токенгүй)
+    for blueprint in BLUEPRINTS:
+        app.register_blueprint(blueprint)
 
-    # Admin site — хэрэглэгчийн удирдлага + порталын цэс/контент
-    app.register_blueprint(users_bp)
-    app.register_blueprint(content_bp)
-    app.register_blueprint(admin_forms_bp)    # /api/admin/... — судалгаа/санал асуулга
-    app.register_blueprint(admin_news_bp)     # /api/admin/news... — мэдээ, зар
-    app.register_blueprint(portal_settings_bp)  # /api/portal_settings — порталын тохиргоо
-    app.register_blueprint(admin_feedback_bp)   # /api/admin/suggestions|complaints
-    app.register_blueprint(notifications_bp)    # /api/admin/notifications + /api/notifications
-    app.register_blueprint(admin_dashboard_bp)  # /api/admin/dashboard/summary
-
-    register_error_handlers(app)  # 400/401/403/404/409 -> {"error": ...} JSON
-    ensure_seeded()               # схем + хоосон бол автоматаар seed (Render дээр ч ажиллана)
+    register_error_handlers(app)  # 400/401/403/404/405/409/413/422 -> {"error": ...} JSON
+    ensure_seeded()               # схем + хоосон хүснэгтийг автоматаар seed хийнэ
     return app
 
 
@@ -106,7 +115,7 @@ app = create_app()
 
 
 if __name__ == "__main__":
-    # Render/Heroku зэрэг платформ PORT-г тохируулна; локал дээр 5001.
+    # PORT орчны хувьсагч эсвэл 5001.
     # debug нь зөвхөн FLASK_DEBUG=1 үед асна (production-д унтраалттай байх ёстой).
     app.run(
         host="0.0.0.0",

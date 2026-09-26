@@ -13,13 +13,13 @@ URL-г ковер эсвэл блокийн `url` талбарт хадгалн�
 """
 from flask import Blueprint, jsonify, request, abort, g
 
-from db import get_db
-from helpers import require, json_body
-from admin.content import remove_upload
-from news_core import (
-    BLOCK_FIELDS, BLOCK_TYPES, MAX_PER_PAGE, NEWS_FIELDS, NEWS_STATUSES,
-    bad, block_list, check_category, now_str, public_block, public_news, require_news,
+from core.db import get_db
+from core.helpers import require, json_body, pick, insert_row, update_row, now_str
+from core.news_core import (
+    BLOCK_FIELDS, BLOCK_TYPES, NEWS_FIELDS, NEWS_STATUSES, bad, block_list,
+    check_category, news_page, public_block, public_news, require_news,
 )
+from admin.content import remove_upload
 
 bp = Blueprint("admin_news", __name__)
 
@@ -53,17 +53,11 @@ def _block_or_404(conn, bid):
 
 def _insert_block(conn, news_id, btype, values):
     """Блок нэмээд шинэ мөрийг нь буцаана (эрэмбийг автоматаар төгсгөлд тавина)."""
-    cols = ["news_id", "type", "sort_order"]
-    args = [news_id, btype,
-            values.get("sort_order") or _next_sort(conn, news_id)]
-    for f in BLOCK_FIELDS[btype]:
-        cols.append(f)
-        args.append(values.get(f))
-    ph = ", ".join("?" * len(cols))
-    cur = conn.execute(
-        f"INSERT INTO news_block({', '.join(cols)}) VALUES ({ph})", args)
-    return conn.execute(
-        "SELECT * FROM news_block WHERE id=?", (cur.lastrowid,)).fetchone()
+    row = {"news_id": news_id, "type": btype,
+           "sort_order": values.get("sort_order") or _next_sort(conn, news_id)}
+    row.update({f: values.get(f) for f in BLOCK_FIELDS[btype]})
+    bid = insert_row(conn, "news_block", row)
+    return conn.execute("SELECT * FROM news_block WHERE id=?", (bid,)).fetchone()
 
 
 # ============================ news (Мэдээ) ============================
@@ -85,23 +79,9 @@ def list_news():
     if search:
         where.append("(title LIKE ? OR summary LIKE ? OR author LIKE ?)")
         args += [f"%{search}%"] * 3
-    clause = " WHERE " + " AND ".join(where)
-
-    total = conn.execute("SELECT COUNT(*) FROM news" + clause, args).fetchone()[0]
-    try:
-        page = max(1, int(request.args.get("page", 1)))
-        per_page = min(MAX_PER_PAGE, max(1, int(request.args.get("per_page", 20))))
-    except ValueError:
-        bad(conn, "page / per_page нь тоо байх ёстой")
-    # Нийтлэгдсэн нь эхэлж, дараа нь шинэ мэдээ дээшээ.
-    data = conn.execute(
-        "SELECT * FROM news" + clause +
-        " ORDER BY COALESCE(published_at, created_at) DESC, id DESC LIMIT ? OFFSET ?",
-        args + [per_page, (page - 1) * per_page]).fetchall()
+    out = news_page(conn, where, args, default_per_page=20)
     conn.close()
-    return jsonify(data=[public_news(r) for r in data], total=total,
-                   per_page=per_page, current_page=page,
-                   pages=(total + per_page - 1) // per_page)
+    return jsonify(out)
 
 
 @bp.route("/api/admin/news/<int:nid>", methods=["GET"])
@@ -123,15 +103,15 @@ def create_news():
     category = check_category(conn, data["category"])
     status = _check_status(conn, data.get("status") or "draft")
     now = now_str()
-    cur = conn.execute(
-        "INSERT INTO news(title, category, author, cover_image_url, summary, status, "
-        "published_at, created_by, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)",
-        (data["title"], category, data.get("author"), data.get("cover_image_url"),
-         data.get("summary"), status,
-         now if status == "published" else None,      # нийтэлмэгц огноог сервер тавина
-         _user_id(), now, now))
+    nid = insert_row(conn, "news", {
+        "title": data["title"], "category": category, "author": data.get("author"),
+        "cover_image_url": data.get("cover_image_url"), "summary": data.get("summary"),
+        "status": status,
+        "published_at": now if status == "published" else None,  # огноог сервер тавина
+        "created_by": _user_id(), "created_at": now, "updated_at": now,
+    })
     conn.commit()
-    row = require_news(conn, cur.lastrowid)
+    row = require_news(conn, nid)
     out = public_news(row, blocks=[])
     conn.close()
     return jsonify(out), 201
@@ -147,19 +127,16 @@ def update_news(nid):
         check_category(conn, data["category"])
     if "status" in data:
         _check_status(conn, data["status"])
-    fields = [f for f in NEWS_FIELDS if f in data]
-    if not fields:
+    values = pick(data, NEWS_FIELDS)
+    if not values:
         bad(conn, "Шинэчлэх талбар алга. Сонголт: " + ", ".join(NEWS_FIELDS))
-    values = [data[f] for f in fields]
     now = now_str()
     # Ноорогоос нийтлэгдсэн рүү шилжихэд л published_at-г тавина (дахин нийтлэхэд
     # анхны огноо нь хадгалагдана — портал дээрх эрэмбэ хөдлөхгүй).
     if data.get("status") == "published" and not current["published_at"]:
-        fields.append("published_at")
-        values.append(now)
-    conn.execute(
-        f"UPDATE news SET {', '.join(f + '=?' for f in fields)}, "
-        "updated_by=?, updated_at=? WHERE id=?", values + [_user_id(), now, nid])
+        values["published_at"] = now
+    values.update(updated_by=_user_id(), updated_at=now)
+    update_row(conn, "news", nid, values)
     conn.commit()
     row = require_news(conn, nid)
     out = public_news(row, blocks=block_list(conn, nid))
@@ -266,17 +243,15 @@ def update_block(bid):
     if row["type"] == "video" and "youtube_url" in values and "url" not in values:
         values["url"] = values["youtube_url"]
     allowed = BLOCK_FIELDS[row["type"]] + ("sort_order",)
-    fields = [f for f in allowed if f in values]
-    if not fields:
+    changes = pick(values, allowed)
+    if not changes:
         bad(conn, "Шинэчлэх талбар алга. Сонголт: " + ", ".join(allowed))
-    conn.execute(
-        f"UPDATE news_block SET {', '.join(f + '=?' for f in fields)} WHERE id=?",
-        [values[f] for f in fields] + [bid])
+    update_row(conn, "news_block", bid, changes)
     conn.commit()
     new = conn.execute("SELECT * FROM news_block WHERE id=?", (bid,)).fetchone()
     out = public_block(new)
     conn.close()
-    if "url" in fields and row["url"] != new["url"]:
+    if "url" in changes and row["url"] != new["url"]:
         remove_upload(row["url"])       # солигдсон хуучин файлыг арилгана
     return jsonify(out)
 

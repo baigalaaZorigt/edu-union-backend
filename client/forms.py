@@ -15,28 +15,17 @@
 төрлийн зөв эсэх).
 Бүх шалгалт ЭХЛЭЭД хийгдэж, дараа нь илгээмж + хариултууд нэг гүйлгээгээр бичигдэнэ.
 """
-from flask import Blueprint, jsonify, request, abort, g
+from flask import Blueprint, jsonify, request, abort
 
-from db import get_db
-from helpers import json_body
-from forms_core import (
-    CHOICE_TYPES, bad, document_list, form_results, has_submitted, is_open,
-    load_settings, now_str, public_form, question_list, require_form,
-    submission_count,
+from core.db import get_db
+from core.helpers import json_body, insert_row
+from core.forms_core import (
+    CHOICE_TYPES, bad, current_user_id, document_list, form_results, has_submitted,
+    is_open, load_settings, now_str, public_form, question_list, require_form,
+    scale_range, submission_count,
 )
 
 bp = Blueprint("portal_forms", __name__)
-
-
-def _uid():
-    """Одоо нэвтэрсэн хэрэглэгчийн id, ЗОЧИН бол None.
-
-    /api/portal/* нь нээлттэй (auth.py-ийн PUBLIC_PREFIXES) тул нэвтрээгүй хүн ч
-    хандана — тэр үед g.user огт байхгүй. Токен ирсэн бол auth.py-ийн
-    _optional_user() түүнийг аль хэдийн ачаалсан байна.
-    """
-    user = getattr(g, "user", None)
-    return user["id"] if user else None
 
 
 # ============================ Жагсаалт / дэлгэрэнгүй ============================
@@ -58,11 +47,8 @@ def list_forms():
         "SELECT f.*, (SELECT COUNT(*) FROM form_question q WHERE q.form_id=f.id) "
         "AS total_questions, (SELECT COUNT(*) FROM form_submission s WHERE s.form_id=f.id "
         "AND s.user_id=?) AS mine FROM form f WHERE " + " AND ".join(where) +
-        " ORDER BY f.id DESC", [_uid()] + args).fetchall()
-    docs = {}
-    for r in data:
-        if r["type"] == "poll":
-            docs[r["id"]] = document_list(conn, r["id"])
+        " ORDER BY f.id DESC", [current_user_id()] + args).fetchall()
+    docs = {r["id"]: document_list(conn, r["id"]) for r in data if r["type"] == "poll"}
     conn.close()
     out = [public_form(r, total_questions=r["total_questions"],
                        has_submitted=bool(r["mine"]),
@@ -79,7 +65,7 @@ def get_form_detail(fid):
     row = require_form(conn, fid)
     if row["status"] == "draft":
         bad(conn, "Энэ маягт хараахан нийтлэгдээгүй байна", 404)
-    mine = has_submitted(conn, fid, _uid())
+    mine = has_submitted(conn, fid, current_user_id())
     out = public_form(row,
                       questions=question_list(conn, fid),
                       documents=document_list(conn, fid),
@@ -99,7 +85,7 @@ def get_public_results(fid):
     row = require_form(conn, fid)
     if not row["show_results"]:
         bad(conn, "Энэ маягтын үр дүнг нийтэд харуулахгүй", 403)
-    if row["status"] != "closed" and not has_submitted(conn, fid, _uid()):
+    if row["status"] != "closed" and not has_submitted(conn, fid, current_user_id()):
         bad(conn, "Үр дүнг зөвхөн бөглөсний дараа харна", 403)
     data = form_results(conn, fid)
     conn.close()
@@ -139,8 +125,7 @@ def _prepare_answer(conn, item, question, options):
             value = int(value)
         except (TypeError, ValueError):
             bad(conn, f"'{title}': numeric_value нь бүхэл тоо байх ёстой")
-        settings = load_settings(question["settings"]) or {}
-        lo, hi = settings.get("min", 1), settings.get("max", 5)
+        lo, hi = scale_range(load_settings(question["settings"]))
         if value < lo or value > hi:
             bad(conn, f"'{title}': үнэлгээ {lo}-{hi} хооронд байна")
         return {"numeric_value": value}
@@ -176,7 +161,7 @@ def submit_form(fid):
         bad(conn, f"Бөглөх хугацаа {form['start_at']}-аас эхэлнэ")
     if form["end_at"] and now > form["end_at"]:
         bad(conn, f"Бөглөх хугацаа {form['end_at']}-д дууссан")
-    uid = _uid()
+    uid = current_user_id()
     # one_response нь НЭВТЭРСЭН хэрэглэгчид л үйлчилнэ — зочны хувьд хэн болохыг
     # тогтоох боломжгүй (спекийн V1-д IP/төхөөрөмжийн хязгаарлалт шаардлагагүй).
     if form["one_response"] and uid and has_submitted(conn, fid, uid):
@@ -195,23 +180,23 @@ def submit_form(fid):
         options.setdefault(o["question_id"], set()).add(o["id"])
 
     # 1) Бүх хариултыг шалгаж бэлдэнэ (нэг нь ч буруу бол юу ч бичигдэхгүй)
-    prepared = []
+    prepared, seen = [], set()
     for item in answers:
         if not isinstance(item, dict) or not str(item.get("question_id", "")).isdigit():
             bad(conn, "answers доторх бичлэг бүр question_id-тай байна")
         qid = int(item["question_id"])
         if qid not in questions:
             bad(conn, f"Энэ маягтад харьяалагдахгүй асуулт: {qid}")
-        if any(p[0] == qid for p in prepared):
+        if qid in seen:
             bad(conn, f"Нэг асуултад хоёр хариулт илгээжээ: {qid}")
         value = _prepare_answer(conn, item, questions[qid], options.get(qid, set()))
-        if value is not None:
+        if value is not None:               # алгассан (хоосон) хариулт давхардалд тооцогдохгүй
+            seen.add(qid)
             prepared.append((qid, value))
 
     # 2) Заавал хариулах асуултууд бүрэн эсэх
-    answered = {qid for qid, _ in prepared}
     missing = [q["title"] for q in questions.values()
-               if q["is_required"] and q["id"] not in answered]
+               if q["is_required"] and q["id"] not in seen]
     if missing:
         bad(conn, "Заавал хариулах асуулт дутуу: " + ", ".join(missing))
     if not prepared:
@@ -219,19 +204,15 @@ def submit_form(fid):
 
     # 3) Илгээмж + хариултуудыг нэг гүйлгээгээр хадгална
     try:
-        cur = conn.execute(
-            "INSERT INTO form_submission(form_id, user_id, submitted_at, created_at) "
-            "VALUES (?,?,?,?)", (fid, uid, now, now))
-        sid = cur.lastrowid
+        sid = insert_row(conn, "form_submission", {
+            "form_id": fid, "user_id": uid, "submitted_at": now, "created_at": now})
         for qid, value in prepared:
-            acur = conn.execute(
-                "INSERT INTO form_answer(submission_id, question_id, text_value, "
-                "numeric_value, created_at) VALUES (?,?,?,?,?)",
-                (sid, qid, value.get("text_value"), value.get("numeric_value"), now))
+            aid = insert_row(conn, "form_answer", {
+                "submission_id": sid, "question_id": qid,
+                "text_value": value.get("text_value"),
+                "numeric_value": value.get("numeric_value"), "created_at": now})
             for oid in value.get("option_ids", []):
-                conn.execute(
-                    "INSERT INTO form_answer_option(answer_id, option_id) VALUES (?,?)",
-                    (acur.lastrowid, oid))
+                insert_row(conn, "form_answer_option", {"answer_id": aid, "option_id": oid})
         conn.commit()
     except Exception:
         conn.rollback()

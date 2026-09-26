@@ -10,8 +10,8 @@ upload маршрут хэрэггүй (спек §3).
 """
 from flask import Blueprint, jsonify, request
 
-from db import get_db
-from feedback_core import KINDS, insert, validate
+from core.db import get_db
+from core.feedback_core import KINDS, insert, validate
 
 bp = Blueprint("portal_feedback", __name__)
 
