@@ -4,13 +4,13 @@ import os
 import uuid
 from datetime import datetime, timezone
 
-from flask import jsonify, request, abort, send_file
+from flask import jsonify, request, abort
 
 from core.db import get_db
 from core.helpers import insert_row, json_body, rows
 
 from admin.union import bp
-from admin.union.common import (UPLOAD_DIR, _arg_filters, _delete_by_id, _get_one, _list_rows,
+from admin.union.common import (MEMBER_STORE, _arg_filters, _delete_by_id, _get_one, _list_rows,
                                 _purge_orphan_files, _require_row, _update_by_id, _where)
 
 
@@ -47,12 +47,10 @@ def _validate_pdf(f):
 
 
 def _save_pdf(f, member_id):
-    """Файлыг uploads/member/<member_id>/<uuid>.pdf болгож хадгаад stored_name-г буцаана."""
-    folder = os.path.join(UPLOAD_DIR, str(member_id))
-    os.makedirs(folder, exist_ok=True)
-    stored = f"{uuid.uuid4().hex}.pdf"
-    f.save(os.path.join(folder, stored))
-    return os.path.join(str(member_id), stored)
+    """Файлыг `<member_id>/<uuid>.pdf` нэрээр (S3 эсвэл диск) хадгалаад stored_name-г буцаана."""
+    stored = os.path.join(str(member_id), f"{uuid.uuid4().hex}.pdf")
+    MEMBER_STORE.save(stored.replace(os.sep, "/"), f, "application/pdf")
+    return stored
 
 
 @bp.route("/api/member_file", methods=["GET"])
@@ -74,11 +72,11 @@ def download_member_file(fid):
     conn.close()
     if not row:
         abort(404, description=NOT_FOUND)
-    path = os.path.join(UPLOAD_DIR, row["stored_name"])
-    if not os.path.isfile(path):
+    resp = MEMBER_STORE.send(row["stored_name"].replace(os.sep, "/"), "application/pdf",
+                             download_name=row["file_name"])
+    if resp is None:
         abort(404, description="Файлын агуулга дискнээс олдсонгүй")
-    return send_file(path, mimetype="application/pdf",
-                     as_attachment=True, download_name=row["file_name"])
+    return resp
 
 
 @bp.route("/api/member_file", methods=["POST"])

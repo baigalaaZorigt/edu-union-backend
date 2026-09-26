@@ -3,11 +3,11 @@
 import os
 import uuid
 
-from flask import jsonify, request, abort, send_from_directory
+from flask import jsonify, request, abort
 
 from admin.content import bp
 from admin.content.storage import (DOC_TYPES, IMAGE_TYPES, MAX_DOC_SIZE, MAX_IMAGE_SIZE,
-                                   UPLOAD_DIR, UPLOAD_URL_PREFIX)
+                                   STORE, UPLOAD_URL_PREFIX)
 
 
 # ===================== upload (Файл байршуулах) =====================
@@ -47,9 +47,8 @@ def upload():
     if not f:
         abort(400, description="Файл алга — 'file' талбараар илгээнэ")
     name, ext, mime, size = _validate_upload(f)
-    os.makedirs(UPLOAD_DIR, exist_ok=True)
     stored = f"{uuid.uuid4().hex}.{ext}"
-    f.save(os.path.join(UPLOAD_DIR, stored))
+    STORE.save(stored, f, mime)
     return jsonify(url=UPLOAD_URL_PREFIX + stored,
                    name=name, mime_type=mime, size=size), 201
 
@@ -60,7 +59,7 @@ def serve_upload(stored_name):
 
     auth.py-ийн PUBLIC_PREFIXES энэ замыг нээлттэй болгодог.
     """
-    name = os.path.basename(stored_name)
-    if not os.path.isfile(os.path.join(UPLOAD_DIR, name)):
+    resp = STORE.send(os.path.basename(stored_name))
+    if resp is None:
         abort(404, description="Файл олдсонгүй")
-    return send_from_directory(UPLOAD_DIR, name)
+    return resp

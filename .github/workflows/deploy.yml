@@ -31,7 +31,7 @@ jobs:
         with:
           python-version: "3.12"     # production контейнертэй ижил (Dockerfile)
           cache: pip
-      - run: pip install -r requirements.txt pytest
+      - run: pip install -r requirements.txt pytest "moto[s3]"
       - run: python -m pytest tests -q
 
   deploy:

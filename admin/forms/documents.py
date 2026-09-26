@@ -3,12 +3,12 @@
 import os
 import uuid
 
-from flask import jsonify, request, abort, send_from_directory
+from flask import jsonify, request, abort
 
 from core.db import get_db
 from core.helpers import insert_row
 from core.forms_core import (
-    UPLOAD_DIR, UPLOAD_URL_PREFIX, bad, now_str, public_document, document_list,
+    STORE, UPLOAD_URL_PREFIX, bad, now_str, public_document, document_list,
     remove_upload, require_form, validate_pdf,
 )
 
@@ -37,12 +37,11 @@ def upload_document(fid):
     checked = [validate_pdf(f) for f in files]
     conn = get_db()
     require_form(conn, fid)
-    os.makedirs(UPLOAD_DIR, exist_ok=True)
     now = now_str()
     new_ids = []
     for f, (name, size) in zip(files, checked):
         stored = f"{uuid.uuid4().hex}.pdf"
-        f.save(os.path.join(UPLOAD_DIR, stored))
+        STORE.save(stored, f, "application/pdf")
         new_ids.append(insert_row(conn, "form_document", {
             "form_id": fid, "file_name": name, "file_path": UPLOAD_URL_PREFIX + stored,
             "mime_type": "application/pdf", "file_size": size, "created_at": now}))
@@ -73,8 +72,7 @@ def serve_form_document(stored_name):
 
     auth.py-ийн PUBLIC_PREFIXES ("/uploads/") энэ замыг нээлттэй болгодог.
     """
-    path = os.path.join(UPLOAD_DIR, os.path.basename(stored_name))
-    if not os.path.isfile(path):
+    resp = STORE.send(os.path.basename(stored_name), mimetype="application/pdf")
+    if resp is None:
         abort(404, description="Файл олдсонгүй")
-    return send_from_directory(UPLOAD_DIR, os.path.basename(stored_name),
-                               mimetype="application/pdf")
+    return resp

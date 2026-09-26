@@ -13,7 +13,8 @@ RUN pip install -r requirements.txt
 
 COPY . .
 
-# Оруулсан файлууд контейнерийн ГАДНА (EC2-ийн диск) хадгалагдана — /data нь volume
+# Production-д файлууд S3-т (S3_BUCKET, /opt/edu-union/.env) — доорх хавтсууд нь зөвхөн
+# S3_BUCKET тохируулаагүй үеийн нөөц горим ба хуучин файлыг S3 руу зөөх скриптэд хэрэгтэй.
 ENV UPLOAD_DIR=/data/uploads/member \
     CONTENT_UPLOAD_DIR=/data/uploads/content \
     FORM_UPLOAD_DIR=/data/uploads/form \
@@ -23,6 +24,8 @@ EXPOSE 8000
 
 # --preload: аппыг мастер процесс дээр НЭГ УДАА ачаалж, дараа нь салаална.
 # ensure_seeded() ажилтан бүр дээр давхар ажиллахаас (seed давхардахаас) сэргийлнэ.
+# Лог: файл бичихгүй — stdout/stderr -> Docker awslogs -> CloudWatch. gunicorn-ы access
+# log-ийг унтраав: core/audit.py хэрэглэгчийн мэдээлэлтэй JSON мөрийг оронд нь бичдэг.
 CMD ["gunicorn", "run:app", "--bind", "0.0.0.0:8000", \
      "--workers", "3", "--timeout", "60", "--preload", \
-     "--access-logfile", "-", "--error-logfile", "-"]
+     "--error-logfile", "-"]

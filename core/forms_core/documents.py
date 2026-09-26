@@ -3,12 +3,15 @@ import os
 
 from flask import abort
 
+from core.storage import Area
+
 # --- Санал асуулгын PDF (form_document) ---
 # Порталын PDF viewer толгой дамжуулж чаддаггүй тул байршуулсан файлыг
 # /uploads/form/ дороос токенгүй үйлчилнэ (auth.py-ийн PUBLIC_PREFIXES).
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # repo-ийн үндэс
 UPLOAD_DIR = os.environ.get("FORM_UPLOAD_DIR", os.path.join(BASE_DIR, "uploads", "form"))
 UPLOAD_URL_PREFIX = "/uploads/form/"
+STORE = Area("form", UPLOAD_DIR)       # S3 (S3_BUCKET) эсвэл FORM_UPLOAD_DIR
 MAX_PDF_SIZE = 20 * 1024 * 1024            # PDF ≤ 20 MB
 PDF_MAGIC = b"%PDF-"
 
@@ -49,12 +52,7 @@ def document_list(conn, form_id):
 
 
 def remove_upload(file_path):
-    """Байршуулсан PDF-г дискнээс арилгана (зөвхөн өөрсдийн угтвартай замыг)."""
+    """Байршуулсан PDF-г сангаас (S3/диск) арилгана (зөвхөн өөрсдийн угтвартай замыг)."""
     if not file_path or not file_path.startswith(UPLOAD_URL_PREFIX):
         return
-    path = os.path.join(UPLOAD_DIR, os.path.basename(file_path))
-    if os.path.isfile(path):
-        try:
-            os.remove(path)
-        except OSError:
-            pass        # диск дээрээс арилгаж чадаагүй ч DB-гийн мөр устсан хэвээр
+    STORE.delete(os.path.basename(file_path))

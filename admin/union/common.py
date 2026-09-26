@@ -10,13 +10,15 @@ from flask import abort, jsonify, request
 
 from core.db import get_db
 from core.helpers import fail, insert_row, rows, update_row
+from core.storage import Area
 
 
 # --- Гишүүний хавсралт файл (батламж г.м.) ---
-# Диск дээр uploads/member/ дотор хадгална (UPLOAD_DIR орчны хувьсагчаар өөрчилж
-# болно — тогтвортой disk руу заахад хэрэгтэй). Хэмжээ/төрлийн шалгалт member_file.py-д.
+# Production-д S3-т (core/storage.py, S3_BUCKET), локал/тестэд UPLOAD_DIR хавтсанд
+# `<member_id>/<uuid>.pdf` нэрээр хадгална. Хэмжээ/төрлийн шалгалт member_file.py-д.
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 UPLOAD_DIR = os.environ.get("UPLOAD_DIR", os.path.join(BASE_DIR, "uploads", "member"))
+MEMBER_STORE = Area("member", UPLOAD_DIR)
 
 # --- Бүртгэлийн кодын бүтэц ---
 # Сургуулийн ангилал (2) + байгууллагын код (3)          = байгууллагын код (5)
@@ -171,17 +173,9 @@ def _purge_orphan_contacts(conn):
 
 
 def _purge_orphan_files(conn):
-    """Гишүүн (эсвэл каскадаар байгууллага/хороо) устахад үлдсэн файлыг дискнээс арилгана."""
-    if not os.path.isdir(UPLOAD_DIR):
-        return
-    keep = {r[0] for r in conn.execute("SELECT stored_name FROM member_file")}
-    for folder in os.listdir(UPLOAD_DIR):
-        path = os.path.join(UPLOAD_DIR, folder)
-        if not os.path.isdir(path):
-            continue
-        for fname in os.listdir(path):
-            if os.path.join(folder, fname) not in keep:
-                os.remove(os.path.join(path, fname))
-        if not os.listdir(path):
-            os.rmdir(path)
+    """Гишүүн (эсвэл каскадаар байгууллага/хороо) устахад үлдсэн файлыг сангаас арилгана."""
+    keep = {r[0].replace(os.sep, "/") for r in conn.execute("SELECT stored_name FROM member_file")}
+    for name in MEMBER_STORE.names():
+        if name.replace(os.sep, "/") not in keep:
+            MEMBER_STORE.delete(name)
 

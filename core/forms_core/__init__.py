@@ -38,6 +38,6 @@ from core.forms_core.results import (  # noqa: F401
     form_results, open_text_answers, results_trend,
 )
 from core.forms_core.documents import (  # noqa: F401
-    MAX_PDF_SIZE, PDF_MAGIC, UPLOAD_DIR, UPLOAD_URL_PREFIX,
+    MAX_PDF_SIZE, PDF_MAGIC, STORE, UPLOAD_DIR, UPLOAD_URL_PREFIX,
     document_list, public_document, remove_upload, validate_pdf,
 )

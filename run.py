@@ -20,6 +20,7 @@ from flask import Flask, request
 from core.db import ensure_seeded
 from core.helpers import register_error_handlers
 from core.auth import require_auth, SECRET_KEY
+from core import audit
 
 # --- admin site: токен + эрх шаардана (admin панел) ---
 from admin.admin_units import bp as admin_units_bp
@@ -104,6 +105,7 @@ def create_app():
 
     # Нэвтрэлт + эрхийн хяналт: /api/login болон /api/portal/, /uploads/-аас бусад
     # бүх хүсэлтэд токен + эрх шаардана (core/auth.py-ийн PUBLIC_* -ыг үзнэ үү).
+    audit.init_app(app)   # хүсэлт бүрийн JSON лог -> stdout -> (awslogs) CloudWatch
     app.before_request(require_auth)
     app.after_request(add_cors_headers)   # браузерын client өөр домэйнээс хандана
 

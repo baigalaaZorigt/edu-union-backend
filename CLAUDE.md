@@ -107,6 +107,8 @@ core/               # ── SHARED (хоёр site хуваалцана) ──
   helpers.py        #   rows, require, json_body, fail, pick, insert_row, update_row, now_str
   forms_core/       #   survey/poll домэйний цөм (base, questions, results, documents)
   news_core.py  scope_core.py  feedback_core.py  settings_core.py  home_core.py
+  storage.py        #   файлын сан: S3 (S3_BUCKET) эсвэл локал диск — Area(area, local_dir)
+  audit.py          #   хүсэлт бүрийн JSON лог -> stdout -> (awslogs) CloudWatch
 admin/              # ── ADMIN SITE (токен + эрх) ──
   admin_units.py    #   "admin_units": /api/au1|au2|au3, /api/school_category
   union/            #   "union": horoo, organization, member, contact, salary, references,
@@ -130,6 +132,7 @@ client/             # ── CLIENT SITE (портал, токенгүй) ──
   home.py           #   "portal_home": /api/portal/banners|partners
 scripts/
   migrate_to_pg.py  # SQLite -> Postgres хуулах
+  migrate_uploads_to_s3.py  # хуучин локал файлуудыг S3 руу (нэг удаа, идемпотент)
   send_due_notifications.py  # cron: хуваарьт мэдэгдлийг илгээх (dispatch_due)
 tests/              # pytest: conftest.py (түр DB + fixtures), test_<area>_<topic>.py,
                     #   _<area>_helpers.py (олон файлд хуваалцсан fixture/туслах)
@@ -455,6 +458,25 @@ python -m pytest tests -q      # the whole pytest suite (~460 tests, ~15 s)
   endpoint. `admin/news.py` and `admin/settings.py` import `remove_upload()` from
   `admin/content` (renamed from `_remove_upload`), so a replaced cover, a deleted block or a
   swapped logo takes its bytes off disk too, and only ever under `UPLOAD_URL_PREFIX`.
+- **The app server keeps no files and no log files** (production). `core/storage.py` is the one
+  place that stores bytes: each area (`content`, `form`, `member`) is an `Area(area, local_dir)`
+  with `save / delete / send / names`. When `S3_BUCKET` is set (production, in
+  `/opt/edu-union/.env`) everything goes to `s3://$S3_BUCKET/uploads/<area>/<name>`; unset
+  (local dev, tests) it falls back to the old `*_UPLOAD_DIR` folders, so tests and the on-disk
+  layout are unchanged. **URLs in the DB never change** — `/uploads/content/<name>`,
+  `/uploads/form/<name>` and `/api/member_file/<id>/download` still go through the app, which
+  reads the object from S3 (≤ 20 MB, into memory) and answers with the same headers as before;
+  the bucket stays fully private and member PDFs still need a token. Credentials come from the
+  EC2 instance role via IMDS (hop limit 2 so the container can reach it) — no keys in code or
+  `.env`. `tests/test_storage_s3.py` runs the S3 path against `moto`.
+  Logs: `core/audit.py` writes one JSON line per request to **stdout** (`event, method, path,
+  query, status, ms, user_id, username, ip` from `X-Forwarded-For`, `ua`; never bodies) plus
+  `login` / `login_failed` events, and skips OPTIONS and the Docker healthcheck. gunicorn's own
+  access log is off (`Dockerfile`). Docker's daemon-level `awslogs` driver ships stdout/stderr to
+  CloudWatch group `/edu-union/app` (90-day retention). One-time AWS + server setup:
+  `bash deploy/setup-s3-cloudwatch.sh` (bucket, log group, instance role, IMDS, `.env`,
+  `daemon.json`, then `scripts/migrate_uploads_to_s3.py`) — run it **after** the S3-aware code is
+  deployed. Query logs: `aws logs tail /edu-union/app --follow`, or Logs Insights on the JSON.
 - **Portal uploads are two-step.** `POST /api/upload` (multipart, `file`) validates the extension
   and size — images (jpg/jpeg/png/webp) ≤ 5 MB, documents (pdf/doc/docx/xls/xlsx) ≤ 20 MB — saves
   to `CONTENT_UPLOAD_DIR` (`uploads/content/<uuid>.<ext>`) and returns `{url, name, mime_type,

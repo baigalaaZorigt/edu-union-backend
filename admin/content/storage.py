@@ -1,15 +1,18 @@
-"""Байршуулсан файлын сан — хадгалах хавтас, хэмжээ/төрлийн хязгаар, файл устгах."""
+"""Байршуулсан файлын сан — хадгалах газар, хэмжээ/төрлийн хязгаар, файл устгах."""
 
 import os
+
+from core.storage import Area
 
 
 # --- Байршуулсан файлын сан ---
 # Зураг/файлыг эхлээд /api/upload руу илгээж, буцаж ирсэн URL-г блокод хадгална.
-# CONTENT_UPLOAD_DIR орчны хувьсагчаар өөрчилнө (Render дээр тогтвортой disk руу заа).
+# Production-д S3 (core/storage.py, S3_BUCKET); локал/тестэд CONTENT_UPLOAD_DIR хавтас.
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 UPLOAD_DIR = os.environ.get(
     "CONTENT_UPLOAD_DIR", os.path.join(BASE_DIR, "uploads", "content"))
 UPLOAD_URL_PREFIX = "/uploads/content/"     # энэ URL-ээр буцаан үйлчилнэ (токенгүй)
+STORE = Area("content", UPLOAD_DIR)
 
 MAX_IMAGE_SIZE = 5 * 1024 * 1024            # зураг ≤ 5 MB
 MAX_DOC_SIZE = 20 * 1024 * 1024             # файл ≤ 20 MB
@@ -29,16 +32,11 @@ DOC_TYPES = {
 
 
 def remove_upload(url):
-    """Бидний өөрсдийн байршуулсан файл бол дискнээс арилгана (гадаад URL-д хүрэхгүй).
+    """Бидний өөрсдийн байршуулсан файл бол сангаас (S3/диск) арилгана (гадаад URL-д хүрэхгүй).
 
     admin/news.py мөн үүнийг ашиглана — мэдээний блок/ковер зураг ч /api/upload-аар
     ирдэг тул устгах логик нэг дор байх ёстой.
     """
     if not url or not url.startswith(UPLOAD_URL_PREFIX):
         return
-    path = os.path.join(UPLOAD_DIR, os.path.basename(url))
-    if os.path.isfile(path):
-        try:
-            os.remove(path)
-        except OSError:
-            pass    # диск дээрх файл арилгаж чадаагүй ч DB-гийн мөр устсан хэвээр
+    STORE.delete(os.path.basename(url))

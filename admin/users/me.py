@@ -7,6 +7,7 @@ g.user дээр ажиллана.
 from flask import jsonify, request, abort, g
 from werkzeug.security import check_password_hash
 
+from core import audit
 from core.db import get_db
 from core.helpers import rows, require, json_body, fail, update_row
 from core.auth import make_token
@@ -25,9 +26,12 @@ def login():
     conn = get_db()
     row = conn.execute(USER_SELECT + " WHERE u.username=?", (data["username"],)).fetchone()
     if not row or not check_password_hash(row["password_hash"], data["password"]):
+        audit.event("login_failed", username=data["username"], reason="bad_credentials")
         fail(conn, 400, "Нэвтрэх нэр эсвэл нууц үг буруу")
     if not row["is_active"]:
+        audit.event("login_failed", username=data["username"], reason="inactive")
         fail(conn, 400, "Хэрэглэгчийн эрх идэвхгүй байна")
+    audit.event("login", user_id=row["id"], username=row["username"])
     out = _user_profile(conn, row)
     conn.close()
     # Дараагийн хүсэлтүүдэд ашиглах токен: Authorization: Bearer <token>
