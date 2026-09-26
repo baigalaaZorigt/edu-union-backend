@@ -35,6 +35,26 @@ def _set_role_permissions(conn, rid, permission_ids):
 
 # ======================= role (Дүр) =======================
 ROLE_DUP = "Энэ дүрийн нэр аль хэдийн бүртгэгдсэн байна"
+ROLE_FIELDS = ("name", "code", "description")
+
+
+def _role_values(conn, data, rid=None):
+    """Ирсэн талбаруудаас хадгалах утгыг бэлтгэнэ; `code`-г шалгана.
+
+    code нь заавал биш: хоосон мөр -> NULL. Хуучин DB-д багана ALTER-ээр нэмэгдсэн тул
+    DB-д UNIQUE байхгүй — давхцлыг энд шалгана (409).
+    """
+    values = {f: data[f] for f in ROLE_FIELDS if f in data}
+    if "code" in values:
+        code = values["code"]
+        if code is not None and not isinstance(code, str):
+            fail(conn, 400, "code нь текст байх ёстой")
+        code = (code or "").strip() or None
+        if code is not None and conn.execute(
+                "SELECT 1 FROM role WHERE code=? AND id<>?", (code, rid or 0)).fetchone():
+            fail(conn, 409, f"'{code}' кодтой дүр аль хэдийн бүртгэгдсэн байна")
+        values["code"] = code
+    return values
 
 
 @bp.route("/api/role", methods=["GET"])
@@ -64,9 +84,9 @@ def create_role():
     data = request.get_json(silent=True)
     require(data, ["name"])
     conn = get_db()
+    values = _role_values(conn, data)
     try:
-        rid = insert_row(conn, "role",
-                         {"name": data["name"], "description": data.get("description")})
+        rid = insert_row(conn, "role", values)
         conn.commit()
     except Exception:
         fail(conn, 409, ROLE_DUP)
@@ -84,7 +104,7 @@ def update_role(rid):
     conn = get_db()
     if not _exists(conn, "role", rid):
         fail(conn, 404, "Дүр олдсонгүй")
-    values = {f: data[f] for f in ("name", "description") if f in data}
+    values = _role_values(conn, data, rid)
     if values:
         try:
             update_row(conn, "role", rid, values)

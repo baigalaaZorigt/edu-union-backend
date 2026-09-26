@@ -18,7 +18,7 @@ SCHOOL_TYPES = tuple(SCHOOL_TYPE_CATEGORY) + (RURAL,)
 
 # Хэрэглэгчийг дүр ба бүтцийн удирдлагынх нь нэртэй хамт унших SELECT
 USER_SELECT = (
-    "SELECT u.*, r.name AS role_name, st.name AS structure_name, st.code AS structure_code "
+    "SELECT u.*, r.name AS role_name, r.code AS role_code, st.name AS structure_name, st.code AS structure_code "
     "FROM app_user u "
     "LEFT JOIN role r ON r.id = u.role_id "
     "LEFT JOIN structure st ON st.id = u.structure_id"

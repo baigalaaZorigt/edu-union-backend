@@ -25,6 +25,9 @@ _MIGRATIONS = {
     "salary_request": [
         ("salary_scale_id", "INTEGER"),
     ],
+    "role": [
+        ("code", "TEXT"),                    # ALTER-ээр UNIQUE нэмэх боломжгүй — roles.py шалгана
+    ],
     "organization": [
         ("phone1", "TEXT"),
         ("phone2", "TEXT"),

@@ -188,3 +188,35 @@ def test_user_password_reset_by_admin(api, client):
     assert client.post("/api/login", json={"username": body["username"],
                                            "password": body["password"]}).status_code == 400
     _login(client, body["username"], "Reset999")
+
+
+def test_role_code(api):
+    name = uniq("кодтой дүр")
+    code = uniq("R")
+    r = api.post("/api/role", json={"name": name, "code": f"  {code} "})
+    assert r.status_code == 201, r.get_json()
+    role = r.get_json()
+    assert role["code"] == code                       # зайг хасаж хадгална
+    rid = role["id"]
+    assert api.get(f"/api/role/{rid}").get_json()["code"] == code
+    assert next(x for x in api.get("/api/role").get_json() if x["id"] == rid)["code"] == code
+
+    # давхцал -> 409 (үүсгэх ба засах), өөрийн кодоо дахин өгөх нь зөв
+    assert api.post("/api/role", json={"name": uniq("өөр"), "code": code}).status_code == 409
+    other = api.post("/api/role", json={"name": uniq("өөр")}).get_json()
+    assert other["code"] is None                      # code заавал биш
+    assert api.patch(f"/api/role/{other['id']}", json={"code": code}).status_code == 409
+    assert api.put(f"/api/role/{rid}", json={"code": code}).status_code == 200
+
+    # буруу төрөл -> 400, хоосон мөр -> NULL
+    assert api.patch(f"/api/role/{rid}", json={"code": 12}).status_code == 400
+    r = api.patch(f"/api/role/{rid}", json={"code": ""})
+    assert r.status_code == 200 and r.get_json()["code"] is None
+
+    # хэрэглэгчийн хариунд role_code
+    api.patch(f"/api/role/{rid}", json={"code": code})
+    uid = _new_user(api, role_id=rid)[0]["id"]
+    assert api.get(f"/api/user/{uid}").get_json()["role_code"] == code
+    api.delete(f"/api/user/{uid}")
+    api.delete(f"/api/role/{rid}")
+    api.delete(f"/api/role/{other['id']}")

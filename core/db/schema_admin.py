@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS permission (
 CREATE TABLE IF NOT EXISTS role (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     name        TEXT NOT NULL UNIQUE,   -- Дүрийн нэр (admin, manager ...)
+    code        TEXT,                    -- Дүрийн код (заавал биш; давхцлыг кодоор шалгана)
     description TEXT                     -- Тайлбар
 );
 

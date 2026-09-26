@@ -522,7 +522,10 @@ python -m pytest tests -q      # the whole pytest suite (~460 tests, ~15 s)
   files checked before any is saved), bytes under `FORM_UPLOAD_DIR` (`uploads/form/<uuid>.pdf`),
   metadata in `form_document`, served token-free from `/uploads/form/` for the portal's PDF viewer.
 - **User management** (`admin/users/`): a `role` has many `permission`s (M:N via `role_permission`);
-  an `app_user` picks one `role_id` and inherits all its permissions. A user's name is stored
+  an `app_user` picks one `role_id` and inherits all its permissions. A `role` also has an optional
+  `code` (free text, blank → `NULL`); like the coded lookups it has **no DB-level UNIQUE** (older
+  DBs got it via `ALTER TABLE ADD COLUMN`), so `_role_values()` (admin/users/roles.py) checks
+  duplicates → 409. User reads carry it as `role_code` next to `role_name` (`USER_SELECT`). A user's name is stored
   **split** — `last_name` (Овог) + `first_name` (Нэр), like `member`. **`full_name` is gone**: not
   a column, not accepted on input, not returned. `_migrate_data()` splits an old `full_name` on the
   first space into the two columns before `_DROP_COLUMNS` removes it. Passwords are hashed with
