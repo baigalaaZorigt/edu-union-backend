@@ -197,8 +197,8 @@ python -m pytest tests -q      # the whole pytest suite (~460 tests, ~15 s)
   documents a known bug is `xfail(strict=True)` — fixing the bug means removing the mark.
   The Postman collection (`docs/edu-union-backend.postman_collection.json`) is the second,
   black-box suite, run against a live server. It runs **top to bottom** (Postman Runner or
-  `newman run docs/edu-union-backend.postman_collection.json --env-var base_url=...`): 480 requests,
-  809 assertions, and repeatable — three consecutive runs leave every table's row count
+  `newman run docs/edu-union-backend.postman_collection.json --env-var base_url=...`): 510 requests,
+  874 assertions, and repeatable — three consecutive runs leave every table's row count
   unchanged. (One known red on a *fresh* DB: `ҮЭ — Гишүүний боловсрол / Нэгийг авах` reads
   `member_education_id`=1, but `seed_union()` creates no `member_education` row.) **Keep it that way when adding requests:** run "0. Нэвтрэлт" first (it stores
   `{{token}}`), have each folder's `Нэмэх` save the new id into a `{{new_*}}` variable, and point
@@ -218,6 +218,9 @@ python -m pytest tests -q      # the whole pytest suite (~460 tests, ~15 s)
   rows (`{{au1_code}}`=011 etc.). The `Санал хүсэлт 1` folder sends both feedback forms
   token-free, walks the validation rejections, then reads them back through the admin list
   (search / paging / `per_page` cap) and deletes all four rows it made. The
+  `Нүүр 1..2` folders (banner / partner) each create one row, read it back through the
+  token-free portal (and check it disappears once hidden or expired), walk the 400/401 paths and
+  delete it again; the role folder's `Код давхцвал → 409` proves `role.code` uniqueness. The
   `Мэдэгдэл 1` folder sends a notification to a **role-less** user (proving the inbox needs no
   permission while `/api/admin/notifications` still answers 403 to them) and cleans its `sent`
   row up with `?hard=1`, since a plain `DELETE` on a sent notification is a 422 by design. The
