@@ -51,10 +51,13 @@ portal's token-free API (`/api/portal/...`, `/api/public/...`). What both sides 
     dashboard's cards, bar chart and gender donut.
   - `settings.py` — `portal_settings`, the portal's **singleton** settings row
     (header, hero banner, contacts, map) — `GET|PUT|PATCH /api/portal_settings`.
+  - `home.py` — the portal home page's `banner` (slider) and `partner` (Хамтрагч байгууллага)
+    lists: `GET|POST /api/banner`, `GET|PUT|PATCH|DELETE /api/banner/<id>`, same for `/api/partner`.
 - **`client/`** — the portal site, **token-free** (`PUBLIC_PREFIXES` in `core/auth.py`):
   `forms.py` (list, open, submit surveys), `news.py` (read news), `feedback.py` (send
   suggestions/complaints), `settings.py` (`/api/public/portal_settings` and
-  `/api/portal/portal_settings`, read-only).
+  `/api/portal/portal_settings`, read-only), `home.py` (`/api/portal/banners`,
+  `/api/portal/partners` → `{items: [...]}`, `Cache-Control: public, max-age=300`).
 - **`core/`** — shared by both sites: `db.py`, `auth.py`, `helpers.py` and the domain cores
   below. **`client/` never imports from `admin/`**; anything both need goes into `core/`.
 
@@ -103,7 +106,7 @@ core/               # ── SHARED (хоёр site хуваалцана) ──
   auth.py           #   JWT + global permission check (before_request)
   helpers.py        #   rows, require, json_body, fail, pick, insert_row, update_row, now_str
   forms_core/       #   survey/poll домэйний цөм (base, questions, results, documents)
-  news_core.py  scope_core.py  feedback_core.py  settings_core.py
+  news_core.py  scope_core.py  feedback_core.py  settings_core.py  home_core.py
 admin/              # ── ADMIN SITE (токен + эрх) ──
   admin_units.py    #   "admin_units": /api/au1|au2|au3, /api/school_category
   union/            #   "union": horoo, organization, member, contact, salary, references,
@@ -118,11 +121,13 @@ admin/              # ── ADMIN SITE (токен + эрх) ──
   feedback.py       #   "admin_feedback": /api/admin/suggestions|complaints
   dashboard.py      #   "admin_dashboard": /api/admin/dashboard/summary
   settings.py       #   "portal_settings": /api/portal_settings (GET/PUT/PATCH)
+  home.py           #   "home_content": /api/banner, /api/partner (нүүр хуудас)
 client/             # ── CLIENT SITE (портал, токенгүй) ──
   forms.py          #   "portal_forms": /api/portal/forms...
   news.py           #   "portal_news": /api/portal/news...
   feedback.py       #   "portal_feedback": /api/portal/suggestions|complaints
   settings.py       #   "public_settings": /api/public|portal/portal_settings
+  home.py           #   "portal_home": /api/portal/banners|partners
 scripts/
   migrate_to_pg.py  # SQLite -> Postgres хуулах
   send_due_notifications.py  # cron: хуваарьт мэдэгдлийг илгээх (dispatch_due)
@@ -434,6 +439,15 @@ python -m pytest tests -q      # the whole pytest suite (~460 tests, ~15 s)
   fresh deploy needs no manual step. The portal reads it token-free at
   `/api/public/portal_settings` (and `/api/portal/portal_settings`, the same handler) —
   `/api/public/` is the read-only public namespace added to `PUBLIC_PREFIXES`.
+- **Banner / partner (portal home page) share `core/home_core.py`.** Both tables carry
+  `sort_order` + `is_visible` (0/1, returned as bool to the admin). `banner.image_url` is required
+  and, like `link_url`, must be `http(s)://` or a relative path (`/uploads/...`) — any other scheme
+  (`javascript:`) or `//host` is a 400; `partner.url` must be `http(s)://`. `starts_at`/`ends_at`
+  are stored as **UTC** `"YYYY-MM-DD HH:MM:SS"` (an ISO value with `Z`/`+08:00` is converted, a
+  naive one is taken as UTC — same as `scheduled_at`), so the public query compares them with
+  `now_str()` as text; `NULL` = unbounded, and `ends_at < starts_at` is checked on the merged
+  row after a partial `PUT`/`PATCH`. A replaced or deleted banner image leaves the disk through
+  `remove_upload()`. The two public lists are the only responses with a `Cache-Control` header.
 - **News and settings images go through the existing `POST /api/upload`** — no new upload
   endpoint. `admin/news.py` and `admin/settings.py` import `remove_upload()` from
   `admin/content` (renamed from `_remove_upload`), so a replaced cover, a deleted block or a

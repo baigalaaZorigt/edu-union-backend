@@ -38,6 +38,7 @@ def get_db():
 from core.db.schema_base import SCHEMA, SCHEMA_UNION
 from core.db.schema_admin import SCHEMA_CONTENT, SCHEMA_REF, SCHEMA_USER
 from core.db.schema_portal import SCHEMA_FEEDBACK, SCHEMA_FORM, SCHEMA_NEWS, SCHEMA_NOTIFY
+from core.db.schema_home import SCHEMA_HOME
 from core.db.reference_data import (DEFAULT_ROLES, EDUCATION_DEGREES, PERMISSION_ACTIONS,
                                     PERMISSION_RESOURCES, POSITIONS, PROFESSIONS,
                                     REWARD_TYPES, SALARY_SCALE, SCHOOL_CATEGORIES, STRUCTURES,
@@ -78,6 +79,7 @@ __all__ = [
     "SCHEMA_FORM",
     "SCHEMA_NEWS",
     "SCHEMA_NOTIFY",
+    "SCHEMA_HOME",
     "DEFAULT_ROLES",
     "EDUCATION_DEGREES",
     "PERMISSION_ACTIONS",

@@ -33,11 +33,13 @@ from admin.settings import bp as portal_settings_bp
 from admin.feedback import bp as admin_feedback_bp
 from admin.notifications import bp as notifications_bp
 from admin.dashboard import bp as admin_dashboard_bp
+from admin.home import bp as home_content_bp
 # --- client site: порталын нээлттэй (токенгүй) API ---
 from client.forms import bp as portal_forms_bp
 from client.news import bp as portal_news_bp
 from client.feedback import bp as portal_feedback_bp
 from client.settings import bp as public_settings_bp
+from client.home import bp as portal_home_bp
 
 # Бүртгэх blueprint-ууд. ШИНЭ blueprint-ийг энд нэмэхгүй бол түүний маршрут харагдахгүй.
 BLUEPRINTS = (
@@ -52,11 +54,13 @@ BLUEPRINTS = (
     admin_feedback_bp,    # /api/admin/suggestions|complaints
     notifications_bp,     # /api/admin/notifications + /api/notifications
     admin_dashboard_bp,   # /api/admin/dashboard/summary
+    home_content_bp,      # /api/banner, /api/partner — нүүр хуудасны баннер, хамтрагч
     # Client site — портал, токенгүй (core/auth.py-ийн PUBLIC_PREFIXES)
     portal_forms_bp,      # /api/portal/forms... — судалгаа бөглөх
     portal_news_bp,       # /api/portal/news — мэдээ унших
     portal_feedback_bp,   # /api/portal/suggestions|complaints
     public_settings_bp,   # /api/public|portal/portal_settings
+    portal_home_bp,       # /api/portal/banners|partners
 )
 
 
