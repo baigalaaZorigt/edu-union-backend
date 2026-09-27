@@ -1,0 +1,15 @@
+# Lint — `ruff check .` (scripts/check.sh, CI). Зөвхөн жинхэнэ алдааг барина:
+#   E9 — синтакс/IO алдаа, F — pyflakes (ашиглаагүй import/хувьсагч, тодорхойлоогүй нэр),
+#   B  — bugbear (mutable default, loop-ийн хувьсагч closure-д гэх мэт).
+# Хэв маягийн дүрмүүд (мөрийн урт, import-ын дараалал, Optional -> X | None) санаатай
+# ОРУУЛААГҮЙ — одоогийн кодыг бөөнөөр өөрчлөх байсан.
+target-version = "py312"
+
+[lint]
+select = ["E9", "F", "B"]
+ignore = [
+    "B905",   # zip(strict=) — урт зөрөх нь алдаа биш газрууд бий (percents, хариултын мөр)
+]
+
+[lint.per-file-ignores]
+"**/__init__.py" = ["F401"]   # багцын __init__ нь нэрсийг re-export хийдэг (300 мөрийн дүрэм)

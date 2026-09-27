@@ -1,0 +1,5 @@
+-r requirements.txt
+pytest>=8.0
+moto[s3]>=5.0            # tests/test_storage_s3.py — S3-ийг хуурамчаар
+openpyxl>=3.1            # Excel экспортын тестүүд файлыг уншиж шалгана
+ruff>=0.6                # lint (ruff.toml) — scripts/check.sh

@@ -200,10 +200,19 @@ python run.py                  # dev server on http://127.0.0.1:5001 (no reload)
 FLASK_DEBUG=1 python run.py    # dev server with auto-reload/debugger
 gunicorn run:app               # production WSGI server (loads the module-level `app`)
 
-pip install pytest
-python -m pytest tests -q      # the whole pytest suite (571 tests, ~13 s)
+pip install -r requirements-dev.txt   # pytest, moto, openpyxl, ruff
+python -m pytest tests -q      # the whole pytest suite (~620 tests, ~20 s)
+bash scripts/check.sh          # ruff + structural rules + pytest (--fast: no pytest)
+bash scripts/check.sh --pg     # + Postgres in docker: alembic, model drift, Postman ×2
 ```
 
+- **`scripts/check.sh` is the quality gate** and the `/quality` Claude Code skill
+  (`.claude/skills/quality/SKILL.md` — standards, lint, refactor, review, test) drives it. Lint is
+  `ruff.toml` (`E9`, `F`, `B`; style rules deliberately off). The structural checks enforce the
+  rules below mechanically: every `.py` ≤ 300 lines, no SQL text outside `core/db/` + models,
+  `client/`/`core/` never import `admin/`, every blueprint registered in `run.py`, every
+  `select(*Model.__table__.c)` has `.select_from(Model)` (soft-delete filter). CI still runs only
+  pytest.
 - The dev server binds `PORT` (env) or 5001; `debug` is on only when `FLASK_DEBUG=1`.
 - **CI/CD: every push to `main` tests and deploys itself** (`.github/workflows/deploy.yml`).
   Job `test` runs pytest on Python 3.12 (the container's version); only if it passes, job
