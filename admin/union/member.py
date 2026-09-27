@@ -13,7 +13,7 @@ from core.scope_core import check_member_scope, check_org_scope, member_clause
 from admin.union import bp
 from admin.union.common import (CARD_CODE_LEN, MEMBER_REWARD_QUERY, _check_au, _check_ref,
                                 _create, _delete_by_id, _digit_code, _org_full_code,
-                                _purge_orphan_contacts, _purge_orphan_files, _require_row,
+                                _purge_orphan_contacts, _require_row,
                                 _update_by_id, full_code)
 from admin.union.member_education import EDUCATION_QUERY
 
@@ -41,6 +41,7 @@ MEMBER_QUERY = (
            Organization.org_code.label("_org_code"),
            SchoolCategory.short_name.label("school_category_short_name"),
            Organization.name.label("organization_name"))
+    .select_from(Member)                # ORM entity — soft delete шүүлт үйлчилнэ
     .outerjoin(Position, Position.id == Member.position_id)
     .outerjoin(Profession, Profession.id == Member.profession_id)
     .outerjoin(SalaryScale, SalaryScale.id == Member.salary_scale_id)
@@ -209,4 +210,4 @@ def update_member(mid):
 @bp.route("/api/member/<int:mid>", methods=["DELETE"])
 def delete_member(mid):
     check_member_scope(mid)
-    return _delete_by_id(Member, mid, NOT_FOUND, _purge_orphan_contacts, _purge_orphan_files)
+    return _delete_by_id(Member, mid, NOT_FOUND, _purge_orphan_contacts)

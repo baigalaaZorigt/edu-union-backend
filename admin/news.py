@@ -139,15 +139,9 @@ def update_news(nid):
 def delete_news(nid):
     """Мэдээг блокуудтай нь хамт устгана (cascade) — диск дээрх файлууд нь ч арилна."""
     s = session()
-    row = require_news(nid)
-    urls = list(s.scalars(select(NewsBlock.url).where(NewsBlock.news_id == nid,
-                                                      NewsBlock.url.is_not(None))))
-    if row.cover_image_url:
-        urls.append(row.cover_image_url)
-    s.execute(delete(News).where(News.id == nid))       # блокууд DB-ийн CASCADE-аар
+    require_news(nid)
+    s.execute(delete(News).where(News.id == nid))       # soft delete, блокууд каскадаар
     s.commit()
-    for url in urls:
-        remove_upload(url)
     return jsonify(deleted=nid)
 
 
@@ -235,9 +229,6 @@ def update_block(bid):
 @bp.route("/api/admin/news_blocks/<int:bid>", methods=["DELETE"])
 def delete_block(bid):
     s = session()
-    block = _block_or_404(bid)
-    url = block.url
-    s.delete(block)
+    s.delete(_block_or_404(bid))
     s.commit()
-    remove_upload(url)
     return jsonify(deleted=bid)

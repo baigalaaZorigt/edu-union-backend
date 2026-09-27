@@ -25,7 +25,7 @@ def test_page_image_typed_view(api):
     txt = api.post("/api/page_block", json={"page_id": page_id, "type": "text", "text": "t"}).get_json()
     assert api.delete(f"/api/page_image/{txt['id']}").status_code == 404
     assert api.delete(f"/api/page_image/{img['id']}").get_json() == {"deleted": img["id"]}
-    assert not os.path.exists(_disk_path(url))
+    assert os.path.exists(_disk_path(url))                 # soft delete — файл үлдэнэ
     api.delete(f"/api/menu/{m['id']}")
 
 

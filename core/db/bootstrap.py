@@ -58,7 +58,7 @@ def ensure_seeded():
     """
     migrate()
     from core.orm import new_session
-    s = new_session()
+    s = new_session(include_deleted=True)
     try:
         def empty(table):
             return count(s, table) == 0

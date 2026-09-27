@@ -67,7 +67,7 @@ def _seed_reference(table, columns, rows, label, fix=None):
     NULL үлдсэн code-г дүүргэх.
     """
     from core.orm import new_session
-    s = new_session()
+    s = new_session(include_deleted=True)
     try:
         insert_missing(s, table, [dict(zip(columns, r)) for r in rows])
         if fix:

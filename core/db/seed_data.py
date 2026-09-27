@@ -25,7 +25,7 @@ def seed():
              for r in au3 if r["au2_code"] in valid_au2]
     skipped = len(au3) - len(rows3)
 
-    s = new_session()
+    s = new_session(include_deleted=True)
     try:
         insert_missing(s, "admin_unit1", [{"code": r["code"], "name": r["name"]} for r in au1])
         insert_missing(s, "admin_unit2", [{k: r[k] for k in ("au2_code", "au2_name", "au1_code")}
@@ -42,7 +42,7 @@ def seed_union():
     """Үйлдвэрчний эвлэлийн бүтцэд жишээ өгөгдөл нэмнэ (хоосон үед л)."""
     from core.orm import new_session
     from core.orm.models import Contact, Holboo, Horoo, Member, Organization
-    s = new_session()
+    s = new_session(include_deleted=True)
     try:
         if count(s, "holboo") > 0:
             print("Union өгөгдөл аль хэдийн орсон байна — алгаслаа.")

@@ -12,7 +12,7 @@ from core.scope_core import check_org_scope, org_clause
 from admin.union import bp
 from admin.union.common import (_arg_filters, _check_au, _check_ref, _create, _delete_by_id,
                                 _digit_code, _org_full_code, _purge_orphan_contacts,
-                                _purge_orphan_files, category_code, full_code, under35_cutoff)
+                                category_code, full_code, under35_cutoff)
 
 
 # --- Бүртгэлийн кодын бүтэц ---
@@ -37,6 +37,7 @@ ORG_QUERY = (
            Structure.code.label("structure_code"),
            SchoolCategory.short_name.label("school_category_short_name"),
            SchoolCategory.full_name.label("school_category_name"))
+    .select_from(Organization)          # ORM entity — soft delete шүүлт үйлчилнэ
     .outerjoin(SchoolCategory, SchoolCategory.id == Organization.school_category_id)
     .outerjoin(Structure, Structure.id == Organization.structure_id))
 NOT_FOUND = "Байгууллага олдсонгүй"
@@ -220,4 +221,4 @@ def update_org(oid):
 def delete_org(oid):
     check_org_scope(oid)
     return _delete_by_id(Organization, oid, NOT_FOUND,
-                         _purge_orphan_contacts, _purge_orphan_files)
+                         _purge_orphan_contacts)

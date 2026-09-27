@@ -14,7 +14,7 @@ from sqlalchemy import and_, delete, or_, select, update
 from core.helpers import list_json
 from core.orm import session
 from core.orm.models import (AdminUnit1, AdminUnit2, AdminUnit3, Contact, Horoo, Member,
-                             MemberFile, MemberReward, Organization, RewardType)
+                             MemberReward, Organization, RewardType)
 from core.orm.query import paginate
 from core.storage import Area
 
@@ -37,6 +37,7 @@ MEMBER_REWARD_QUERY = (
     select(*MemberReward.__table__.c,
            RewardType.name.label("reward_type_name"),
            RewardType.code.label("reward_type_code"))
+    .select_from(MemberReward)          # ORM entity — soft delete шүүлт үйлчилнэ
     .outerjoin(RewardType, RewardType.id == MemberReward.reward_type_id))
 
 # contact-ийн owner_type (= хүснэгтийн нэр) -> model
@@ -190,10 +191,3 @@ def _purge_orphan_contacts():
         and_(Contact.owner_type == owner, Contact.owner_id.not_in(select(model.id)))
         for owner, model in OWNER_MODELS.items()))).execution_options(synchronize_session=False))
 
-
-def _purge_orphan_files():
-    """Гишүүн (эсвэл каскадаар байгууллага/хороо) устахад үлдсэн файлыг сангаас арилгана."""
-    keep = {n.replace(os.sep, "/") for n in session().scalars(select(MemberFile.stored_name))}
-    for name in MEMBER_STORE.names():
-        if name.replace(os.sep, "/") not in keep:
-            MEMBER_STORE.delete(name)

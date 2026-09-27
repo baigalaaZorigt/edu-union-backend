@@ -18,6 +18,8 @@ class EducationDegree(Base):
     name: Mapped[str] = mapped_column(Str, nullable=False)
     created_at: Mapped[Optional[str]] = mapped_column(Str)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
+    deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)
+
 
 
 class Position(Base):
@@ -28,6 +30,8 @@ class Position(Base):
     name: Mapped[str] = mapped_column(Str, nullable=False)
     created_at: Mapped[Optional[str]] = mapped_column(Str)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
+    deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)
+
 
 
 class Profession(Base):
@@ -38,6 +42,8 @@ class Profession(Base):
     name: Mapped[str] = mapped_column(Str, nullable=False)
     created_at: Mapped[Optional[str]] = mapped_column(Str)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
+    deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)
+
 
 
 class RewardType(Base):
@@ -48,6 +54,8 @@ class RewardType(Base):
     name: Mapped[str] = mapped_column(Str, nullable=False)
     created_at: Mapped[Optional[str]] = mapped_column(Str)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
+    deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)
+
 
 
 class Structure(Base):
@@ -58,6 +66,8 @@ class Structure(Base):
     name: Mapped[str] = mapped_column(Str, nullable=False)
     created_at: Mapped[Optional[str]] = mapped_column(Str)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
+    deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)
+
 
 
 class MemberEducation(Base):
@@ -74,6 +84,8 @@ class MemberEducation(Base):
     graduation_year: Mapped[Optional[str]] = mapped_column(Str)
     created_at: Mapped[Optional[str]] = mapped_column(Str)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
+    deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)
+
 
 
 class MemberReward(Base):
@@ -89,6 +101,8 @@ class MemberReward(Base):
     reward_date: Mapped[Optional[str]] = mapped_column(Str)
     created_at: Mapped[Optional[str]] = mapped_column(Str)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
+    deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)
+
 
 
 class MemberFile(Base):
@@ -107,3 +121,4 @@ class MemberFile(Base):
     uploaded_at: Mapped[Optional[str]] = mapped_column(Str)
     created_at: Mapped[Optional[str]] = mapped_column(Str)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
+    deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)

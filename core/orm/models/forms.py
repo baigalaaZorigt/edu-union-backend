@@ -46,6 +46,8 @@ class FormQuestion(Base):
     settings: Mapped[Optional[str]] = mapped_column(Str)
     created_at: Mapped[Optional[str]] = mapped_column(Str)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
+    deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)
+
 
 
 class FormOption(Base):
@@ -60,6 +62,8 @@ class FormOption(Base):
     sort_order: Mapped[int] = mapped_column(Int, nullable=False, server_default=text("0"))
     created_at: Mapped[Optional[str]] = mapped_column(Str)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
+    deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)
+
 
 
 class FormDocument(Base):
@@ -76,6 +80,8 @@ class FormDocument(Base):
     file_size: Mapped[Optional[int]] = mapped_column(Int)
     created_at: Mapped[Optional[str]] = mapped_column(Str)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
+    deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)
+
 
 
 class FormSubmission(Base):
@@ -90,6 +96,8 @@ class FormSubmission(Base):
     submitted_at: Mapped[Optional[str]] = mapped_column(Str)
     created_at: Mapped[Optional[str]] = mapped_column(Str)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
+    deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)
+
 
 
 class FormAnswer(Base):
@@ -106,6 +114,8 @@ class FormAnswer(Base):
     numeric_value: Mapped[Optional[float]] = mapped_column(REAL)
     created_at: Mapped[Optional[str]] = mapped_column(Str)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
+    deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)
+
 
 
 class FormAnswerOption(Base):
@@ -120,3 +130,4 @@ class FormAnswerOption(Base):
     option_id: Mapped[int] = mapped_column(Int, ForeignKey("form_option.id", ondelete="CASCADE"), nullable=False)
     created_at: Mapped[Optional[str]] = mapped_column(Str)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
+    deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)

@@ -18,6 +18,8 @@ class Holboo(Base):
     name: Mapped[str] = mapped_column(Str, nullable=False)
     created_at: Mapped[Optional[str]] = mapped_column(Str)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
+    deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)
+
 
 
 class Horoo(Base):
@@ -34,6 +36,8 @@ class Horoo(Base):
     founded_date: Mapped[Optional[str]] = mapped_column(Str)
     created_at: Mapped[Optional[str]] = mapped_column(Str)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
+    deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)
+
 
 
 class Organization(Base):
@@ -61,6 +65,8 @@ class Organization(Base):
     structure_id: Mapped[Optional[int]] = mapped_column(Int, ForeignKey("structure.id", ondelete="SET NULL"))
     created_at: Mapped[Optional[str]] = mapped_column(Str)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
+    deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)
+
 
 
 class Member(Base):
@@ -93,6 +99,8 @@ class Member(Base):
     is_active: Mapped[Optional[int]] = mapped_column(Int, server_default=text("1"))
     created_at: Mapped[Optional[str]] = mapped_column(Str)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
+    deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)
+
 
 
 class Contact(Base):
@@ -109,6 +117,8 @@ class Contact(Base):
     note: Mapped[Optional[str]] = mapped_column(Str)
     created_at: Mapped[Optional[str]] = mapped_column(Str)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
+    deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)
+
 
 
 class SalaryScale(Base):
@@ -124,6 +134,8 @@ class SalaryScale(Base):
     salary: Mapped[Optional[int]] = mapped_column(Int)
     created_at: Mapped[Optional[str]] = mapped_column(Str)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
+    deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)
+
 
 
 class SalaryRequest(Base):
@@ -144,3 +156,4 @@ class SalaryRequest(Base):
     note: Mapped[Optional[str]] = mapped_column(Str)
     created_at: Mapped[Optional[str]] = mapped_column(Str)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
+    deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)

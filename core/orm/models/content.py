@@ -29,6 +29,8 @@ class Menu(Base):
     news_category: Mapped[Optional[str]] = mapped_column(Str)
     created_at: Mapped[Optional[str]] = mapped_column(Str)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
+    deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)
+
 
 
 class Page(Base):
@@ -46,6 +48,8 @@ class Page(Base):
     status: Mapped[Optional[str]] = mapped_column(Str, server_default=text("'draft'::text"))
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
     created_at: Mapped[Optional[str]] = mapped_column(Str)
+    deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)
+
 
 
 class PageBlock(Base):
@@ -67,6 +71,8 @@ class PageBlock(Base):
     size: Mapped[Optional[int]] = mapped_column(Int)
     created_at: Mapped[Optional[str]] = mapped_column(Str)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
+    deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)
+
 
 
 class PortalSettings(Base):
@@ -87,6 +93,8 @@ class PortalSettings(Base):
     map_embed_url: Mapped[Optional[str]] = mapped_column(Str)
     created_at: Mapped[Optional[str]] = mapped_column(Str)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
+    deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)
+
 
 
 class Banner(Base):
@@ -102,6 +110,8 @@ class Banner(Base):
     ends_at: Mapped[Optional[str]] = mapped_column(Str)
     created_at: Mapped[Optional[str]] = mapped_column(Str)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
+    deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)
+
 
 
 class Partner(Base):
@@ -116,3 +126,4 @@ class Partner(Base):
     created_at: Mapped[Optional[str]] = mapped_column(Str)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
     logo_url: Mapped[Optional[str]] = mapped_column(Str)          # Alembic 0003 — /api/upload
+    deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)

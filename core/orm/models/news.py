@@ -51,6 +51,8 @@ class NewsBlock(Base):
     size: Mapped[Optional[int]] = mapped_column(Int)
     created_at: Mapped[Optional[str]] = mapped_column(Str)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
+    deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)
+
 
 
 class Suggestion(Base):
@@ -67,6 +69,8 @@ class Suggestion(Base):
     status: Mapped[str] = mapped_column(Str, nullable=False, server_default=text("'new'::text"))
     created_at: Mapped[Optional[str]] = mapped_column(Str)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
+    deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)
+
 
 
 class Complaint(Base):
@@ -85,6 +89,8 @@ class Complaint(Base):
     status: Mapped[str] = mapped_column(Str, nullable=False, server_default=text("'new'::text"))
     created_at: Mapped[Optional[str]] = mapped_column(Str)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
+    deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)
+
 
 
 class Notification(Base):
@@ -107,6 +113,8 @@ class Notification(Base):
     created_by: Mapped[Optional[int]] = mapped_column(Int, ForeignKey("app_user.id", ondelete="SET NULL"))
     created_at: Mapped[Optional[str]] = mapped_column(Str)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
+    deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)
+
 
 
 class NotificationRecipient(Base):
@@ -122,3 +130,4 @@ class NotificationRecipient(Base):
     read_at: Mapped[Optional[str]] = mapped_column(Str)
     created_at: Mapped[Optional[str]] = mapped_column(Str)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
+    deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)

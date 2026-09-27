@@ -53,7 +53,7 @@ def test_banner_crud_and_public(api, anon):
     assert r.status_code == 200 and r.get_json()["title"] is None
     assert bid in _public_ids(anon, "banners")
 
-    # зураг солиход хуучин файл дискнээс арилна; устгахад шинэ нь ч арилна
+    # зураг солиход хуучин файл дискнээс арилна; устгахад (soft) шинэ нь үлдэнэ
     old_path = os.path.join(content.UPLOAD_DIR, os.path.basename(img))
     new = _upload_png(api)
     assert api.patch(f"/api/banner/{bid}", json={"image_url": new}).status_code == 200
@@ -61,7 +61,7 @@ def test_banner_crud_and_public(api, anon):
     new_path = os.path.join(content.UPLOAD_DIR, os.path.basename(new))
     assert os.path.exists(new_path)
     assert api.delete(f"/api/banner/{bid}").get_json() == {"deleted": bid}
-    assert not os.path.exists(new_path)
+    assert os.path.exists(new_path)
     assert api.get(f"/api/banner/{bid}").status_code == 404
     assert api.delete(f"/api/banner/{bid}").status_code == 404
     assert api.patch(f"/api/banner/{bid}", json={"title": "x"}).status_code == 404
@@ -182,7 +182,7 @@ def test_partner_logo(api, anon):
     last = _upload_png(api)
     api.patch(f"/api/partner/{pid}", json={"logo_url": last})
     assert api.delete(f"/api/partner/{pid}").status_code == 200
-    assert not os.path.exists(os.path.join(content.UPLOAD_DIR, os.path.basename(last)))
+    assert os.path.exists(os.path.join(content.UPLOAD_DIR, os.path.basename(last)))
     ext = api.post("/api/partner", json={"name": uniq("Гадаад лого"), "url": "https://b.mn",
                                          "logo_url": "https://cdn.b.mn/logo.png"})
     assert ext.status_code == 201 and ext.get_json()["logo_url"] == "https://cdn.b.mn/logo.png"

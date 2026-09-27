@@ -106,7 +106,7 @@ def test_document_upload_list_serve_delete(api, anon):
 
     r = api.delete(f"/api/admin/documents/{d['id']}")
     assert r.status_code == 200 and r.get_json()["deleted"] == d["id"]
-    assert anon.get(d["url"]).status_code == 404          # диск дээрээс арилсан
+    assert anon.get(d["url"]).status_code == 200          # soft delete — PDF үлдэнэ
     assert api.delete(f"/api/admin/documents/{d['id']}").status_code == 404
 
 
@@ -124,11 +124,11 @@ def test_document_upload_validation_is_atomic(api):
     assert _upload(api, 999999, [("a.pdf", PDF_BYTES)]).status_code == 404
 
 
-def test_hard_delete_form_removes_pdf(api, anon):
+def test_hard_delete_form_keeps_pdf(api, anon):
     f = make_form(api, type="poll")
     url = _upload(api, f["id"], [("a.pdf", PDF_BYTES)]).get_json()[0]["url"]
     assert api.delete(f"/api/admin/forms/{f['id']}").status_code == 200
-    assert anon.get(url).status_code == 404
+    assert anon.get(url).status_code == 200          # ?hard=1 ч мөрийг нууна, PDF үлдэнэ
 
 
 # ============================ portal: list / detail ============================

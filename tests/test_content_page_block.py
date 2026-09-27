@@ -150,5 +150,5 @@ def test_page_block_url_replacement_removes_old_file(api):
     assert not os.path.exists(_disk_path(old))
     assert os.path.isfile(_disk_path(new))
     api.delete(f"/api/page_block/{blk['id']}")
-    assert not os.path.exists(_disk_path(new))                         # устгахад файл арилна
+    assert os.path.exists(_disk_path(new))                             # soft delete — файл үлдэнэ
     api.delete(f"/api/menu/{m['id']}")

@@ -14,7 +14,6 @@ from flask import Blueprint, abort, jsonify, request
 
 from core.feedback_core import KINDS, list_page
 from core.orm import session
-from admin.content import remove_upload
 
 bp = Blueprint("admin_feedback", __name__)
 
@@ -30,11 +29,8 @@ def _delete(kind, rid):
     row = s.get(spec["model"], rid)
     if row is None:
         abort(404, description=spec["label"] + " олдсонгүй")
-    file_url = getattr(row, "file_url", None)
-    s.delete(row)
+    s.delete(row)                           # soft delete — хавсралт файл хадгалагдана
     s.commit()
-    if "file_url" in spec["optional"]:
-        remove_upload(file_url)             # зөвхөн /uploads/content/-ийн доорхыг
     return jsonify(deleted=rid)
 
 

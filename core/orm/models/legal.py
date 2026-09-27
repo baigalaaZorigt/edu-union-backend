@@ -35,6 +35,8 @@ class LegalDocument(Base):
     is_visible: Mapped[int] = mapped_column(Int, nullable=False, server_default=text("1"))
     created_at: Mapped[Optional[str]] = mapped_column(Str, default=utc_iso)
     updated_at: Mapped[Optional[str]] = mapped_column(Str, default=utc_iso, onupdate=utc_iso)
+    deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)
+
 
 
 class LegalDocumentBlock(Base):
@@ -57,3 +59,4 @@ class LegalDocumentBlock(Base):
     size: Mapped[Optional[int]] = mapped_column(Int)                # file (байт)
     created_at: Mapped[Optional[str]] = mapped_column(Str, default=utc_iso)
     updated_at: Mapped[Optional[str]] = mapped_column(Str, default=utc_iso, onupdate=utc_iso)
+    deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)

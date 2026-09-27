@@ -226,7 +226,7 @@ def test_org_delete_cascades_members_contacts_files(api):
     ids = {x["id"] for x in api.get("/api/contact").get_json()}
     assert c1["id"] not in ids and c2["id"] not in ids
     assert api.get(f"/api/member_file/{f['id']}").status_code == 404
-    assert not os.path.exists(path)
+    assert os.path.exists(path)                            # soft delete — файл үлдэнэ
 
 
 def test_org_not_owned_by_horoo(api):

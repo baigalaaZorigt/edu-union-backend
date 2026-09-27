@@ -85,9 +85,10 @@ def create_notification():
 def delete_notification(nid):
     """Устгах/цуцлах — ЗӨВХӨН draft / scheduled (илгээгдсэнийг буцаах боломжгүй → 422).
 
-    `?hard=1` нь илгээгдсэнийг ч хүчээр устгана (хүлээн авагчдын мөр cascade-аар
-    арилна) — `DELETE /api/admin/forms/<id>?hard=1`-тэй ижил гаргалгаа. Хүн
+    `?hard=1` нь илгээгдсэнийг ч хүчээр устгана (хүлээн авагчдын inbox мөр cascade-аар
+    нуугдана) — `DELETE /api/admin/forms/<id>?hard=1`-тэй ижил гаргалгаа. Хүн
     санамсаргүй дарахаас хамгаалахын тулд зориуд ТОДОРХОЙ параметртэй.
+    Бүх устгал soft delete (core/orm/soft.py) — мөр DB-д deleted_at-тай үлдэнэ.
     """
     s = session()
     status = s.scalar(select(Notification.status).where(Notification.id == nid))
@@ -96,7 +97,7 @@ def delete_notification(nid):
     hard = request.args.get("hard") in ("1", "true", "True")
     if status == "sent" and not hard:
         abort(422, description="Илгээгдсэн мэдэгдлийг буцаах боломжгүй "
-                               "(шаардвал ?hard=1-ээр бүрмөсөн устгана)")
+                               "(шаардвал ?hard=1-ээр хүчээр устгана)")
     s.execute(delete(Notification).where(Notification.id == nid))   # recipients cascade
     s.commit()
     return jsonify(deleted=nid)

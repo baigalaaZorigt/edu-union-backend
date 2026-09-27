@@ -142,13 +142,13 @@ def test_admin_delete(api, anon, kind):
     assert api.delete(f"/api/admin/{kind}/{out['id']}").status_code == 404
 
 
-def test_complaint_delete_removes_uploaded_file(api, anon):
+def test_complaint_delete_keeps_uploaded_file(api, anon):
     up = api.post("/api/upload", data={"file": (io.BytesIO(PNG_BYTES), "a.png")},
                   content_type="multipart/form-data").get_json()
     out = _submit(anon, "complaints", file_url=up["url"], file_name="a.png")
     assert anon.get(up["url"]).status_code == 200
     api.delete(f"/api/admin/complaints/{out['id']}")
-    assert anon.get(up["url"]).status_code == 404
+    assert anon.get(up["url"]).status_code == 200          # soft delete — хавсралт үлдэнэ
 
 
 def test_admin_no_get_one_route(api, anon):

@@ -18,6 +18,7 @@ NOT_FOUND = "Боловсролын бүртгэл олдсонгүй"
 # Боловсролыг зэргийн нэртэй нь хамт (member.py-ийн дэлгэрэнгүй ч ашиглана)
 EDUCATION_QUERY = (
     select(*MemberEducation.__table__.c, EducationDegree.name.label("education_degree_name"))
+    .select_from(MemberEducation)       # ORM entity — soft delete шүүлт үйлчилнэ
     .outerjoin(EducationDegree, EducationDegree.id == MemberEducation.education_degree_id))
 
 

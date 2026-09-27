@@ -96,7 +96,7 @@ def test_delete_news_cascades_blocks(api):
     assert api.delete(f"/api/admin/news/{n['id']}").status_code == 404
 
 
-def test_cover_replace_and_delete_remove_files(api, anon):
+def test_cover_replace_removes_delete_keeps(api, anon):
     old = _upload_png(api)
     n = _news(api, cover_image_url=old)
     assert anon.get(old).status_code == 200
@@ -106,7 +106,7 @@ def test_cover_replace_and_delete_remove_files(api, anon):
     assert anon.get(old).status_code == 404        # хуучин ковер дискнээс арилсан
     assert anon.get(new).status_code == 200
     api.delete(f"/api/admin/news/{n['id']}")
-    assert anon.get(new).status_code == 404
+    assert anon.get(new).status_code == 200          # soft delete — ковер үлдэнэ
 
 
 # ------------------------------- news list -------------------------------

@@ -156,7 +156,7 @@ def test_menu_reorder(api):
         api.delete(f"/api/menu/{m['id']}")
 
 
-def test_menu_delete_cascades_children_page_blocks_and_files(api):
+def test_menu_delete_cascades_children_page_blocks_keeps_files(api):
     root, page_id = _page_menu(api)
     child = _menu(api, parent_id=root["id"], type="page")
     up = _upload(api).get_json()
@@ -170,6 +170,6 @@ def test_menu_delete_cascades_children_page_blocks_and_files(api):
     assert api.get(f"/api/menu/{child['id']}").status_code == 404
     assert api.get(f"/api/page/{root['id']}").status_code == 404
     assert api.get(f"/api/page_block/{blk['id']}").status_code == 404
-    assert not os.path.exists(_disk_path(up["url"]))
-    assert not os.path.exists(_disk_path(cover["url"]))
+    assert os.path.exists(_disk_path(up["url"]))
+    assert os.path.exists(_disk_path(cover["url"]))
     assert api.delete(f"/api/menu/{root['id']}").status_code == 404

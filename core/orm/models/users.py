@@ -25,6 +25,8 @@ class Permission(Base):
     description: Mapped[Optional[str]] = mapped_column(Str)
     created_at: Mapped[Optional[str]] = mapped_column(Str)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
+    deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)
+
 
 
 class Role(Base):
@@ -39,6 +41,8 @@ class Role(Base):
     description: Mapped[Optional[str]] = mapped_column(Str)
     created_at: Mapped[Optional[str]] = mapped_column(Str)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
+    deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)
+
 
 
 class RolePermission(Base):
@@ -52,6 +56,8 @@ class RolePermission(Base):
     permission_id: Mapped[int] = mapped_column(Int, ForeignKey("permission.id", ondelete="CASCADE"), primary_key=True, autoincrement=False)
     created_at: Mapped[Optional[str]] = mapped_column(Str)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
+    deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)
+
 
 
 class AppUser(Base):
@@ -74,6 +80,8 @@ class AppUser(Base):
     onboarding_completed_at: Mapped[Optional[str]] = mapped_column(Str)
     created_at: Mapped[Optional[str]] = mapped_column(Str)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
+    deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)
+
 
 
 class UserScope(Base):
@@ -86,6 +94,8 @@ class UserScope(Base):
     organization_id: Mapped[Optional[int]] = mapped_column(Int)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
     created_at: Mapped[Optional[str]] = mapped_column(Str)
+    deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)
+
 
 
 class LoginAttempt(Base):
@@ -100,3 +110,4 @@ class LoginAttempt(Base):
     ip: Mapped[str] = mapped_column(Str, nullable=False)
     created_at: Mapped[str] = mapped_column(Str, nullable=False)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
+    deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)

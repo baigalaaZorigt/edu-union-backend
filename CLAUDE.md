@@ -17,7 +17,7 @@ portal's token-free API (`/api/portal/...`, `/api/public/...`). What both sides 
   - `union/` — trade-union data, one blueprint (`union`) split into one module per resource
     (`__init__.py` creates `bp` and imports the route modules; `common.py` holds what several
     of them share — `UPLOAD_DIR`, `ORG_FULL_CODE_SQL`, `_check_ref`, `_digit_code`,
-    `_purge_orphan_*`, …; a constant used by only one module lives in that module):
+    `_purge_orphan_contacts`, …; a constant used by only one module lives in that module):
     `holboo` (Холбоо) → `horoo` (Хороо, `horoo.py`), and separately `organization`
     (Гишүүн байгууллага, `organization.py`) → `member` (Гишүүн, `member.py`).
     **An `organization` does not belong to a `horoo`** — `horoo_id` was removed, so
@@ -125,6 +125,7 @@ core/               # ── SHARED (хоёр site хуваалцана) ──
   orm/              #   SQLAlchemy 2.0 — engine/session (__init__), Base + Int/Str (base.py),
     models/         #     44 model (geo, union, union_refs, users, content, news, forms)
     query.py        #     paginate(), get_or_404()
+    soft.py         #     SoftSession — бүх устгал soft delete (deleted_at), уншилтын шүүлт
   db/               #   DB_PATH/DATABASE_URL + seeds (ORM) + FROZEN baseline schema code
     schema_*.py schema.py pg*.py migrate*.py    # хуучин DDL/migration — зөвхөн alembic 0001 ба
                                                 # Alembic-ээс өмнөх DB-г шинэчлэхэд (засахгүй)
@@ -132,7 +133,7 @@ core/               # ── SHARED (хоёр site хуваалцана) ──
     bootstrap.py    #     migrate() (Alembic), seed_all(), ensure_seeded()
     __main__.py     #     python -m core.db
 alembic/            # migration-ууд: 0001_baseline (хуучин бүх схем), 0002_legal_document,
-                    #   0003_partner_logo
+                    #   0003_partner_logo, 0004_soft_delete (бүх хүснэгтэд deleted_at)
   auth.py           #   JWT + global permission check (before_request)
   helpers.py        #   require, json_body, pick, client_ip, now_str, page_params, list_json
   forms_core/       #   survey/poll домэйний цөм (base, questions, results, documents)
@@ -242,8 +243,8 @@ python -m pytest tests -q      # the whole pytest suite (571 tests, ~13 s)
   black-box suite, run against a live server. It runs **top to bottom** (Postman Runner or
   `newman run docs/edu-union-backend.postman_collection.json --env-var base_url=...`, **from the
   repo root** — the form-data requests upload `docs/fixtures/sample.png|pdf` by relative path): 603 requests,
-  1160 assertions, and repeatable — three consecutive runs leave every table's row count
-  unchanged. (One known red on a *fresh* DB: `ҮЭ — Гишүүний боловсрол / Нэгийг авах` reads
+  1160 assertions, and repeatable — three consecutive runs leave every table's **visible**
+  row count (`deleted_at IS NULL`) unchanged; since every delete is soft, hidden rows do pile up. (One known red on a *fresh* DB: `ҮЭ — Гишүүний боловсрол / Нэгийг авах` reads
   `member_education_id`=1, but `seed_union()` creates no `member_education` row.) **Keep it that way when adding requests:** run "0. Нэвтрэлт" first (it stores
   `{{token}}`), have each folder's `Нэмэх` save the new id into a `{{new_*}}` variable, and point
   that folder's `Засах`/`Устгах` at `{{new_*}}` only — never at a seeded row. Every `Засах` is
@@ -258,7 +259,7 @@ python -m pytest tests -q      # the whole pytest suite (571 tests, ~13 s)
   `Судалгаа 1..8` folders additionally show the pattern for **public** endpoints: every
   `/api/portal/` request carries `"auth": {"type": "noauth"}` so the run proves a guest can
   submit without a token, and the cleanup folder deletes forms with `?hard=1` (a form with
-  answers is otherwise only soft-deleted, which would leave the row count changed). `GET`s may read seed
+  answers is otherwise only archived — its questions and answers stay readable). `GET`s may read seed
   rows (`{{au1_code}}`=011 etc.). The `Санал хүсэлт 1` folder sends both feedback forms
   token-free, walks the validation rejections, then reads them back through the admin list
   (search / paging / `per_page` cap) and deletes all four rows it made. The
@@ -267,7 +268,8 @@ python -m pytest tests -q      # the whole pytest suite (571 tests, ~13 s)
   delete it again; the role folder's `Код давхцвал → 409` proves `role.code` uniqueness. The
   `Мэдэгдэл 1` folder sends a notification to a **role-less** user (proving the inbox needs no
   permission while `/api/admin/notifications` still answers 403 to them) and cleans its `sent`
-  row up with `?hard=1`, since a plain `DELETE` on a sent notification is a 422 by design. The
+  row up with `?hard=1`, since a plain `DELETE` on a sent notification is a 422 by design.
+  `Портал 8` checks the uploaded image is **still served** (200) after its block is deleted. The
   `Мэргэжилтэн 1` folder covers the specialist flow
   end to end: it builds its own role + two organizations (one in scope, one out) + user, logs
   in with the initial password, changes it, fills the scope through `/api/me/scope`, then
@@ -297,6 +299,29 @@ python -m pytest tests -q      # the whole pytest suite (571 tests, ~13 s)
   (`integer = varchar`). Anything dialect-specific (`printf`, `julianday`, `DATE()`) is computed
   in Python instead (`full_code`, the under-35 cutoff, trend days). `Base.to_dict()` = the old
   `dict(row)`; joined/derived columns come from labelled selects read with `.mappings()`.
+- **Every delete is a soft delete — every table, and nothing is ever restored**
+  (`core/orm/soft.py`, Alembic 0004 added `deleted_at TEXT` to all 46 tables). `new_session()` /
+  `session()` hand out a `SoftSession`, so handlers keep writing plain `s.delete(obj)` /
+  `s.execute(delete(Model)...)`, and the session turns that into `deleted_at = now_str()`:
+  **reads** — every ORM `SELECT`/`UPDATE`/`DELETE` gets `deleted_at IS NULL` through
+  `with_loader_criteria` (JOIN `ON` clauses and subqueries too), plus `_filter_core_froms()` for
+  a statement whose main `FROM` is a bare `Table` (`select(*Model.__table__.c)`). That fallback
+  does not reach subqueries (e.g. `paginate()`'s `COUNT`), so **a new select over `__table__.c`
+  must add `.select_from(Model)`** — see `MEMBER_QUERY` / `ORG_QUERY`. **Deletes** — the FK
+  rules are replayed from model metadata (`ON DELETE CASCADE` → the children are soft-deleted
+  too, `SET NULL` → the column is nulled) plus the polymorphic `contact` rows of a
+  horoo/organization/member, all with one timestamp. Single-column UNIQUE text values
+  (`username`, `role.name`, `permission.code`, `menu.slug`, `salary_scale.code`,
+  `member_file.stored_name`) get `~deleted~<id>` appended so the name is free to reuse; a new row
+  whose PK/other UNIQUE key (admin-unit code, `role_permission`, `user_scope`, `page.menu_id`)
+  collides with a *hidden* row replaces it physically (`before_flush`). **Files stay**: a delete
+  no longer calls `remove_upload()` / deletes member PDFs (the user chose "зөвхөн нуух" —
+  hide only, no restore endpoint, no hard delete); only *replacing* a file on update still removes
+  the old one. `?hard=1` (forms, notifications) survives as a flag with its old business meaning
+  but is soft too. Raw SQL (`text()`, `engine().connect()`) sees hidden rows; so do the seeds,
+  which open `new_session(include_deleted=True)` so a deleted seed row is neither re-created nor a
+  PK collision — and `seed_users()` un-hides the admin role's `role_permission` links so admin
+  always keeps every permission. `tests/test_soft_delete.py` covers it.
 - **Schema changes go through Alembic.** `alembic/versions/0001_baseline.py` runs the frozen
   legacy DDL (`core/db/schema*.py` + `_pg_schema()` + timestamp triggers), so a fresh database is
   byte-for-byte the production schema (checked with `pg_dump`). `core.db.bootstrap.migrate()`
@@ -467,8 +492,7 @@ python -m pytest tests -q      # the whole pytest suite (571 tests, ~13 s)
   everywhere and `register_error_handlers` has no 422 handler**). `status` walks
   `draft → published`, and the **server** stamps `published_at` on the first transition to
   `published` — a later unpublish/republish keeps the original date so the portal ordering does
-  not jump. `DELETE` is a real delete (cascade to blocks); the `deleted_at` column exists per
-  spec and every read filters on it, but nothing sets it yet.
+  not jump. `DELETE` soft-deletes the item and its blocks (like every table).
 - **A "Мэдээ" menu picks its category with `menu.news_category`.** `NULL` means *all* categories,
   so the seeded `news` menu keeps working; the admin creates one menu per category
   (`news_category='Мэдээ'` / `'Сургалт'`) and the portal calls
@@ -505,8 +529,8 @@ python -m pytest tests -q      # the whole pytest suite (571 tests, ~13 s)
   or `detail` (portal page from `legal_document_block` — `text`/`file`/`link`, the page_block
   shapes; `pdf_url`, if set, is the primary PDF on top). Checks run on the merged row after a
   partial `PUT`/`PATCH`; `published_date` is stored `YYYY-MM-DD` (`YYYY.MM.DD` accepted). Order:
-  `sort_order`, then `published_date DESC NULLS LAST`, then id. Replaced/deleted PDFs (row and
-  file blocks) leave storage via `remove_upload()`. Permissions are `legal_document.*` for the
+  `sort_order`, then `published_date DESC NULLS LAST`, then id. A replaced PDF leaves storage via
+  `remove_upload()`; a deleted document/block keeps its files (soft delete). Permissions are `legal_document.*` for the
   blocks too: `PATH_RESOURCE["legal_document_block"]`, and `SUB_RESOURCE["blocks"]` is now a
   per-parent map (`{"news": "news_block"}`) — before, every `/blocks` path demanded
   `news_block.*`. These are the first tables created by an Alembic revision (0002) rather than
@@ -537,14 +561,14 @@ python -m pytest tests -q      # the whole pytest suite (571 tests, ~13 s)
   are stored as **UTC** `"YYYY-MM-DD HH:MM:SS"` (an ISO value with `Z`/`+08:00` is converted, a
   naive one is taken as UTC — same as `scheduled_at`), so the public query compares them with
   `now_str()` as text; `NULL` = unbounded, and `ends_at < starts_at` is checked on the merged
-  row after a partial `PUT`/`PATCH`. A replaced or deleted banner image leaves the disk through
-  `remove_upload()` — and the same for `partner.logo_url` (Alembic 0003; optional, same
+  row after a partial `PUT`/`PATCH`. A replaced banner image leaves the disk through
+  `remove_upload()` (a deleted one stays — soft delete) — and the same for `partner.logo_url` (Alembic 0003; optional, same
   `http(s)://`-or-relative rule; `IMAGE_FIELD` in `admin/home.py` maps each table to its image
   column). The two public lists are the only responses with a `Cache-Control` header.
 - **News and settings images go through the existing `POST /api/upload`** — no new upload
   endpoint. `admin/news.py` and `admin/settings.py` import `remove_upload()` from
-  `admin/content` (renamed from `_remove_upload`), so a replaced cover, a deleted block or a
-  swapped logo takes its bytes off disk too, and only ever under `UPLOAD_URL_PREFIX`.
+  `admin/content` (renamed from `_remove_upload`), so a replaced cover or a
+  swapped logo takes its bytes off disk too (a deleted row keeps them — soft delete), and only ever under `UPLOAD_URL_PREFIX`.
 - **The app server keeps no files and no log files** (production). `core/storage.py` is the one
   place that stores bytes: each area (`content`, `form`, `member`) is an `Area(area, local_dir)`
   with `save / delete / send / names`. When `S3_BUCKET` is set (production, in
@@ -570,8 +594,8 @@ python -m pytest tests -q      # the whole pytest suite (571 tests, ~13 s)
   size}`; the caller stores that `url` on a block or on `page.cover_image`. The bytes are served
   back at `/uploads/content/<name>` **without a token** (a portal `<img src>` cannot send an
   Authorization header) — that's what `PUBLIC_PREFIXES` in `auth.py` is for. Uploading still
-  needs `upload.create`. `_remove_upload()` deletes a file from disk when its block/cover is
-  deleted or replaced, and only ever touches paths under `UPLOAD_URL_PREFIX` (external URLs are
+  needs `upload.create`. `remove_upload()` deletes a file from disk when its block/cover is
+  replaced (not on delete — soft delete keeps it), and only ever touches paths under `UPLOAD_URL_PREFIX` (external URLs are
   left alone). **On Render the disk is ephemeral** — same persistent-disk caveat as member PDFs.
 - **Мэдэгдэл is one notification plus a fan-out table** (`notification_api_spec.md`).
   `notifications` holds what was written; **sending** copies one `notification_recipients` row
@@ -584,7 +608,8 @@ python -m pytest tests -q      # the whole pytest suite (571 tests, ~13 s)
   waits (`status='scheduled'`), and an explicit `status='draft'` just saves — which is what makes
   the spec's own "only draft/scheduled may be deleted" rule reachable. A `sent` notification
   answers **422** on delete, with `?hard=1` as the deliberate escape hatch (same as
-  `DELETE /api/admin/forms/<id>?hard=1`) — the Postman collection needs it to stay row-neutral.
+  `DELETE /api/admin/forms/<id>?hard=1`) — soft like every delete; the Postman collection uses it
+  to clean up.
 - **Scheduled notifications have no scheduler — `dispatch_due()` is called from two places.**
   There is no celery/APScheduler here and a background thread under `gunicorn --preload` would
   fan out once per worker, so `dispatch_due(conn)` (idempotent, and it claims each row with
@@ -619,8 +644,8 @@ python -m pytest tests -q      # the whole pytest suite (571 tests, ~13 s)
   exists and stays `'new'`, which is what the spec asks for in V1. Validation is `400` everywhere
   (blank/missing field, e-mail shape, phone = 8 Mongolian digits after stripping `+976`, spaces
   and dashes, and the spec's `VARCHAR` lengths, which SQLite would otherwise ignore). A complaint's
-  attachment goes through the existing `POST /api/upload`; `DELETE` calls
-  `remove_upload()` so the bytes leave the disk too, exactly like a news cover.
+  attachment goes through the existing `POST /api/upload`; `DELETE` hides the row and keeps
+  the file (soft delete).
 - **The survey / poll engine is one `form` table, not two features.** `form.type` is `survey`
   (судалгаа) or `poll` (санал асуулга — may carry PDFs); everything else — questions, options,
   submissions, results — is shared. `form.status` walks `draft → published → closed`
@@ -640,7 +665,8 @@ python -m pytest tests -q      # the whole pytest suite (571 tests, ~13 s)
   409 when a form already has submissions and someone tries to delete a question, delete/add an
   option, or change a question's type — old `form_answer_option` rows would otherwise lose meaning.
   Renaming an option label is always allowed (it doesn't move any answer). Deleting a form with
-  answers **soft-deletes** it (`deleted_at`); `?hard=1` forces a real delete.
+  answers only archives the form row (`deleted_at`, results stay readable); `?hard=1` deletes
+  it with its questions/options/submissions — soft too, like every delete.
 - **Result percentages are per-question, not per-form.** `_choice_results()` divides by the number
   of people who answered *that* question, so `multiple_choice` percentages sum past 100% by design.
   `_scale_results()` fills gaps in the 1..N range with zero counts so charts have no holes.
@@ -708,8 +734,8 @@ python -m pytest tests -q      # the whole pytest suite (571 tests, ~13 s)
 - **`contact` is polymorphic**: `owner_type` is `'horoo'`, `'organization'` or `'member'` (the value
   is also the table name), `owner_id` points into the matching table. This is how an owner gets
   **many** phones/faxes/emails — `member` has no single phone column. There is no FK on `contact`;
-  ownership is validated in code on insert, and the delete handlers call `_purge_orphan_contacts()`
-  to clean up rows whose owner (or cascaded parent) is gone.
+  ownership is validated in code on insert, and soft delete hides an owner's contacts with it
+  (`POLYMORPHIC_OWNERS` in `core/orm/soft.py`); `_purge_orphan_contacts()` stays as a safety net.
 - **Unicode**: `app.json.ensure_ascii = False` so Cyrillic is returned unescaped. Preserve this
   when touching JSON serialization config.
 

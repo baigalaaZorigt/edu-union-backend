@@ -10,7 +10,6 @@ from core.orm import session
 from core.orm.models import Page, PageBlock
 from core.content_core import BLOCK_FIELDS, public_block as _public_block
 
-from core.content_storage import remove_upload
 
 
 # ----------------------------- Туслахууд -----------------------------
@@ -68,10 +67,8 @@ def _delete_block(bid, btype=None, label="Блок"):
     block = s.get(PageBlock, bid)
     if block is None or (btype and block.type != btype):
         abort(404, description=f"{label} олдсонгүй")
-    url = block.url
-    s.delete(block)
+    s.delete(block)                         # soft delete — файл хадгалагдана
     s.commit()
-    remove_upload(url)
     return jsonify(deleted=bid)
 
 

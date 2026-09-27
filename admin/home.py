@@ -77,11 +77,8 @@ def _update(table, rid):
 
 def _delete(table, rid):
     s = session()
-    obj = _obj(table, rid)
-    image = getattr(obj, IMAGE_FIELD[table])
-    s.delete(obj)
+    s.delete(_obj(table, rid))              # soft delete — зураг хадгалагдана
     s.commit()
-    remove_upload(image)
     return jsonify(deleted=rid)
 
 

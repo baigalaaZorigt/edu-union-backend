@@ -79,13 +79,13 @@ def test_block_delete(api):
     assert api.delete(f"/api/admin/news_blocks/{b['id']}").status_code == 404
 
 
-def test_block_delete_removes_uploaded_file(api, anon):
+def test_block_delete_keeps_uploaded_file(api, anon):
     url = _upload_png(api)
     n = _news(api)
     b = api.post(f"/api/admin/news/{n['id']}/blocks",
                  json={"type": "image", "url": url}).get_json()
     api.delete(f"/api/admin/news_blocks/{b['id']}")
-    assert anon.get(url).status_code == 404
+    assert anon.get(url).status_code == 200          # soft delete — файл үлдэнэ
 
 
 @pytest.mark.parametrize("method", ["put", "patch"])

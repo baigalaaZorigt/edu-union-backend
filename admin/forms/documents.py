@@ -10,7 +10,7 @@ from core.orm import session
 from core.orm.models import FormDocument
 from core.forms_core import (
     STORE, UPLOAD_URL_PREFIX, bad, now_str, public_document, document_list,
-    remove_upload, require_form, validate_pdf,
+    require_form, validate_pdf,
 )
 
 from admin.forms import bp
@@ -54,10 +54,8 @@ def delete_document(did):
     doc = s.get(FormDocument, did)
     if doc is None:
         bad("Файл олдсонгүй", 404)
-    path = doc.file_path
-    s.execute(delete(FormDocument).where(FormDocument.id == did))
+    s.execute(delete(FormDocument).where(FormDocument.id == did))   # soft delete, PDF үлдэнэ
     s.commit()
-    remove_upload(path)
     return jsonify(deleted=did)
 
 

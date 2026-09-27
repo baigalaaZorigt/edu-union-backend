@@ -6,13 +6,12 @@ from sqlalchemy.exc import IntegrityError
 
 from core.helpers import require, json_body, list_json
 from core.orm import session
-from core.orm.models import Menu, Page, PageBlock
+from core.orm.models import Menu
 from core.orm.query import paginate
 from core.content_core import (MENU_SELECT, TRUE_ARGS as _TRUE, menu_dict as _menu_dict, menu_filters,
                                tree as _tree)
 
 from admin.content import bp
-from core.content_storage import remove_upload
 from admin.content.common import _ensure_page, _next_sort, _now, _order_items
 
 
@@ -106,15 +105,6 @@ def _menu_row(mid):
     """Цэсийг page_id-тай нь хамт буцаана (байхгүй бол None)."""
     row = session().execute(MENU_SELECT.where(Menu.id == mid)).mappings().first()
     return _menu_dict(row) if row else None
-
-
-def _subtree_ids(mid):
-    """Цэс ба түүний бүх удам (дэд цэсүүд)-ын id — Python-оор давхарга давхаргаар."""
-    ids, frontier = [mid], [mid]
-    while frontier:
-        frontier = list(session().scalars(select(Menu.id).where(Menu.parent_id.in_(frontier))))
-        ids += frontier
-    return ids
 
 
 # ============================ menu (Цэс) ============================
@@ -240,14 +230,6 @@ def delete_menu(mid):
     menu = s.get(Menu, mid)
     if menu is None:
         abort(404, description="Цэс олдсонгүй")
-    # Устахаас өмнө диск дээрх файлуудынх нь URL-г цуглуулна (дэд цэсийг оруулаад).
-    pages = select(Page.id).where(Page.menu_id.in_(_subtree_ids(mid)))
-    urls = list(s.scalars(select(PageBlock.url).where(
-        PageBlock.page_id.in_(pages), PageBlock.url.is_not(None))))
-    urls += list(s.scalars(select(Page.cover_image).where(
-        Page.id.in_(pages), Page.cover_image.is_not(None))))
-    s.delete(menu)            # дэд цэс, page, блокууд — DB-ийн ON DELETE CASCADE
+    s.delete(menu)            # soft delete: дэд цэс, page, блокууд каскадаар; файл үлдэнэ
     s.commit()
-    for url in urls:
-        remove_upload(url)
     return jsonify(deleted=mid)

@@ -18,6 +18,8 @@ class AdminUnit1(Base):
     name: Mapped[str] = mapped_column(Str, nullable=False)
     created_at: Mapped[Optional[str]] = mapped_column(Str)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
+    deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)
+
 
 
 class AdminUnit2(Base):
@@ -31,6 +33,8 @@ class AdminUnit2(Base):
     au1_code: Mapped[str] = mapped_column(Str, ForeignKey("admin_unit1.code", ondelete="CASCADE"), nullable=False)
     created_at: Mapped[Optional[str]] = mapped_column(Str)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
+    deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)
+
 
 
 class AdminUnit3(Base):
@@ -46,6 +50,8 @@ class AdminUnit3(Base):
     au2_code: Mapped[str] = mapped_column(Str, ForeignKey("admin_unit2.au2_code", ondelete="CASCADE"), nullable=False)
     created_at: Mapped[Optional[str]] = mapped_column(Str)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
+    deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)
+
 
 
 class SchoolCategory(Base):
@@ -57,3 +63,4 @@ class SchoolCategory(Base):
     english_name: Mapped[Optional[str]] = mapped_column(Str)
     created_at: Mapped[Optional[str]] = mapped_column(Str)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
+    deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)

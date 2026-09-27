@@ -25,6 +25,7 @@ def user_select():
     return (select(*AppUser.__table__.c,
                    Role.name.label("role_name"), Role.code.label("role_code"),
                    Structure.name.label("structure_name"), Structure.code.label("structure_code"))
+            .select_from(AppUser)             # ORM entity — soft delete шүүлт үйлчилнэ
             .outerjoin(Role, Role.id == AppUser.role_id)
             .outerjoin(Structure, Structure.id == AppUser.structure_id))
 

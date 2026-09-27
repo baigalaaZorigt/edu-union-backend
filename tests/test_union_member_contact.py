@@ -127,7 +127,7 @@ def test_member_errors(api):
     api.delete(f"/api/organization/{o['id']}")
 
 
-def test_member_delete_purges_contacts_and_files(api):
+def test_member_delete_hides_contacts_keeps_files(api):
     o = make_org(api)
     m = make_member(api, o["id"])
     c = api.post("/api/contact", json={"owner_type": "member", "owner_id": m["id"],
@@ -138,7 +138,7 @@ def test_member_delete_purges_contacts_and_files(api):
     assert len(got["contacts"]) == 1 and len(got["files"]) == 1
     api.delete(f"/api/member/{m['id']}")
     assert all(x["id"] != c["id"] for x in api.get("/api/contact").get_json())
-    assert not os.path.exists(path)
+    assert os.path.exists(path)                            # soft delete — файл үлдэнэ
     assert api.get(f"/api/member_file/{f['id']}").status_code == 404
     api.delete(f"/api/organization/{o['id']}")
 

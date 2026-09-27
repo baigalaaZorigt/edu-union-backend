@@ -13,7 +13,7 @@ from core.orm.models import Member, MemberFile
 
 from admin.union import bp
 from admin.union.common import (MEMBER_STORE, _arg_filters, _delete_by_id, _get_one, _list_rows,
-                                _purge_orphan_files, _require_row, _update_by_id)
+                                _require_row, _update_by_id)
 
 
 MAX_FILE_SIZE = 10 * 1024 * 1024          # 10 MB (файл тус бүрд)
@@ -119,4 +119,4 @@ def update_member_file(fid):
 @bp.route("/api/member_file/<int:fid>", methods=["DELETE"])
 def delete_member_file(fid):
     # мөр устсаны дараа дискнээс нь ч арилгана
-    return _delete_by_id(MemberFile, fid, NOT_FOUND, _purge_orphan_files)
+    return _delete_by_id(MemberFile, fid, NOT_FOUND)

@@ -5,10 +5,10 @@ from sqlalchemy import delete, func, or_, select, update
 
 from core.helpers import require, json_body
 from core.orm import session
-from core.orm.models import Form, FormDocument, FormQuestion, FormSubmission
+from core.orm.models import Form, FormQuestion, FormSubmission
 from core.forms_core import (
     FORM_FIELDS, FORM_STATUSES, bad, current_user_id, now_str, public_form, insert_question,
-    remove_upload, require_form, submission_count, validate_form, _flag,
+    require_form, submission_count, validate_form, _flag,
 )
 
 from admin.forms import bp
@@ -115,9 +115,10 @@ def update_form(fid):
 def delete_form(fid):
     """Маягт устгах.
 
-    Хариулт ИРЭЭГҮЙ бол бүрмөсөн устгана (асуулт/сонголт/PDF нь cascade-аар).
-    Хариулт ИРСЭН бол зөөлөн устгал — deleted_at тавьж архивлана (үр дүн хадгалагдана).
-    ?hard=1 өгвөл хариулттай ч гэсэн бүрмөсөн устгана.
+    Хариулт ИРЭЭГҮЙ бол устгана (асуулт/сонголт/PDF нь каскадаар) -> soft=False.
+    Хариулт ИРСЭН бол зөвхөн маягтыг архивлана (үр дүн нь уншигдсаар) -> soft=True.
+    ?hard=1 өгвөл хариулттай ч гэсэн каскадтай устгана.
+    Бүх устгал soft delete (core/orm/soft.py) — мөр, PDF файл хадгалагдана.
     """
     require_form(fid)
     s = session()
@@ -128,11 +129,8 @@ def delete_form(fid):
         s.commit()
         return jsonify(deleted=fid, soft=True,
                        message="Хариулттай тул архивлав (устгасан төлөвт шилжив)")
-    paths = list(s.scalars(select(FormDocument.file_path).where(FormDocument.form_id == fid)))
-    s.execute(delete(Form).where(Form.id == fid))
+    s.execute(delete(Form).where(Form.id == fid))       # soft delete (асуулт/PDF каскадаар)
     s.commit()
-    for p in paths:
-        remove_upload(p)
     return jsonify(deleted=fid, soft=False)
 
 

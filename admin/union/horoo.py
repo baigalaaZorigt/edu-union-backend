@@ -9,7 +9,7 @@ from core.orm.models import Contact, Holboo, Horoo
 
 from admin.union import bp
 from admin.union.common import (_arg_filters, _create, _delete_by_id, _list_rows,
-                                _purge_orphan_contacts, _purge_orphan_files,
+                                _purge_orphan_contacts,
                                 _require_row, _update_by_id)
 
 
@@ -56,4 +56,4 @@ def update_horoo(hid):
 
 @bp.route("/api/horoo/<int:hid>", methods=["DELETE"])
 def delete_horoo(hid):
-    return _delete_by_id(Horoo, hid, NOT_FOUND, _purge_orphan_contacts, _purge_orphan_files)
+    return _delete_by_id(Horoo, hid, NOT_FOUND, _purge_orphan_contacts)

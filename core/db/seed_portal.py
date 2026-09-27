@@ -32,7 +32,7 @@ def seed_menu():
     """
     from core.orm import new_session
     from core.orm.models import Menu, Page
-    s = new_session()
+    s = new_session(include_deleted=True)
     try:
         if count(s, "menu"):
             print("Цэс аль хэдийн ачаалагдсан — алгаслаа.")
@@ -85,7 +85,7 @@ def seed_portal_settings():
     """Порталын тохиргооны ганц мөрийг анхдагч утгуудаар үүсгэнэ (хоосон үед л)."""
     from core.orm import new_session
     from core.orm.models import PortalSettings
-    s = new_session()
+    s = new_session(include_deleted=True)
     try:
         if count(s, "portal_settings"):
             print("Порталын тохиргоо аль хэдийн бий — алгаслаа.")
@@ -109,8 +109,8 @@ def seed_users():
     - app_user: анхны 'admin' хэрэглэгч (app_user хоосон үед л)
     """
     from core.orm import new_session
-    from core.orm.models import AppUser, Permission, Role
-    s = new_session()
+    from core.orm.models import AppUser, Permission, Role, RolePermission
+    s = new_session(include_deleted=True)
     try:
         # 1) Эрхүүд (нөөц × үйлдэл) ба 2) дүрүүд — давхардлыг алгасна
         insert_missing(s, "permission", [
@@ -131,7 +131,11 @@ def seed_users():
                 {"role_id": rid, "permission_id": pid}
                 for pid in s.scalars(select(Permission.id).where(*where))])
 
-        # 3) Эрх оноох
+        # 3) Эрх оноох. admin дүрийн нуугдсан (soft delete) холбоосыг эхлээд сэргээнэ —
+        #    эс бөгөөс insert_missing түүнийг "байгаа" гэж алгасаад admin эрхгүй үлдэнэ.
+        s.execute(update(RolePermission).where(RolePermission.role_id == role_id("admin"),
+                                               RolePermission.deleted_at.is_not(None))
+                  .values(deleted_at=None))
         assign("admin")                                           # бүх эрх
         assign("viewer", Permission.action == "read")             # зөвхөн харах
         assign("manager",                                         # менежер: үйл ажиллагааны CRUD

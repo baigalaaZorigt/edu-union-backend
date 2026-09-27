@@ -51,7 +51,7 @@ def test_member_file_flow(api, member):
 
     path = os.path.join(union.UPLOAD_DIR, f["stored_name"])
     assert api.delete(f"/api/member_file/{f['id']}").status_code == 200
-    assert not os.path.exists(path)
+    assert os.path.exists(path)                            # soft delete — файл үлдэнэ
     assert api.get(f"/api/member_file/{f['id']}").status_code == 404
     assert api.get(f"/api/member_file/{f['id']}/download").status_code == 404
     # нөгөө файл хэвээр

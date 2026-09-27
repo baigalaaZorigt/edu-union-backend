@@ -53,10 +53,10 @@ def test_content_upload_serve_delete(api, anon, s3):
     assert got.mimetype == "image/png"
     assert anon.get("/uploads/content/nope.png").status_code == 404
 
-    # баннер устгахад S3-ийн объект ч устна (remove_upload)
+    # баннер устгахад мөр нуугдана — S3-ийн объект үлдэнэ (soft delete)
     bid = api.post("/api/banner", json={"image_url": url}).get_json()["id"]
     assert api.delete(f"/api/banner/{bid}").status_code == 200
-    assert key not in _keys(s3)
+    assert key in _keys(s3)                # soft delete — объект үлдэнэ
 
 
 def test_member_file_s3(api, s3):
@@ -81,10 +81,10 @@ def test_member_file_s3(api, s3):
     assert "filename*=UTF-8''" in d.headers["Content-Disposition"]   # кирилл нэр
 
     assert api.delete(f"/api/member_file/{files[0]['id']}").status_code == 200
-    assert f"uploads/member/{files[0]['stored_name']}" not in _keys(s3)
-    # байгууллага устгахад (каскад) үлдсэн файл ч S3-аас арилна
+    assert f"uploads/member/{files[0]['stored_name']}" in _keys(s3)
+    # soft delete: байгууллага устгахад (каскад) мөр нуугдана, S3-ийн объект үлдэнэ
     assert api.delete(f"/api/organization/{org['id']}").status_code == 200
-    assert not (keys & _keys(s3))
+    assert keys <= _keys(s3)
 
 
 def test_member_file_missing_object(api, s3):
@@ -113,5 +113,5 @@ def test_form_document_s3(api, anon, s3):
     got = anon.get(path)
     assert got.status_code == 200 and got.data == PDF_BYTES and got.mimetype == "application/pdf"
     assert api.delete(f"/api/admin/documents/{doc['id']}").status_code == 200
-    assert key not in _keys(s3)
+    assert key in _keys(s3)
     api.delete(f"/api/admin/forms/{fid}?hard=1")

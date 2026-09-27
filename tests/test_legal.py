@@ -123,7 +123,7 @@ def test_blocks_crud_reorder(api):
     assert api.get("/api/legal_document/999999/blocks").status_code == 404
 
 
-def test_uploaded_files_removed(api):
+def test_replaced_file_removed_deleted_kept(api):
     main, attached, swapped = _upload_pdf(api), _upload_pdf(api), _upload_pdf(api)
     path = lambda u: os.path.join(content.UPLOAD_DIR, os.path.basename(u))  # noqa: E731
     d = _doc(api, display_mode="detail", external_url=None, pdf_url=main)
@@ -132,7 +132,7 @@ def test_uploaded_files_removed(api):
     api.patch(f"/api/legal_document/{d['id']}", json={"pdf_url": swapped})
     assert not os.path.exists(path(main))                       # солигдсон PDF арилсан
     api.delete(f"/api/legal_document/{d['id']}")
-    assert not os.path.exists(path(swapped)) and not os.path.exists(path(attached))
+    assert os.path.exists(path(swapped)) and os.path.exists(path(attached))   # soft delete
     assert b["url"] == attached
 
 

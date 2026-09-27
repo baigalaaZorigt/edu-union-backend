@@ -11,16 +11,17 @@
   `dispose()` дуудаж сокетоо fork-д өвлүүлэхгүй; ажилтан бүр өөрийн pool-оо барина.
   Postgres: pool_size DB_POOL_MAX (анхдагч 5), pool_pre_ping — RDS дахин асвал үхсэн
   холболтыг солино. SQLite: холболт бүрд PRAGMA foreign_keys=ON (каскад үүнээс хамаарна).
+* Устгал бүр SOFT delete (core/orm/soft.py — deleted_at; уншилт устгасныг харахгүй).
 * Хүсэлт бүр НЭГ session (Flask g); teardown нь rollback + close хийнэ — commit хийгээгүй
   өөрчлөлт хэзээ ч алдаанаас хойш үлдэхгүй, холболт pool руу буцна.
 """
 import os
 
 from sqlalchemy import create_engine, event
-from sqlalchemy.orm import Session
 
 from core import db as _db
 from core.orm.base import Base  # noqa: F401  (models импортлоход хэрэгтэй)
+from core.orm.soft import SoftSession
 
 _engines = {}
 
@@ -53,9 +54,15 @@ def engine():
     return eng
 
 
-def new_session():
-    """Хүсэлтээс гадуурх (скрипт, seed) session — дуудагч өөрөө close() хийнэ."""
-    return Session(engine(), expire_on_commit=True)
+def new_session(include_deleted=False):
+    """Хүсэлтээс гадуурх (скрипт, seed) session — дуудагч өөрөө close() хийнэ.
+
+    include_deleted=True — soft delete-ээр нуугдсан мөрүүдийг ч харна (seed: устгасан
+    seed мөрийг дахин үүсгэхгүй, PK зөрчилд унахгүй).
+    """
+    s = SoftSession(engine(), expire_on_commit=True)
+    s.info["include_deleted"] = include_deleted
+    return s
 
 
 def session():

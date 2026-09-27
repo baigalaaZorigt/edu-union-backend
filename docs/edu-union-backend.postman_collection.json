@@ -12190,7 +12190,7 @@
      ]
     },
     {
-     "name": "Шалгах: байршуулсан зураг устсан → 404",
+     "name": "Шалгах: байршуулсан зураг ҮЛДСЭН → 200 (soft delete)",
      "request": {
       "method": "GET",
       "header": [],
@@ -12210,7 +12210,7 @@
        "script": {
         "type": "text/javascript",
         "exec": [
-         "pm.test('статус 404', () => pm.response.to.have.status(404));"
+         "pm.test('статус 200 — soft delete файлыг устгадаггүй', () => pm.response.to.have.status(200));"
         ]
        }
       }

@@ -80,12 +80,9 @@ def update_document(did):
 @bp.route("/api/legal_document/<int:did>", methods=["DELETE"])
 def delete_document(did):
     doc = get_or_404(LegalDocument, did, NOT_FOUND)
-    files = [doc.pdf_url] + [b.url for b in _blocks(did) if b.type == "file"]
     s = session()
-    s.delete(doc)                     # блокууд DB-ийн ON DELETE CASCADE-аар
+    s.delete(doc)                     # soft delete, блокууд каскадаар; файлууд хадгалагдана
     s.commit()
-    for url in files:
-        remove_upload(url)
     return jsonify(deleted=did)
 
 
@@ -159,9 +156,7 @@ def update_block(bid):
 @bp.route("/api/legal_document_block/<int:bid>", methods=["DELETE"])
 def delete_block(bid):
     block = get_or_404(LegalDocumentBlock, bid, BLOCK_NOT_FOUND)
-    url = block.url if block.type == "file" else None
     s = session()
     s.delete(block)
     s.commit()
-    remove_upload(url)
     return jsonify(deleted=bid)
