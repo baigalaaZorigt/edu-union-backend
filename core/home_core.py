@@ -14,7 +14,7 @@ from flask import abort
 
 BANNER_FIELDS = ("title", "image_url", "link_url", "sort_order", "is_visible",
                  "starts_at", "ends_at")
-PARTNER_FIELDS = ("name", "url", "icon", "sort_order", "is_visible")
+PARTNER_FIELDS = ("name", "url", "icon", "logo_url", "sort_order", "is_visible")
 
 MAX_TEXT = 500                 # нэр / гарчиг / URL-ийн дээд урт
 MAX_ICON = 16                  # нэг emoji (ZWJ дараалал хэд хэдэн тэмдэгт болдог)
@@ -125,6 +125,8 @@ def validate_partner(data, current=None):
         out["url"] = url
     if "icon" in data:
         out["icon"] = _str(data["icon"], "icon", max_len=MAX_ICON)
+    if "logo_url" in data:                    # /api/upload-оор орсон зураг (заавал биш)
+        out["logo_url"] = _link(data["logo_url"], "logo_url")
     if "sort_order" in data:
         out["sort_order"] = _int(data["sort_order"], "sort_order")
     if "is_visible" in data:
@@ -144,4 +146,4 @@ def public_banner(row):
 
 
 def public_partner(row):
-    return {k: row[k] for k in ("id", "name", "url", "icon")}
+    return {k: row[k] for k in ("id", "name", "url", "icon", "logo_url")}

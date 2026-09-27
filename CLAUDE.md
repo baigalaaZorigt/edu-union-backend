@@ -70,7 +70,8 @@ portal's token-free API (`/api/portal/...`, `/api/public/...`). What both sides 
   `forms.py` (list, open, submit surveys), `news.py` (read news), `feedback.py` (send
   suggestions/complaints), `settings.py` (`/api/public/portal_settings` and
   `/api/portal/portal_settings`, read-only), `home.py` (`/api/portal/banners`,
-  `/api/portal/partners` → `{items: [...]}`, `Cache-Control: public, max-age=300`),
+  `/api/portal/partners` → `{items: [...]}` (partner: id, name, url, icon, logo_url),
+  `Cache-Control: public, max-age=300`),
   `legal.py` (`/api/portal/legal_documents[/<id>]` — visible rows; detail adds `blocks`).
 - **`core/`** — shared by both sites: `db.py`, `auth.py`, `helpers.py` and the domain cores
   below. **`client/` never imports from `admin/`**; anything both need goes into `core/`.
@@ -120,7 +121,8 @@ core/               # ── SHARED (хоёр site хуваалцана) ──
     seed_ref|seed_data|seed_portal.py, reference_data.py
     bootstrap.py    #     migrate() (Alembic), seed_all(), ensure_seeded()
     __main__.py     #     python -m core.db
-alembic/            # migration-ууд: 0001_baseline (хуучин бүх схем), 0002_legal_document
+alembic/            # migration-ууд: 0001_baseline (хуучин бүх схем), 0002_legal_document,
+                    #   0003_partner_logo
   auth.py           #   JWT + global permission check (before_request)
   helpers.py        #   require, json_body, pick, client_ip, now_str, page_params, list_json
   forms_core/       #   survey/poll домэйний цөм (base, questions, results, documents)
@@ -225,8 +227,8 @@ python -m pytest tests -q      # the whole pytest suite (571 tests, ~13 s)
   The Postman collection (`docs/edu-union-backend.postman_collection.json`) is the second,
   black-box suite, run against a live server. It runs **top to bottom** (Postman Runner or
   `newman run docs/edu-union-backend.postman_collection.json --env-var base_url=...`, **from the
-  repo root** — the form-data requests upload `docs/fixtures/sample.png|pdf` by relative path): 584 requests,
-  1126 assertions, and repeatable — three consecutive runs leave every table's row count
+  repo root** — the form-data requests upload `docs/fixtures/sample.png|pdf` by relative path): 585 requests,
+  1129 assertions, and repeatable — three consecutive runs leave every table's row count
   unchanged. (One known red on a *fresh* DB: `ҮЭ — Гишүүний боловсрол / Нэгийг авах` reads
   `member_education_id`=1, but `seed_union()` creates no `member_education` row.) **Keep it that way when adding requests:** run "0. Нэвтрэлт" first (it stores
   `{{token}}`), have each folder's `Нэмэх` save the new id into a `{{new_*}}` variable, and point
@@ -522,7 +524,9 @@ python -m pytest tests -q      # the whole pytest suite (571 tests, ~13 s)
   naive one is taken as UTC — same as `scheduled_at`), so the public query compares them with
   `now_str()` as text; `NULL` = unbounded, and `ends_at < starts_at` is checked on the merged
   row after a partial `PUT`/`PATCH`. A replaced or deleted banner image leaves the disk through
-  `remove_upload()`. The two public lists are the only responses with a `Cache-Control` header.
+  `remove_upload()` — and the same for `partner.logo_url` (Alembic 0003; optional, same
+  `http(s)://`-or-relative rule; `IMAGE_FIELD` in `admin/home.py` maps each table to its image
+  column). The two public lists are the only responses with a `Cache-Control` header.
 - **News and settings images go through the existing `POST /api/upload`** — no new upload
   endpoint. `admin/news.py` and `admin/settings.py` import `remove_upload()` from
   `admin/content` (renamed from `_remove_upload`), so a replaced cover, a deleted block or a

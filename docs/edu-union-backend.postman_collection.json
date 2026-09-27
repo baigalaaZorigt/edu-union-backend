@@ -20864,7 +20864,7 @@
       },
       "body": {
        "mode": "raw",
-       "raw": "{\n  \"name\": \"Postman хамтрагч\",\n  \"url\": \"https://moe.gov.mn\",\n  \"icon\": \"🏛️\",\n  \"sort_order\": 99\n}"
+       "raw": "{\n  \"name\": \"Postman хамтрагч\",\n  \"url\": \"https://moe.gov.mn\",\n  \"icon\": \"🏛️\",\n  \"sort_order\": 99,\n  \"logo_url\": \"https://fmesu.mn/postman-logo.png\"\n}"
       }
      },
      "event": [
@@ -20877,7 +20877,8 @@
          "var j = pm.response.json();",
          "pm.collectionVariables.set('new_partner_id', j.id);",
          "pm.test('icon', () => pm.expect(j.icon).to.eql('🏛️'));",
-         "pm.test('анхдагчаар харагдана', () => pm.expect(j.is_visible).to.eql(true));"
+         "pm.test('анхдагчаар харагдана', () => pm.expect(j.is_visible).to.eql(true));",
+         "pm.test('logo_url хадгалагдсан', () => pm.expect(j.logo_url).to.eql('https://fmesu.mn/postman-logo.png'));"
         ]
        }
       }
@@ -21022,7 +21023,7 @@
          "pm.test('items массив', () => pm.expect(items).to.be.an('array'));",
          "var mine = items.filter(x => x.id === Number(pm.collectionVariables.get('new_partner_id')));",
          "pm.test('харагдана', () => pm.expect(mine.length).to.eql(1));",
-         "pm.test('зөвхөн id, name, url, icon', () => pm.expect(Object.keys(mine[0]).sort()).to.eql([\"icon\", \"id\", \"name\", \"url\"]));"
+         "pm.test('зөвхөн id, name, url, icon, logo_url', () => pm.expect(Object.keys(mine[0]).sort()).to.eql([\"icon\", \"id\", \"logo_url\", \"name\", \"url\"]));"
         ]
        }
       }
@@ -21126,6 +21127,44 @@
       "body": {
        "mode": "raw",
        "raw": "{\n  \"name\": \"A\",\n  \"url\": \"moe.gov.mn\"\n}"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));",
+         "pm.test('{error} ирнэ', () => pm.expect(pm.response.json().error).to.be.a('string'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Алдаа: logo_url javascript: → 400",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"name\": \"A\",\n  \"url\": \"https://a.mn\",\n  \"logo_url\": \"javascript:alert(1)\"\n}"
+      },
+      "url": {
+       "raw": "{{base_url}}/api/partner",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "partner"
+       ]
       }
      },
      "event": [

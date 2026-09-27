@@ -115,3 +115,4 @@ class Partner(Base):
     is_visible: Mapped[int] = mapped_column(Int, nullable=False, server_default=text("1"))
     created_at: Mapped[Optional[str]] = mapped_column(Str)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
+    logo_url: Mapped[Optional[str]] = mapped_column(Str)          # Alembic 0003 — /api/upload

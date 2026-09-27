@@ -6,7 +6,8 @@
                                        starts_at, ends_at}; image_url заавал
     PUT|PATCH /api/banner/<id>      — хэсэгчилсэн засвар
     DELETE /api/banner/<id>         — зураг нь /uploads/content/ дотор бол дискнээс ч арилна
-    ... /api/partner                — ижил бүтэц: {name, url, icon, sort_order, is_visible}
+    ... /api/partner                — ижил бүтэц: {name, url, icon, logo_url, sort_order,
+                                       is_visible}; лого солигдох/устгахад файл нь арилна
 
 Эрх: banner.* / partner.* (auth.py замын эхний сегментээс автоматаар гаргана).
 Токенгүй порталын уншилт нь client/home.py-д. Шалгалт core/home_core.py-д.
@@ -26,6 +27,7 @@ bp = Blueprint("home_content", __name__)
 MODELS = {"banner": Banner, "partner": Partner}
 NOT_FOUND = {"banner": "Баннер олдсонгүй", "partner": "Хамтрагч байгууллага олдсонгүй"}
 VALIDATE = {"banner": validate_banner, "partner": validate_partner}
+IMAGE_FIELD = {"banner": "image_url", "partner": "logo_url"}   # солих/устгахад файлыг арилгана
 
 
 def _obj(table, rid):
@@ -66,21 +68,20 @@ def _update(table, rid):
         setattr(obj, k, v)
     s.commit()
     out = admin_row(obj.to_dict())
-    # Баннерын зураг солигдвол хуучныг дискнээс арилгана (гадаад URL-д хүрэхгүй).
-    if table == "banner" and "image_url" in values \
-            and values["image_url"] != current["image_url"]:
-        remove_upload(current["image_url"])
+    # Зураг (баннер / лого) солигдвол хуучныг сангаас арилгана (гадаад URL-д хүрэхгүй).
+    field = IMAGE_FIELD[table]
+    if field in values and values[field] != current[field]:
+        remove_upload(current[field])
     return jsonify(out)
 
 
 def _delete(table, rid):
     s = session()
     obj = _obj(table, rid)
-    image = getattr(obj, "image_url", None)
+    image = getattr(obj, IMAGE_FIELD[table])
     s.delete(obj)
     s.commit()
-    if table == "banner":
-        remove_upload(image)
+    remove_upload(image)
     return jsonify(deleted=rid)
 
 

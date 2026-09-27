@@ -152,7 +152,7 @@ def test_partner_crud_and_public(api, anon):
 
     items = anon.get("/api/portal/partners").get_json()["items"]
     assert next(x for x in items if x["id"] == pid) == \
-        {"id": pid, "name": name, "url": "https://moe.gov.mn", "icon": "🏛️"}
+        {"id": pid, "name": name, "url": "https://moe.gov.mn", "icon": "🏛️", "logo_url": None}
 
     assert api.put(f"/api/partner/{pid}", json={"is_visible": 0}).status_code == 200
     assert pid not in _public_ids(anon, "partners")
@@ -165,6 +165,30 @@ def test_partner_crud_and_public(api, anon):
     assert api.get(f"/api/partner/{pid}").status_code == 404
 
 
+def test_partner_logo(api, anon):
+    logo = _upload_png(api)
+    pid = api.post("/api/partner", json={"name": uniq("Логотой"), "url": "https://a.mn",
+                                         "logo_url": logo}).get_json()["id"]
+    item = next(x for x in anon.get("/api/portal/partners").get_json()["items"] if x["id"] == pid)
+    assert item["logo_url"] == logo
+    assert api.get(f"/api/partner/{pid}").get_json()["logo_url"] == logo
+    old_path = os.path.join(content.UPLOAD_DIR, os.path.basename(logo))
+    new = _upload_png(api)
+    assert api.patch(f"/api/partner/{pid}", json={"logo_url": new}).status_code == 200
+    assert not os.path.exists(old_path)                          # солигдсон лого арилсан
+    r = api.put(f"/api/partner/{pid}", json={"logo_url": ""})    # хоосон -> NULL
+    assert r.status_code == 200 and r.get_json()["logo_url"] is None
+    assert not os.path.exists(os.path.join(content.UPLOAD_DIR, os.path.basename(new)))
+    last = _upload_png(api)
+    api.patch(f"/api/partner/{pid}", json={"logo_url": last})
+    assert api.delete(f"/api/partner/{pid}").status_code == 200
+    assert not os.path.exists(os.path.join(content.UPLOAD_DIR, os.path.basename(last)))
+    ext = api.post("/api/partner", json={"name": uniq("Гадаад лого"), "url": "https://b.mn",
+                                         "logo_url": "https://cdn.b.mn/logo.png"})
+    assert ext.status_code == 201 and ext.get_json()["logo_url"] == "https://cdn.b.mn/logo.png"
+    api.delete(f"/api/partner/{ext.get_json()['id']}")
+
+
 @pytest.mark.parametrize("body", [
     {"url": "https://a.mn"},                               # name заавал
     {"name": "A"},                                         # url заавал
@@ -174,6 +198,9 @@ def test_partner_crud_and_public(api, anon):
     {"name": " ", "url": "https://a.mn"},
     {"name": "A", "url": "https://a.mn", "icon": "x" * 17},
     {"name": "A", "url": "https://a.mn", "sort_order": "z"},
+    {"name": "A", "url": "https://a.mn", "logo_url": "javascript:alert(1)"},
+    {"name": "A", "url": "https://a.mn", "logo_url": "//evil.com/x.png"},
+    {"name": "A", "url": "https://a.mn", "logo_url": 5},
 ])
 def test_partner_validation(api, body):
     r = api.post("/api/partner", json=body)

@@ -3,7 +3,7 @@
     GET /api/portal/banners   — is_visible, одоо starts_at..ends_at цонхонд (NULL = хязгааргүй)
                                 {items: [{id, title, image_url, link_url}]}
     GET /api/portal/partners  — is_visible
-                                {items: [{id, name, url, icon}]}
+                                {items: [{id, name, url, icon, logo_url}]}
 
 Хоосон жагсаалт ирвэл портал тухайн хэсгийг нууна. Нүүр хуудсанд байнга дуудагддаг тул
 5 минутын Cache-Control толгой нэмнэ. /api/portal/ нь auth.py-ийн PUBLIC_PREFIXES-д бий.
