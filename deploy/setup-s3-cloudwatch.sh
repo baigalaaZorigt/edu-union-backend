@@ -94,6 +94,8 @@ aws ec2 modify-instance-metadata-options --instance-id "$INSTANCE_ID" \
 sleep 15                                         # role-ийн эрх IMDS-д хүрэх хугацаа
 
 say "5/5 Сервер: .env, docker awslogs, файл зөөх, контейнер шинэчлэх"
+# Скрипт stdin-ээр (bash -s) очдог тул docker команд бүрд </dev/null — эс бөгөөс docker
+# stdin-ийг уншиж скриптийн үлдсэн мөрүүдийг "идэнэ" (анхны ажиллуулалтад ийм болсон).
 ssh -i "$KEY" -o ConnectTimeout=20 "$HOST" "sudo bash -s" <<REMOTE
 set -euo pipefail
 ENV=/opt/edu-union/.env
@@ -116,13 +118,13 @@ systemctl restart docker
 
 cd /opt/edu-union/app
 echo "-- хуучин файлууд -> S3"
-docker compose run --rm --no-deps -T app python scripts/migrate_uploads_to_s3.py
-docker compose up -d --force-recreate
+docker compose run --rm --no-deps -T app python scripts/migrate_uploads_to_s3.py </dev/null
+docker compose up -d --force-recreate </dev/null
 for _ in \$(seq 1 30); do
   [ "\$(docker inspect -f '{{.State.Health.Status}}' edu-union-app)" = healthy ] && break; sleep 5
 done
 echo "-- дахин (хооронд нь орсон файл байвал)"
-docker compose run --rm --no-deps -T app python scripts/migrate_uploads_to_s3.py
+docker compose run --rm --no-deps -T app python scripts/migrate_uploads_to_s3.py </dev/null
 echo "лог драйвер: \$(docker inspect -f '{{.HostConfig.LogConfig.Type}}' edu-union-app)"
 docker ps --format '{{.Names}} {{.Status}}'
 REMOTE
