@@ -1,7 +1,7 @@
 {
  "info": {
   "name": "edu-union-backend — Засаг захиргаа, ҮЭ, Хэрэглэгчийн удирдлага",
-  "description": "edu-union-backend — Flask + SQLite JSON API-ийн бүрэн лавлах цуглуулга.\n\n## Хэрхэн ажиллуулах\n1. Сервер: `python run.py` (анхдагч http://127.0.0.1:5001).\n2. `base_url` хувьсагчийг серверийнхээ хаягаар тохируулна.\n3. **'0. Нэвтрэлт (login)'-ийг ЭХЭЛЖ ажиллуулна** — токен `{{token}}`-д хадгалагдаж, бусад бүх хүсэлт үүнийг Bearer толгойгоор автоматаар авна.\n4. Дараа нь Runner-ээр бүх цуглуулгыг дээрээс доош ажиллуулж болно.\n\n## Зарчим\n- Фолдер бүр **өөрийгөө цэвэрлэдэг**: `Нэмэх` шинэ бичлэг үүсгэж id-г нь `{{new_*}}` хувьсагчид хадгална, `Засах`/`Устгах` нь ЗӨВХӨН тэр бичлэгийг онилно. Тиймээс цуглуулгыг хэдэн ч удаа ажиллуулсан seed өгөгдөл (аймаг, лавлахууд, admin дүр/хэрэглэгч) хэвээр үлдэнэ.\n- `GET` хүсэлтүүд seed мөрүүдийг (ж: `{{au1_code}}`=011) уншина.\n- Хүсэлт бүрд статусын шалгалт (`pm.test`) байгаа тул Runner-т ногоон/улаанаар харагдана.\n\n## Файлтай хүсэлтүүд\n`ҮЭ — Гишүүний файл`, `Портал 2 — Файл байршуулах`, `Судалгаа 4` дахь form-data хүсэлтүүд\nrepo доторх жишээ файлуудыг илгээнэ: `docs/fixtures/sample.png`, `docs/fixtures/sample.pdf`\n(зам нь repo-ийн үндсээс харьцангуй). **newman-ийг repo-ийн үндсээс** ажиллуулна; Postman\nапп дээр Settings → General → *Working directory*-г repo-ийн үндэс болгоно. Байршуулсан файлыг\nтокенгүй буцааж уншиж (`/uploads/content/...`, `/uploads/form/...`), гишүүний PDF-г татаж\nшалгана — production-д эдгээр нь S3-аас уншигдана.\n\n## Портал (цэс ба контент)\n`Портал 1..7` фолдерууд дараалан ажиллах бүтэн урсгал: цэс үүсгэх → файл байршуулах → контент засах → блок нэмэх/эрэмбэлэх → спекийн зураг/файл/видео маршрут → алдааны шалгалт → cascade устгал.\n\n## Судалгаа / Санал асуулга\n`Судалгаа 1..8` фолдерууд дараалан ажиллах бүтэн урсгал: маягт үүсгэх → асуулт барих → сонголт → PDF хавсаргах → **токенгүй** порталаас бөглөх → үр дүн/трэнд → алдааны шалгалт → бүрэн цэвэрлэгээ.\n\n`/api/portal/...` нь НЭЭЛТТЭЙ тул тэдгээр хүсэлт `noauth`-той явна — зочин хүн нэвтрэхгүйгээр судалгаа бөглөнө. Токен ирвэл бөглөлт хэрэглэгчийн нэр дээр бүртгэгдэж `one_response` үйлчилнэ.\n\n## Метод\nЗасварын БҮХ маршрут `PUT` ба `PATCH` хоёуланг хүлээж авдаг (хоёулаа хэсэгчилсэн\nзасвар — зөвхөн илгээсэн талбарыг сольдог). Цуглуулгад `Засах` хүсэлт бүрийн\nдэргэд `— PATCH-аар мөн` хувилбар байгаа нь үүнийг батална. Онцгой тохиолдол нь\n`PUT|PATCH /api/user/{id}/scope`: `PUT` бүхэлд нь дарж бичнэ, `PATCH` merge хийнэ.\nБуруу метод (ж: `PATCH /api/login`) нь HTML биш JSON 405 буцаана.\n\n## Огноо\nХүснэгт бүр `created_at` / `updated_at`-тай (DB-ийн trigger автоматаар бөглөнө) —\n`Огноо — created_at / updated_at (бүх жагсаалт)` фолдер үүнийг бүх жагсаалт дээр\nшалгана. Миграциас ӨМНӨ үүссэн мөрүүд NULL хэвээр байж болно.\n\n## Лавлахууд\n`position` / `profession` / `reward_type` / `structure` дөрвүүлээ `id` + `code` +\n`name` бүтэцтэй, код давхцвал 409. `structure` (Бүтцийн удирдлага) -г\n`organization` ба `user` хоёул `structure_id`-аар сонгоно.\n\n## Хэрэглэгч\nНэр нь `last_name` + `first_name` (`full_name` байхгүй). `Хэрэглэгч — Хамрах\nхүрээ (user_scope)` фолдер нь тухайн хэрэглэгч АЛЬ өгөгдлийг харахыг тодорхойлох\n`/api/user/{id}/scope`-ыг бүрэн шалгана.\n\n## Мэдээ ба порталын тохиргоо\n`Мэдээ 1..6` фолдерууд дараалан ажиллах бүтэн урсгал: мэдээ үүсгэх → блок нэмэх (текст/зураг/видео) → эрэмбэлэх → нийтлэх → **токенгүй** порталаас унших → порталын тохиргоо (толгой, баннер, холбоо барих) → алдааны шалгалт → cascade устгал.\n\n`Мэдээ 4` нь `portal_settings` singleton-ыг дарж бичээд, ТЭР ЖИШЭЭ ФОЛДЕРТ анхны утгуудыг нь буцааж сэргээдэг тул цуглуулгыг хэдэн ч удаа ажиллуулахад тохиргоо хэвээр үлдэнэ. Кирилл шүүлтүүр (`?category=Мэдээ`) нь URL-encoded хэлбэрээр явна.\n\n## Байгууллага\n`organization` нь хороонд ХАРЬЯАЛАГДАХГҮЙ (`horoo_id` хасагдсан) — жагсаалтыг\n`?school_category_id=` / `?structure_id=`-ээр шүүнэ. `ҮЭ — Алдааны шалгалт\n(сөрөг тест)` фолдер энэ бүх ирмэгийн тохиолдлыг гүйлгэнэ.",
+  "description": "edu-union-backend — Flask + SQLite JSON API-ийн бүрэн лавлах цуглуулга.\n\n## Хэрхэн ажиллуулах\n1. Сервер: `python run.py` (анхдагч http://127.0.0.1:5001).\n2. `base_url` хувьсагчийг серверийнхээ хаягаар тохируулна.\n3. **'0. Нэвтрэлт (login)'-ийг ЭХЭЛЖ ажиллуулна** — токен `{{token}}`-д хадгалагдаж, бусад бүх хүсэлт үүнийг Bearer толгойгоор автоматаар авна.\n4. Дараа нь Runner-ээр бүх цуглуулгыг дээрээс доош ажиллуулж болно.\n\n## Зарчим\n- Фолдер бүр **өөрийгөө цэвэрлэдэг**: `Нэмэх` шинэ бичлэг үүсгэж id-г нь `{{new_*}}` хувьсагчид хадгална, `Засах`/`Устгах` нь ЗӨВХӨН тэр бичлэгийг онилно. Тиймээс цуглуулгыг хэдэн ч удаа ажиллуулсан seed өгөгдөл (аймаг, лавлахууд, admin дүр/хэрэглэгч) хэвээр үлдэнэ.\n- `GET` хүсэлтүүд seed мөрүүдийг (ж: `{{au1_code}}`=011) уншина.\n- Хүсэлт бүрд статусын шалгалт (`pm.test`) байгаа тул Runner-т ногоон/улаанаар харагдана.\n\n## Файлтай хүсэлтүүд\n`ҮЭ — Гишүүний файл`, `Портал 2 — Файл байршуулах`, `Судалгаа 4` дахь form-data хүсэлтүүд\nrepo доторх жишээ файлуудыг илгээнэ: `docs/fixtures/sample.png`, `docs/fixtures/sample.pdf`\n(зам нь repo-ийн үндсээс харьцангуй). **newman-ийг repo-ийн үндсээс** ажиллуулна; Postman\nапп дээр Settings → General → *Working directory*-г repo-ийн үндэс болгоно. Байршуулсан файлыг\nтокенгүй буцааж уншиж (`/uploads/content/...`, `/uploads/form/...`), гишүүний PDF-г татаж\nшалгана — production-д эдгээр нь S3-аас уншигдана.\n\n## Портал (цэс ба контент)\n`Портал 1..7` фолдерууд дараалан ажиллах бүтэн урсгал: цэс үүсгэх → файл байршуулах → контент засах → блок нэмэх/эрэмбэлэх → спекийн зураг/файл/видео маршрут → алдааны шалгалт → cascade устгал.\n\n## Судалгаа / Санал асуулга\n`Судалгаа 1..8` фолдерууд дараалан ажиллах бүтэн урсгал: маягт үүсгэх → асуулт барих → сонголт → PDF хавсаргах → **токенгүй** порталаас бөглөх → үр дүн/трэнд → алдааны шалгалт → бүрэн цэвэрлэгээ.\n\n`/api/portal/...` нь НЭЭЛТТЭЙ тул тэдгээр хүсэлт `noauth`-той явна — зочин хүн нэвтрэхгүйгээр судалгаа бөглөнө. Токен ирвэл бөглөлт хэрэглэгчийн нэр дээр бүртгэгдэж `one_response` үйлчилнэ.\n\n## Метод\nЗасварын БҮХ маршрут `PUT` ба `PATCH` хоёуланг хүлээж авдаг (хоёулаа хэсэгчилсэн\nзасвар — зөвхөн илгээсэн талбарыг сольдог). Цуглуулгад `Засах` хүсэлт бүрийн\nдэргэд `— PATCH-аар мөн` хувилбар байгаа нь үүнийг батална. Онцгой тохиолдол нь\n`PUT|PATCH /api/user/{id}/scope`: `PUT` бүхэлд нь дарж бичнэ, `PATCH` merge хийнэ.\nБуруу метод (ж: `PATCH /api/login`) нь HTML биш JSON 405 буцаана.\n\n## Огноо\nХүснэгт бүр `created_at` / `updated_at`-тай (DB-ийн trigger автоматаар бөглөнө) —\n`Огноо — created_at / updated_at (бүх жагсаалт)` фолдер үүнийг бүх жагсаалт дээр\nшалгана. Миграциас ӨМНӨ үүссэн мөрүүд NULL хэвээр байж болно.\n\n## Лавлахууд\n`position` / `profession` / `reward_type` / `structure` дөрвүүлээ `id` + `code` +\n`name` бүтэцтэй, код давхцвал 409. `structure` (Бүтцийн удирдлага) -г\n`organization` ба `user` хоёул `structure_id`-аар сонгоно.\n\n## Хэрэглэгч\nНэр нь `last_name` + `first_name` (`full_name` байхгүй). `Хэрэглэгч — Хамрах\nхүрээ (user_scope)` фолдер нь тухайн хэрэглэгч АЛЬ өгөгдлийг харахыг тодорхойлох\n`/api/user/{id}/scope`-ыг бүрэн шалгана.\n\n## Мэдээ ба порталын тохиргоо\n`Мэдээ 1..6` фолдерууд дараалан ажиллах бүтэн урсгал: мэдээ үүсгэх → блок нэмэх (текст/зураг/видео) → эрэмбэлэх → нийтлэх → **токенгүй** порталаас унших → порталын тохиргоо (толгой, баннер, холбоо барих) → алдааны шалгалт → cascade устгал.\n\n`Мэдээ 4` нь `portal_settings` singleton-ыг дарж бичээд, ТЭР ЖИШЭЭ ФОЛДЕРТ анхны утгуудыг нь буцааж сэргээдэг тул цуглуулгыг хэдэн ч удаа ажиллуулахад тохиргоо хэвээр үлдэнэ. Кирилл шүүлтүүр (`?category=Мэдээ`) нь URL-encoded хэлбэрээр явна.\n\n## Байгууллага\n`organization` нь хороонд ХАРЬЯАЛАГДАХГҮЙ (`horoo_id` хасагдсан) — жагсаалтыг\n`?school_category_id=` / `?structure_id=`-ээр шүүнэ. `ҮЭ — Алдааны шалгалт\n(сөрөг тест)` фолдер энэ бүх ирмэгийн тохиолдлыг гүйлгэнэ.\n\n## Soft delete\nБүх устгал **зөвхөн нууна** (`deleted_at`): мөр DB-д үлдэж, API-аас алга болно, файл S3/диск дээр үлдэнэ, `?hard=1` ч soft. Тиймээс цуглуулгыг давтан ажиллуулахад **харагдах** мөрийн тоо өөрчлөгдөхгүй, нуугдсан мөрүүд л нэмэгдэнэ. `Soft delete 1` фолдер үүнийг шалгана.",
   "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
  },
  "auth": {
@@ -521,6 +521,38 @@
   },
   {
    "key": "pc_admin_blocks",
+   "value": ""
+  },
+  {
+   "key": "sd_user_id",
+   "value": ""
+  },
+  {
+   "key": "sd_user2_id",
+   "value": ""
+  },
+  {
+   "key": "sd_org_id",
+   "value": ""
+  },
+  {
+   "key": "sd_member_id",
+   "value": ""
+  },
+  {
+   "key": "sd_contact_id",
+   "value": ""
+  },
+  {
+   "key": "sd_org2_id",
+   "value": ""
+  },
+  {
+   "key": "sd_upload_url",
+   "value": ""
+  },
+  {
+   "key": "sd_banner_id",
    "value": ""
   }
  ],
@@ -2912,7 +2944,7 @@
      ]
     },
     {
-     "name": "Устгах (дискнээс ч арилна)",
+     "name": "Устгах (soft — файл үлдэнэ)",
      "request": {
       "method": "DELETE",
       "header": [],
@@ -11464,7 +11496,7 @@
   },
   {
    "name": "Портал 7 — Цэвэрлэгээ (cascade шалгах)",
-   "description": "Тестийн өгөгдлийг устгаад cascade зөв ажилласныг батална: цэс устахад дэд цэс, контент хуудас, бүх блок, диск дээрх файл нь хамт арилна.",
+   "description": "Тестийн өгөгдлийг устгаад cascade зөв ажилласныг батална: цэс устахад дэд цэс, контент хуудас, бүх блок нь хамт нуугдана (soft delete — диск/S3 дээрх файл үлдэнэ).",
    "item": [
     {
      "name": "Үндсэн цэсийг устгах",
@@ -14729,14 +14761,14 @@
         "type": "text/javascript",
         "exec": [
          "pm.test('статус 200', () => pm.response.to.have.status(200));",
-         "pm.test('бүрмөсөн устсан', () => pm.expect(pm.response.json().soft).to.be.false);"
+         "pm.test('каскадтай устсан (soft=false)', () => pm.expect(pm.response.json().soft).to.be.false);"
         ]
        }
       }
      ]
     },
     {
-     "name": "Санал асуулгыг бүрмөсөн устгах (hard)",
+     "name": "Санал асуулгыг каскадтай устгах (?hard=1)",
      "request": {
       "method": "DELETE",
       "header": [],
@@ -14766,14 +14798,14 @@
         "type": "text/javascript",
         "exec": [
          "pm.test('статус 200', () => pm.response.to.have.status(200));",
-         "pm.test('зөөлөн биш, бүрмөсөн', () => pm.expect(pm.response.json().soft).to.be.false);"
+         "pm.test('архив биш, каскадтай (soft=false)', () => pm.expect(pm.response.json().soft).to.be.false);"
         ]
        }
       }
      ]
     },
     {
-     "name": "Судалгааг бүрмөсөн устгах (hard)",
+     "name": "Судалгааг каскадтай устгах (?hard=1)",
      "request": {
       "method": "DELETE",
       "header": [],
@@ -14804,7 +14836,7 @@
         "type": "text/javascript",
         "exec": [
          "pm.test('статус 200', () => pm.response.to.have.status(200));",
-         "pm.test('бүрмөсөн устсан', () => pm.expect(pm.response.json().soft).to.be.false);"
+         "pm.test('каскадтай устсан (soft=false)', () => pm.expect(pm.response.json().soft).to.be.false);"
         ]
        }
       }
@@ -19406,7 +19438,7 @@
   },
   {
    "name": "Мэдэгдэл 1 — Илгээх (админ) + 🔔 Inbox",
-   "description": "notification_api_spec.md — админ мэдэгдэл бичиж илгээнэ (§3), fan-out-аар хэрэглэгч бүрийн inbox-д тусна (§4). Хавтас нь ДҮРГҮЙ хэрэглэгч үүсгэдэг нь санаатай: 🔔 inbox (`/api/notifications`) нь ямар ч эрх шаардахгүй (зөвхөн өөрийн мөрүүд), гэтэл тэр хэрэглэгч `/api/admin/notifications`-д хүрэхэд 403 авна.\n\nИлгээгдсэн (`sent`) мэдэгдлийг ердийн `DELETE` нь 422-оор татгалздаг тул цэвэрлэгээ нь `?hard=1`-ээр явна (forms-ийн адил гаргалгаа) — ингэснээр цуглуулга мөрийн тоог хөдөлгөхгүй.",
+   "description": "notification_api_spec.md — админ мэдэгдэл бичиж илгээнэ (§3), fan-out-аар хэрэглэгч бүрийн inbox-д тусна (§4). Хавтас нь ДҮРГҮЙ хэрэглэгч үүсгэдэг нь санаатай: 🔔 inbox (`/api/notifications`) нь ямар ч эрх шаардахгүй (зөвхөн өөрийн мөрүүд), гэтэл тэр хэрэглэгч `/api/admin/notifications`-д хүрэхэд 403 авна.\n\nИлгээгдсэн (`sent`) мэдэгдлийг ердийн `DELETE` нь 422-оор татгалздаг тул цэвэрлэгээ нь `?hard=1`-ээр явна (forms-ийн адил гаргалгаа) — ингэснээр цуглуулга ХАРАГДАХ мөрийн тоог хөдөлгөхгүй (устгал бүр soft).",
    "item": [
     {
      "name": "Бэлтгэл: дүргүй хэрэглэгч → {{new_notify_user_id}}",
@@ -24578,6 +24610,717 @@
          "pm.test('total = бүлгүүдийн нийлбэр', () => pm.expect(j.total_members).to.eql(j.items.reduce((a, x) => a + x.members, 0)));",
          "pm.test('хувийн нийлбэр 100', () => { if (j.items.length) pm.expect(j.items.reduce((a, x) => a + x.percent, 0)).to.eql(100); });",
          "pm.test('талбарууд', () => j.items.forEach(x => pm.expect(Object.keys(x).sort()).to.eql(['key','members','name','percent','school_category_id','short_name'])));"
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Soft delete 1 — Устгасан мөр нуугдана, нэр/код чөлөөлөгдөнө, файл үлдэнэ",
+   "description": "Бүх устгал soft delete (core/orm/soft.py, Alembic 0004): мөр DB-д `deleted_at`-тай үлдэж, API-аас бүрэн алга болно — дахин авах/устгах 404, жагсаалтад байхгүй. Каскад: байгууллага устгахад гишүүн, түүний contact хамт нуугдана. UNIQUE нэр (username) болон байгууллагын код чөлөөлөгдөж ижлээр дахин үүсгэж болно. Устгахад файл (S3/диск) ҮЛДЭНЭ — зөвхөн засвараар солигдсон хуучин файл арилна. Сэргээх endpoint байхгүй.\n\nХавтас үүсгэсэн бүх мөрөө устгадаг тул ХАРАГДАХ мөрийн тоо өөрчлөгдөхгүй; нуугдсан мөрүүд л нэмэгдэнэ.",
+   "item": [
+    {
+     "name": "Хэрэглэгч үүсгэх → sd_user_id",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/user",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "user"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"username\": \"postman_soft_user\",\n  \"password\": \"Pass1234\",\n  \"last_name\": \"Soft\",\n  \"first_name\": \"Delete\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "pm.collectionVariables.set('sd_user_id', pm.response.json().id);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Хэрэглэгч устгах → {deleted}",
+     "request": {
+      "method": "DELETE",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/user/{{sd_user_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "user",
+        "{{sd_user_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('deleted = id', () => pm.expect(pm.response.json().deleted).to.eql(Number(pm.collectionVariables.get('sd_user_id'))));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Устгасныг авах → 404 (нуугдсан)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/user/{{sd_user_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "user",
+        "{{sd_user_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 404', () => pm.response.to.have.status(404));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Дахин устгах → 404",
+     "request": {
+      "method": "DELETE",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/user/{{sd_user_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "user",
+        "{{sd_user_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 404', () => pm.response.to.have.status(404));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Жагсаалтад байхгүй",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/user",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "user"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var sdId = Number(pm.collectionVariables.get('sd_user_id'));",
+         "pm.test('устгасан id жагсаалтад алга', () => pm.expect(pm.response.json().some(u => u.id === sdId)).to.be.false);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Ижил username-ээр дахин үүсгэх → 201 (нэр чөлөөлөгдсөн)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/user",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "user"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"username\": \"postman_soft_user\",\n  \"password\": \"Pass1234\",\n  \"last_name\": \"Soft\",\n  \"first_name\": \"Again\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "var j2 = pm.response.json();",
+         "pm.collectionVariables.set('sd_user2_id', j2.id);",
+         "pm.test('шинэ id', () => pm.expect(j2.id).to.not.eql(Number(pm.collectionVariables.get('sd_user_id'))));",
+         "pm.test('ижил нэр', () => pm.expect(j2.username).to.eql('postman_soft_user'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Цэвэрлэх: 2 дахь хэрэглэгч",
+     "request": {
+      "method": "DELETE",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/user/{{sd_user2_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "user",
+        "{{sd_user2_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Байгууллага үүсгэх → sd_org_id",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/organization",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "organization"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"name\": \"Soft delete тест байгууллага\",\n  \"school_category_id\": 13,\n  \"org_code\": \"802\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "pm.collectionVariables.set('sd_org_id', pm.response.json().id);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Гишүүн үүсгэх → sd_member_id",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/member",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"organization_id\": \"{{sd_org_id}}\",\n  \"last_name\": \"Soft\",\n  \"first_name\": \"Гишүүн\",\n  \"union_card_code\": \"0001\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "pm.collectionVariables.set('sd_member_id', pm.response.json().id);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Гишүүний утас → sd_contact_id",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/contact",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "contact"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"owner_type\": \"member\",\n  \"owner_id\": \"{{sd_member_id}}\",\n  \"type\": \"утас\",\n  \"value\": \"99112233\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "pm.collectionVariables.set('sd_contact_id', pm.response.json().id);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Байгууллага устгах (каскад)",
+     "request": {
+      "method": "DELETE",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/organization/{{sd_org_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "organization",
+        "{{sd_org_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Гишүүн нь ч нуугдсан → 404",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/member/{{sd_member_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member",
+        "{{sd_member_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 404', () => pm.response.to.have.status(404));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Гишүүний утас ч нуугдсан → []",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/contact?owner_type=member&owner_id={{sd_member_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "contact"
+       ],
+       "query": [
+        {
+         "key": "owner_type",
+         "value": "member"
+        },
+        {
+         "key": "owner_id",
+         "value": "{{sd_member_id}}"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('хоосон', () => pm.expect(pm.response.json()).to.eql([]));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Ижил кодоор (13802) дахин үүсгэх → 201",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/organization",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "organization"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"name\": \"Soft delete тест байгууллага 2\",\n  \"school_category_id\": 13,\n  \"org_code\": \"802\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "pm.collectionVariables.set('sd_org2_id', pm.response.json().id);",
+         "pm.test('full_code 13802', () => pm.expect(pm.response.json().full_code).to.eql('13802'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Цэвэрлэх: 2 дахь байгууллага",
+     "request": {
+      "method": "DELETE",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/organization/{{sd_org2_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "organization",
+        "{{sd_org2_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Зураг байршуулах → sd_upload_url",
+     "request": {
+      "method": "POST",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/upload",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "upload"
+       ]
+      },
+      "body": {
+       "mode": "formdata",
+       "formdata": [
+        {
+         "key": "file",
+         "type": "file",
+         "src": "docs/fixtures/sample.png"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "pm.collectionVariables.set('sd_upload_url', pm.response.json().url);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Баннер (тэр зурагтай) → sd_banner_id",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/banner",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "banner"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"title\": \"Soft delete баннер\",\n  \"image_url\": \"{{sd_upload_url}}\",\n  \"is_visible\": false\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "pm.collectionVariables.set('sd_banner_id', pm.response.json().id);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Баннер устгах",
+     "request": {
+      "method": "DELETE",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/banner/{{sd_banner_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "banner",
+        "{{sd_banner_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Баннер → 404",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/banner/{{sd_banner_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "banner",
+        "{{sd_banner_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 404', () => pm.response.to.have.status(404));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Зураг ҮЛДСЭН → 200 (токенгүй)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}{{sd_upload_url}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "{{sd_upload_url}}"
+       ]
+      },
+      "auth": {
+       "type": "noauth"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
         ]
        }
       }

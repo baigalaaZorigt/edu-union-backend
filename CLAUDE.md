@@ -242,8 +242,8 @@ python -m pytest tests -q      # the whole pytest suite (571 tests, ~13 s)
   The Postman collection (`docs/edu-union-backend.postman_collection.json`) is the second,
   black-box suite, run against a live server. It runs **top to bottom** (Postman Runner or
   `newman run docs/edu-union-backend.postman_collection.json --env-var base_url=...`, **from the
-  repo root** — the form-data requests upload `docs/fixtures/sample.png|pdf` by relative path): 603 requests,
-  1160 assertions, and repeatable — three consecutive runs leave every table's **visible**
+  repo root** — the form-data requests upload `docs/fixtures/sample.png|pdf` by relative path): 623 requests,
+  1190 assertions, and repeatable — three consecutive runs leave every table's **visible**
   row count (`deleted_at IS NULL`) unchanged; since every delete is soft, hidden rows do pile up. (One known red on a *fresh* DB: `ҮЭ — Гишүүний боловсрол / Нэгийг авах` reads
   `member_education_id`=1, but `seed_union()` creates no `member_education` row.) **Keep it that way when adding requests:** run "0. Нэвтрэлт" first (it stores
   `{{token}}`), have each folder's `Нэмэх` save the new id into a `{{new_*}}` variable, and point
@@ -269,7 +269,11 @@ python -m pytest tests -q      # the whole pytest suite (571 tests, ~13 s)
   `Мэдэгдэл 1` folder sends a notification to a **role-less** user (proving the inbox needs no
   permission while `/api/admin/notifications` still answers 403 to them) and cleans its `sent`
   row up with `?hard=1`, since a plain `DELETE` on a sent notification is a 422 by design.
-  `Портал 8` checks the uploaded image is **still served** (200) after its block is deleted. The
+  `Портал 8` checks the uploaded image is **still served** (200) after its block is deleted.
+  The `Soft delete 1` folder proves the soft-delete contract end to end: a deleted user is 404 on
+  read and on a second delete and gone from the list, the same `username` can be created again;
+  deleting an organization hides its member and that member's contacts, and its `org_code` is
+  free again; a deleted banner's uploaded image is still served token-free (200). The
   `Мэргэжилтэн 1` folder covers the specialist flow
   end to end: it builds its own role + two organizations (one in scope, one out) + user, logs
   in with the initial password, changes it, fills the scope through `/api/me/scope`, then
