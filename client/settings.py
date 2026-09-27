@@ -8,7 +8,6 @@
 """
 from flask import Blueprint, jsonify
 
-from core.db import get_db
 from core.settings_core import get_row, public
 
 bp = Blueprint("public_settings", __name__)
@@ -18,7 +17,4 @@ bp = Blueprint("public_settings", __name__)
 @bp.route("/api/portal/portal_settings", methods=["GET"])
 def public_settings():
     """Одоогийн тохиргоо (мөр байхгүй бол анхдагчаар үүсгэж буцаана)."""
-    conn = get_db()
-    out = public(get_row(conn))
-    conn.close()
-    return jsonify(out)
+    return jsonify(public(get_row()))

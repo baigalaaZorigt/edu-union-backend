@@ -5,10 +5,10 @@ alembic/versions/0001_baseline үүсгэдэг. created_at/updated_at-ийг DB
 """
 from typing import Optional
 
-from sqlalchemy import ForeignKey, Index, Integer, Text, UniqueConstraint, text
+from sqlalchemy import ForeignKey, Index, UniqueConstraint, text
 from sqlalchemy.orm import Mapped, mapped_column
 
-from core.orm.base import Base
+from core.orm.base import Base, Int, Str
 
 
 class News(Base):
@@ -17,22 +17,19 @@ class News(Base):
         Index('idx_news_list', 'category', 'status'),
     )
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    title: Mapped[str] = mapped_column(Text, nullable=False)
-    category: Mapped[str] = mapped_column(
-        Text, nullable=False, server_default=text("'Мэдээ'::text"))
-    author: Mapped[Optional[str]] = mapped_column(Text)
-    cover_image_url: Mapped[Optional[str]] = mapped_column(Text)
-    summary: Mapped[Optional[str]] = mapped_column(Text)
-    status: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("'draft'::text"))
-    published_at: Mapped[Optional[str]] = mapped_column(Text)
-    created_by: Mapped[Optional[int]] = mapped_column(
-        Integer, ForeignKey("app_user.id", ondelete="SET NULL"))
-    updated_by: Mapped[Optional[int]] = mapped_column(
-        Integer, ForeignKey("app_user.id", ondelete="SET NULL"))
-    created_at: Mapped[Optional[str]] = mapped_column(Text)
-    updated_at: Mapped[Optional[str]] = mapped_column(Text)
-    deleted_at: Mapped[Optional[str]] = mapped_column(Text)
+    id: Mapped[int] = mapped_column(Int, primary_key=True)
+    title: Mapped[str] = mapped_column(Str, nullable=False)
+    category: Mapped[str] = mapped_column(Str, nullable=False, server_default=text("'Мэдээ'::text"))
+    author: Mapped[Optional[str]] = mapped_column(Str)
+    cover_image_url: Mapped[Optional[str]] = mapped_column(Str)
+    summary: Mapped[Optional[str]] = mapped_column(Str)
+    status: Mapped[str] = mapped_column(Str, nullable=False, server_default=text("'draft'::text"))
+    published_at: Mapped[Optional[str]] = mapped_column(Str)
+    created_by: Mapped[Optional[int]] = mapped_column(Int, ForeignKey("app_user.id", ondelete="SET NULL"))
+    updated_by: Mapped[Optional[int]] = mapped_column(Int, ForeignKey("app_user.id", ondelete="SET NULL"))
+    created_at: Mapped[Optional[str]] = mapped_column(Str)
+    updated_at: Mapped[Optional[str]] = mapped_column(Str)
+    deleted_at: Mapped[Optional[str]] = mapped_column(Str)
 
 
 class NewsBlock(Base):
@@ -41,20 +38,19 @@ class NewsBlock(Base):
         Index('idx_news_block_news', 'news_id'),
     )
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    news_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("news.id", ondelete="CASCADE"), nullable=False)
-    type: Mapped[str] = mapped_column(Text, nullable=False)
-    sort_order: Mapped[Optional[int]] = mapped_column(Integer, server_default=text("0"))
-    text: Mapped[Optional[str]] = mapped_column(Text)
-    url: Mapped[Optional[str]] = mapped_column(Text)
-    title: Mapped[Optional[str]] = mapped_column(Text)
-    caption: Mapped[Optional[str]] = mapped_column(Text)
-    name: Mapped[Optional[str]] = mapped_column(Text)
-    mime_type: Mapped[Optional[str]] = mapped_column(Text)
-    size: Mapped[Optional[int]] = mapped_column(Integer)
-    created_at: Mapped[Optional[str]] = mapped_column(Text)
-    updated_at: Mapped[Optional[str]] = mapped_column(Text)
+    id: Mapped[int] = mapped_column(Int, primary_key=True)
+    news_id: Mapped[int] = mapped_column(Int, ForeignKey("news.id", ondelete="CASCADE"), nullable=False)
+    type: Mapped[str] = mapped_column(Str, nullable=False)
+    sort_order: Mapped[Optional[int]] = mapped_column(Int, server_default=text("0"))
+    text: Mapped[Optional[str]] = mapped_column(Str)
+    url: Mapped[Optional[str]] = mapped_column(Str)
+    title: Mapped[Optional[str]] = mapped_column(Str)
+    caption: Mapped[Optional[str]] = mapped_column(Str)
+    name: Mapped[Optional[str]] = mapped_column(Str)
+    mime_type: Mapped[Optional[str]] = mapped_column(Str)
+    size: Mapped[Optional[int]] = mapped_column(Int)
+    created_at: Mapped[Optional[str]] = mapped_column(Str)
+    updated_at: Mapped[Optional[str]] = mapped_column(Str)
 
 
 class Suggestion(Base):
@@ -63,14 +59,14 @@ class Suggestion(Base):
         Index('idx_suggestions_created', 'created_at'),
     )
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    name: Mapped[str] = mapped_column(Text, nullable=False)
-    email: Mapped[str] = mapped_column(Text, nullable=False)
-    phone: Mapped[str] = mapped_column(Text, nullable=False)
-    message: Mapped[str] = mapped_column(Text, nullable=False)
-    status: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("'new'::text"))
-    created_at: Mapped[Optional[str]] = mapped_column(Text)
-    updated_at: Mapped[Optional[str]] = mapped_column(Text)
+    id: Mapped[int] = mapped_column(Int, primary_key=True)
+    name: Mapped[str] = mapped_column(Str, nullable=False)
+    email: Mapped[str] = mapped_column(Str, nullable=False)
+    phone: Mapped[str] = mapped_column(Str, nullable=False)
+    message: Mapped[str] = mapped_column(Str, nullable=False)
+    status: Mapped[str] = mapped_column(Str, nullable=False, server_default=text("'new'::text"))
+    created_at: Mapped[Optional[str]] = mapped_column(Str)
+    updated_at: Mapped[Optional[str]] = mapped_column(Str)
 
 
 class Complaint(Base):
@@ -79,16 +75,16 @@ class Complaint(Base):
         Index('idx_complaints_created', 'created_at'),
     )
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    name: Mapped[str] = mapped_column(Text, nullable=False)
-    email: Mapped[str] = mapped_column(Text, nullable=False)
-    phone: Mapped[str] = mapped_column(Text, nullable=False)
-    description: Mapped[str] = mapped_column(Text, nullable=False)
-    file_url: Mapped[Optional[str]] = mapped_column(Text)
-    file_name: Mapped[Optional[str]] = mapped_column(Text)
-    status: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("'new'::text"))
-    created_at: Mapped[Optional[str]] = mapped_column(Text)
-    updated_at: Mapped[Optional[str]] = mapped_column(Text)
+    id: Mapped[int] = mapped_column(Int, primary_key=True)
+    name: Mapped[str] = mapped_column(Str, nullable=False)
+    email: Mapped[str] = mapped_column(Str, nullable=False)
+    phone: Mapped[str] = mapped_column(Str, nullable=False)
+    description: Mapped[str] = mapped_column(Str, nullable=False)
+    file_url: Mapped[Optional[str]] = mapped_column(Str)
+    file_name: Mapped[Optional[str]] = mapped_column(Str)
+    status: Mapped[str] = mapped_column(Str, nullable=False, server_default=text("'new'::text"))
+    created_at: Mapped[Optional[str]] = mapped_column(Str)
+    updated_at: Mapped[Optional[str]] = mapped_column(Str)
 
 
 class Notification(Base):
@@ -97,22 +93,20 @@ class Notification(Base):
         Index('idx_notify_status', 'status', 'scheduled_at'),
     )
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    title: Mapped[str] = mapped_column(Text, nullable=False)
-    body: Mapped[str] = mapped_column(Text, nullable=False)
-    type: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("'info'::text"))
-    image_url: Mapped[Optional[str]] = mapped_column(Text)
-    audience_type: Mapped[str] = mapped_column(Text, nullable=False)
-    role_id: Mapped[Optional[int]] = mapped_column(
-        Integer, ForeignKey("role.id", ondelete="SET NULL"))
-    audience_user_ids: Mapped[Optional[str]] = mapped_column(Text)
-    status: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("'draft'::text"))
-    scheduled_at: Mapped[Optional[str]] = mapped_column(Text)
-    sent_at: Mapped[Optional[str]] = mapped_column(Text)
-    created_by: Mapped[Optional[int]] = mapped_column(
-        Integer, ForeignKey("app_user.id", ondelete="SET NULL"))
-    created_at: Mapped[Optional[str]] = mapped_column(Text)
-    updated_at: Mapped[Optional[str]] = mapped_column(Text)
+    id: Mapped[int] = mapped_column(Int, primary_key=True)
+    title: Mapped[str] = mapped_column(Str, nullable=False)
+    body: Mapped[str] = mapped_column(Str, nullable=False)
+    type: Mapped[str] = mapped_column(Str, nullable=False, server_default=text("'info'::text"))
+    image_url: Mapped[Optional[str]] = mapped_column(Str)
+    audience_type: Mapped[str] = mapped_column(Str, nullable=False)
+    role_id: Mapped[Optional[int]] = mapped_column(Int, ForeignKey("role.id", ondelete="SET NULL"))
+    audience_user_ids: Mapped[Optional[str]] = mapped_column(Str)
+    status: Mapped[str] = mapped_column(Str, nullable=False, server_default=text("'draft'::text"))
+    scheduled_at: Mapped[Optional[str]] = mapped_column(Str)
+    sent_at: Mapped[Optional[str]] = mapped_column(Str)
+    created_by: Mapped[Optional[int]] = mapped_column(Int, ForeignKey("app_user.id", ondelete="SET NULL"))
+    created_at: Mapped[Optional[str]] = mapped_column(Str)
+    updated_at: Mapped[Optional[str]] = mapped_column(Str)
 
 
 class NotificationRecipient(Base):
@@ -122,11 +116,9 @@ class NotificationRecipient(Base):
         Index('idx_notify_rcpt_user', 'user_id', 'read_at'),
     )
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    notification_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("notifications.id", ondelete="CASCADE"), nullable=False)
-    user_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("app_user.id", ondelete="CASCADE"), nullable=False)
-    read_at: Mapped[Optional[str]] = mapped_column(Text)
-    created_at: Mapped[Optional[str]] = mapped_column(Text)
-    updated_at: Mapped[Optional[str]] = mapped_column(Text)
+    id: Mapped[int] = mapped_column(Int, primary_key=True)
+    notification_id: Mapped[int] = mapped_column(Int, ForeignKey("notifications.id", ondelete="CASCADE"), nullable=False)
+    user_id: Mapped[int] = mapped_column(Int, ForeignKey("app_user.id", ondelete="CASCADE"), nullable=False)
+    read_at: Mapped[Optional[str]] = mapped_column(Str)
+    created_at: Mapped[Optional[str]] = mapped_column(Str)
+    updated_at: Mapped[Optional[str]] = mapped_column(Str)

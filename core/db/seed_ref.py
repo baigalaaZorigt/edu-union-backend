@@ -1,12 +1,12 @@
-"""Лавлах хүснэгтүүдийн seed (REFERENCE_SEEDS-ийн дарааллаар)."""
+"""Лавлах хүснэгтүүдийн seed (REFERENCE_SEEDS-ийн дарааллаар) — ORM-оор."""
 
 from datetime import datetime, timezone
 
-from core.db import get_db
+from sqlalchemy import func, insert, or_, select
+
 from core.db.reference_data import (EDUCATION_DEGREES, POSITIONS, PROFESSIONS, REWARD_TYPES,
                                     SALARY_SCALE, SCHOOL_CATEGORIES, STRUCTURES,
                                     STRUCTURE_CODES)
-from core.db.schema import init_db
 
 
 def _utc_now_iso():
@@ -14,23 +14,68 @@ def _utc_now_iso():
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
-def _seed_reference(table, columns, rows, label, after_sql=None):
-    """Лавлах хүснэгтэд мөрүүдийг INSERT OR IGNORE-оор ачаалж, тоог нь хэвлэнэ.
+def _table(name):
+    import importlib
+    importlib.import_module("core.orm.models")    # бүх model metadata-д бүртгэгдэнэ
+    from core.orm.base import Base
+    return Base.metadata.tables[name]
 
-    after_sql өгвөл INSERT-ийн дараа (commit-оос өмнө) ажиллана — ж: хуучин DB-д
+
+def _unique_keys(table):
+    """Хүснэгтийн давхцаж болох түлхүүрүүд: PK + UNIQUE хязгаарлалт + unique индекс."""
+    keys = [tuple(c.name for c in table.primary_key.columns)]
+    for con in table.constraints:
+        if type(con).__name__ == "UniqueConstraint":
+            keys.append(tuple(c.name for c in con.columns))
+    for ix in table.indexes:
+        if ix.unique:
+            keys.append(tuple(c.name for c in ix.columns))
+    return keys
+
+
+def insert_missing(s, table, rows):
+    """`INSERT OR IGNORE`-ийн ORM хувилбар: аль нэг PK/UNIQUE түлхүүр нь давхцах мөрийг
+    алгасаад үлдсэнийг нэг дор оруулна. `table` — хүснэгтийн нэр, `rows` — dict-үүд.
+
+    SQLite-ийн адил NULL агуулсан түлхүүр давхцалд тооцогдохгүй. Оруулсан мөрийн тоог буцаана.
+    """
+    t = _table(table)
+    keys = [k for k in _unique_keys(t) if rows and all(c in rows[0] for c in k)]
+    seen = {k: {tuple(r) for r in s.execute(select(*[t.c[c] for c in k]))} for k in keys}
+    fresh = []
+    for row in rows:
+        vals = {k: tuple(row[c] for c in k) for k in keys}
+        if any(None not in v and v in seen[k] for k, v in vals.items()):
+            continue
+        for k, v in vals.items():
+            seen[k].add(v)
+        fresh.append(row)
+    if fresh:
+        s.execute(insert(t), fresh)
+    return len(fresh)
+
+
+def count(s, table):
+    """Хүснэгтийн мөрийн тоо."""
+    return s.scalar(select(func.count()).select_from(_table(table)))
+
+
+def _seed_reference(table, columns, rows, label, fix=None):
+    """Лавлах хүснэгтэд мөрүүдийг (давхардлыг алгасаж) ачаалж, тоог нь хэвлэнэ.
+
+    fix(session) өгвөл оруулсны дараа (commit-оос өмнө) ажиллана — ж: хуучин DB-д
     NULL үлдсэн code-г дүүргэх.
     """
-    init_db()
-    conn = get_db()
-    conn.executemany(
-        f"INSERT OR IGNORE INTO {table}({', '.join(columns)}) "
-        f"VALUES ({', '.join('?' * len(columns))})",
-        rows)
-    if after_sql:
-        conn.execute(after_sql)
-    conn.commit()
-    n = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
-    conn.close()
+    from core.orm import new_session
+    s = new_session()
+    try:
+        insert_missing(s, table, [dict(zip(columns, r)) for r in rows])
+        if fix:
+            fix(s)
+        s.commit()
+        n = count(s, table)
+    finally:
+        s.close()
     print(f"{label} ачаалагдлаа:", n)
 
 
@@ -40,15 +85,22 @@ def seed_education_degree():
                     "Боловсролын зэрэг")
 
 
+def _fill_codes(table):
+    """code нь хоосон мөрүүдэд 2 оронтой id (01, 02 ...) бичих fix."""
+    def fix(s):
+        t = _table(table)
+        for rid, in s.execute(select(t.c.id).where(or_(t.c.code.is_(None), t.c.code == ""))):
+            s.execute(t.update().where(t.c.id == rid).values(code=f"{rid:02d}"))
+    return fix
+
+
 def _seed_coded_ref(table, data, label):
     """id+name лавлахыг ачаалж, code-г 2 оронтой id-гаар (01, 02 ...) дүүргэнэ.
 
     Хуучин DB дээр code багана саяхан нэмэгдсэн тул NULL үлдсэн мөрүүдийг ч дүүргэнэ.
     """
-    _seed_reference(
-        table, ("id", "code", "name"), [(i, f"{i:02d}", name) for i, name in data], label,
-        after_sql=f"UPDATE {table} SET code = printf('%02d', id) "
-                  "WHERE code IS NULL OR code = ''")
+    _seed_reference(table, ("id", "code", "name"),
+                    [(i, f"{i:02d}", name) for i, name in data], label, fix=_fill_codes(table))
 
 
 def seed_position():

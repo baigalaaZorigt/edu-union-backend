@@ -1,9 +1,8 @@
 """Seed-ийн оруулах цэгүүд: seed_all() (`python -m core.db`) ба ensure_seeded() (апп эхлэхэд)."""
 
-from core.db import get_db
 from core.db.pg_schema import pg_sync_sequences
 from core.db.schema import init_db
-from core.db.seed_ref import REFERENCE_SEEDS, seed_references
+from core.db.seed_ref import REFERENCE_SEEDS, count, seed_references
 from core.db.seed_portal import seed_menu, seed_portal_settings, seed_users
 from core.db.seed_data import seed, seed_union
 
@@ -12,7 +11,9 @@ def seed_all():
     """Бүх домэйны seed-г дараалан ажиллуулна (`python -m core.db` үүнийг дуудна).
 
     Лавлахууд эхэлнэ — seed_union() тэдгээрийн id-г (ж: school_category_id) заана.
+    Схемийг эхлээд Alembic-ээр `head` хүртэл шинэчилнэ (хоосон DB бол үүсгэнэ).
     """
+    migrate()
     seed()
     seed_references()
     seed_union()
@@ -56,16 +57,18 @@ def ensure_seeded():
     сэргийлнэ. Аль хэдийн seed хийсэн бол зөвхөн COUNT шалгаад өнгөрнө.
     """
     migrate()
-    conn = get_db()
+    from core.orm import new_session
+    s = new_session()
+    try:
+        def empty(table):
+            return count(s, table) == 0
 
-    def empty(table):
-        return conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] == 0
-
-    need_units = empty("admin_unit1")
-    need_ref = any(empty(table) for table, _ in REFERENCE_SEEDS)
-    need_menu = empty("menu")
-    need_settings = empty("portal_settings")
-    conn.close()
+        need_units = empty("admin_unit1")
+        need_ref = any(empty(table) for table, _ in REFERENCE_SEEDS)
+        need_menu = empty("menu")
+        need_settings = empty("portal_settings")
+    finally:
+        s.close()
 
     # Лавлахууд эхэлнэ — seed_union() тэдгээрийн id-г заадаг (school_category_id).
     if need_ref:

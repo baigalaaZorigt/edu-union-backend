@@ -1,4 +1,4 @@
-"""Жагсаалтын хуудаслалт (сонголтоор) — core/helpers.fetch_page / slice_page / list_json.
+"""Жагсаалтын хуудаслалт (сонголтоор) — core/orm/query.paginate / core/helpers.slice_page / list_json.
 
 ?page= эсвэл ?per_page= өгвөл {items, total, page, per_page, pages}; өгөөгүй бол хуучин массив.
 """

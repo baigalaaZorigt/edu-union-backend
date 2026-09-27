@@ -6,4 +6,4 @@ SQLAlchemy>=2.0          # ORM (core/orm) — бүх query
 alembic>=1.13            # схемийн migration (alembic/, core/db/bootstrap.migrate)
 XlsxWriter>=3.1          # Excel экспорт (core/xlsx.py) — constant_memory горим
 
-psycopg[binary,pool]>=3.2   # Postgres драйвер + connection pool — DATABASE_URL өгсөн үед л
+psycopg[binary]>=3.2   # Postgres драйвер (SQLAlchemy-ийн pool) — DATABASE_URL өгсөн үед л

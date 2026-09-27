@@ -9,8 +9,13 @@ IP нь core.helpers.client_ip() (nginx-ийн X-Real-IP).
 """
 from datetime import datetime, timedelta, timezone
 
+from flask import abort
+from sqlalchemy import delete, func, select
+
 from core import audit
-from core.helpers import client_ip, fail, now_str
+from core.helpers import client_ip, now_str
+from core.orm import session
+from core.orm.models import LoginAttempt
 
 WINDOW_MINUTES = 15
 MAX_PER_USER_IP = 5
@@ -23,26 +28,31 @@ def _cutoff():
         .strftime("%Y-%m-%d %H:%M:%S")
 
 
-def check(conn, username):
-    """Хязгаар хэтэрсэн бол 429 (холболтыг хаана). Хуучирсан мөрүүдийг цэвэрлэнэ."""
+def _count(*conds):
+    return session().scalar(select(func.count()).select_from(LoginAttempt).where(*conds))
+
+
+def check(username):
+    """Хязгаар хэтэрсэн бол 429. Хуучирсан мөрүүдийг цэвэрлэнэ."""
+    s = session()
     cutoff, ip = _cutoff(), client_ip()
-    conn.execute("DELETE FROM login_attempt WHERE created_at < ?", (cutoff,))
-    by_ip = conn.execute("SELECT COUNT(*) FROM login_attempt WHERE ip=? AND created_at >= ?",
-                         (ip, cutoff)).fetchone()[0]
-    by_pair = conn.execute("SELECT COUNT(*) FROM login_attempt WHERE ip=? AND username=? "
-                           "AND created_at >= ?", (ip, username, cutoff)).fetchone()[0]
-    conn.commit()
+    s.execute(delete(LoginAttempt).where(LoginAttempt.created_at < cutoff))
+    recent = (LoginAttempt.ip == ip, LoginAttempt.created_at >= cutoff)
+    by_ip = _count(*recent)
+    by_pair = _count(*recent, LoginAttempt.username == username)
+    s.commit()
     if by_pair >= MAX_PER_USER_IP or by_ip >= MAX_PER_IP:
         audit.event("login_blocked", username=username,
                     reason="user_ip" if by_pair >= MAX_PER_USER_IP else "ip")
-        fail(conn, 429, BLOCKED)
+        abort(429, description=BLOCKED)
 
 
-def record_failure(conn, username):
-    conn.execute("INSERT INTO login_attempt(username, ip, created_at) VALUES (?, ?, ?)",
-                 (username, client_ip(), now_str()))
-    conn.commit()
+def record_failure(username):
+    s = session()
+    s.add(LoginAttempt(username=username, ip=client_ip(), created_at=now_str()))
+    s.commit()
 
 
-def reset(conn, username):
-    conn.execute("DELETE FROM login_attempt WHERE username=? AND ip=?", (username, client_ip()))
+def reset(username):
+    session().execute(delete(LoginAttempt).where(LoginAttempt.username == username,
+                                                 LoginAttempt.ip == client_ip()))

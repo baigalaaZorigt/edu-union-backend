@@ -11,62 +11,61 @@
 Эрх: banner.* / partner.* (auth.py замын эхний сегментээс автоматаар гаргана).
 Токенгүй порталын уншилт нь client/home.py-д. Шалгалт core/home_core.py-д.
 """
-from flask import Blueprint, jsonify
+from flask import Blueprint, abort, jsonify
+from sqlalchemy import select
 
-from core.db import get_db
-from core.helpers import fail, insert_row, json_body, update_row, fetch_page, list_json
+from core.helpers import json_body, list_json
 from core.home_core import admin_row, validate_banner, validate_partner
+from core.orm import session
+from core.orm.models import Banner, Partner
+from core.orm.query import paginate
 from admin.content import remove_upload
 
 bp = Blueprint("home_content", __name__)
 
+MODELS = {"banner": Banner, "partner": Partner}
 NOT_FOUND = {"banner": "Баннер олдсонгүй", "partner": "Хамтрагч байгууллага олдсонгүй"}
 VALIDATE = {"banner": validate_banner, "partner": validate_partner}
 
 
-def _row(conn, table, rid):
-    return conn.execute(f"SELECT * FROM {table} WHERE id=?", (rid,)).fetchone()
+def _obj(table, rid):
+    obj = session().get(MODELS[table], rid)
+    if obj is None:
+        abort(404, description=NOT_FOUND[table])
+    return obj
 
 
 def _list(table):
-    conn = get_db()
-    data, meta = fetch_page(conn, f"SELECT * FROM {table} ORDER BY sort_order, id")
-    conn.close()
-    return list_json([admin_row(r) for r in data], meta)
+    model = MODELS[table]
+    items, meta = paginate(select(model).order_by(model.sort_order, model.id))
+    return list_json([admin_row(o.to_dict()) for o in items], meta)
 
 
 def _get(table, rid):
-    conn = get_db()
-    row = _row(conn, table, rid)
-    if not row:
-        fail(conn, 404, NOT_FOUND[table])
-    conn.close()
-    return jsonify(admin_row(row))
+    return jsonify(admin_row(_obj(table, rid).to_dict()))
 
 
 def _create(table):
     data = json_body()
-    conn = get_db()
-    rid = insert_row(conn, table, VALIDATE[table](conn, data))
-    conn.commit()
-    out = admin_row(_row(conn, table, rid))
-    conn.close()
-    return jsonify(out), 201
+    s = session()
+    obj = MODELS[table](**VALIDATE[table](data))
+    s.add(obj)
+    s.commit()
+    return jsonify(admin_row(obj.to_dict())), 201
 
 
 def _update(table, rid):
     data = json_body()
-    conn = get_db()
-    current = _row(conn, table, rid)
-    if not current:
-        fail(conn, 404, NOT_FOUND[table])
-    values = VALIDATE[table](conn, data, current)
+    s = session()
+    obj = _obj(table, rid)
+    current = obj.to_dict()
+    values = VALIDATE[table](data, current)
     if not values:
-        fail(conn, 400, "Шинэчлэх талбар алга")
-    update_row(conn, table, rid, values)
-    conn.commit()
-    out = admin_row(_row(conn, table, rid))
-    conn.close()
+        abort(400, description="Шинэчлэх талбар алга")
+    for k, v in values.items():
+        setattr(obj, k, v)
+    s.commit()
+    out = admin_row(obj.to_dict())
     # Баннерын зураг солигдвол хуучныг дискнээс арилгана (гадаад URL-д хүрэхгүй).
     if table == "banner" and "image_url" in values \
             and values["image_url"] != current["image_url"]:
@@ -75,15 +74,13 @@ def _update(table, rid):
 
 
 def _delete(table, rid):
-    conn = get_db()
-    row = _row(conn, table, rid)
-    if not row:
-        fail(conn, 404, NOT_FOUND[table])
-    conn.execute(f"DELETE FROM {table} WHERE id=?", (rid,))
-    conn.commit()
-    conn.close()
+    s = session()
+    obj = _obj(table, rid)
+    image = getattr(obj, "image_url", None)
+    s.delete(obj)
+    s.commit()
     if table == "banner":
-        remove_upload(row["image_url"])
+        remove_upload(image)
     return jsonify(deleted=rid)
 
 

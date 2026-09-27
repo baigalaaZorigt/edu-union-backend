@@ -1,8 +1,12 @@
 """permission (Эрх) — CRUD."""
 from flask import jsonify, request, abort
+from sqlalchemy import select, update
+from sqlalchemy.exc import SQLAlchemyError
 
-from core.db import get_db
-from core.helpers import rows, require, json_body, fail, insert_row, update_row, fetch_page, list_json
+from core.helpers import require, json_body, list_json
+from core.orm import session
+from core.orm.models import Permission
+from core.orm.query import paginate
 
 from admin.users import bp
 from admin.users.common import _delete_by_id
@@ -14,29 +18,25 @@ PERMISSION_FIELDS = ("code", "name", "resource", "action", "description")
 
 # ======================= permission (Эрх) =======================
 PERMISSION_DUP = "Энэ code аль хэдийн бүртгэгдсэн байна"
+NOT_FOUND = "Эрх олдсонгүй"
 
 
 @bp.route("/api/permission", methods=["GET"])
 def list_permission():
+    stmt = select(Permission).order_by(Permission.id)
     resource = request.args.get("resource")
-    conn = get_db()
     if resource:
-        data, meta = fetch_page(conn, "SELECT * FROM permission WHERE resource=? ORDER BY id",
-                                (resource,))
-    else:
-        data, meta = fetch_page(conn, "SELECT * FROM permission ORDER BY id")
-    conn.close()
-    return list_json(rows(data), meta)
+        stmt = stmt.where(Permission.resource == resource)
+    items, meta = paginate(stmt)
+    return list_json([p.to_dict() for p in items], meta)
 
 
 @bp.route("/api/permission/<int:pid>", methods=["GET"])
 def get_permission(pid):
-    conn = get_db()
-    row = conn.execute("SELECT * FROM permission WHERE id=?", (pid,)).fetchone()
-    conn.close()
-    if not row:
-        abort(404, description="Эрх олдсонгүй")
-    return jsonify(dict(row))
+    perm = session().get(Permission, pid)
+    if perm is None:
+        abort(404, description=NOT_FOUND)
+    return jsonify(perm.to_dict())
 
 
 def _validate_permission(data):
@@ -50,15 +50,15 @@ def create_permission():
     data = request.get_json(silent=True)
     require(data, ["code", "name"])
     _validate_permission(data)
-    conn = get_db()
+    s = session()
+    perm = Permission(**{f: data.get(f) for f in PERMISSION_FIELDS})
+    s.add(perm)
     try:
-        pid = insert_row(conn, "permission", {f: data.get(f) for f in PERMISSION_FIELDS})
-        conn.commit()
-    except Exception:
-        fail(conn, 409, PERMISSION_DUP)
-    row = conn.execute("SELECT * FROM permission WHERE id=?", (pid,)).fetchone()
-    conn.close()
-    return jsonify(dict(row)), 201
+        s.commit()
+    except SQLAlchemyError:
+        s.rollback()
+        abort(409, description=PERMISSION_DUP)
+    return jsonify(perm.to_dict()), 201
 
 
 @bp.route("/api/permission/<int:pid>", methods=["PUT", "PATCH"])
@@ -68,18 +68,18 @@ def update_permission(pid):
     values = {f: data[f] for f in PERMISSION_FIELDS if f in data}
     if not values:
         abort(400, description="Шинэчлэх талбар алга")
-    conn = get_db()
+    s = session()
     try:
-        count = update_row(conn, "permission", pid, values)
-        conn.commit()
-    except Exception:
-        fail(conn, 409, PERMISSION_DUP)
-    conn.close()
+        count = s.execute(update(Permission).where(Permission.id == pid).values(**values)).rowcount
+        s.commit()
+    except SQLAlchemyError:
+        s.rollback()
+        abort(409, description=PERMISSION_DUP)
     if count == 0:
-        abort(404, description="Эрх олдсонгүй")
+        abort(404, description=NOT_FOUND)
     return jsonify(updated=pid, fields=list(values))
 
 
 @bp.route("/api/permission/<int:pid>", methods=["DELETE"])
 def delete_permission(pid):
-    return _delete_by_id("permission", pid, "Эрх олдсонгүй")
+    return _delete_by_id(Permission, pid, NOT_FOUND)

@@ -1,11 +1,13 @@
-"""Хэрэглэгчийн модулиудын хуваалцсан тогтмол, SELECT ба туслах функцууд."""
+"""Хэрэглэгчийн модулиудын хуваалцсан тогтмол, query ба туслах функцууд."""
 from datetime import datetime, timezone
 
 from flask import jsonify, abort
+from sqlalchemy import delete, select
 from werkzeug.security import generate_password_hash
 
-from core.db import get_db
-from core.scope_core import RURAL, SCHOOL_TYPE_CATEGORY, is_specialist, load_scope
+from core.orm import session
+from core.orm.models import AppUser, Permission, Role, RolePermission, Structure, UserScope
+from core.scope_core import RURAL, SCHOOL_TYPE_CATEGORY, is_specialist, public_scope
 
 
 # --- Хамрах хүрээ (user_scope, user_scope_api_spec.md) ---
@@ -15,13 +17,16 @@ from core.scope_core import RURAL, SCHOOL_TYPE_CATEGORY, is_specialist, load_sco
 # боломжгүй болно.
 SCHOOL_TYPES = tuple(SCHOOL_TYPE_CATEGORY) + (RURAL,)
 
-# Хэрэглэгчийг дүр ба бүтцийн удирдлагынх нь нэртэй хамт унших SELECT
-USER_SELECT = (
-    "SELECT u.*, r.name AS role_name, r.code AS role_code, st.name AS structure_name, st.code AS structure_code "
-    "FROM app_user u "
-    "LEFT JOIN role r ON r.id = u.role_id "
-    "LEFT JOIN structure st ON st.id = u.structure_id"
-)
+def user_select():
+    """Хэрэглэгч + дүр ба бүтцийн удирдлагын нэр/код (хуучин USER_SELECT-ийн ORM хувилбар).
+
+    Үр дүнг `.mappings()`-аар уншина — багана бүр нэрээрээ (u.* + role_name ...).
+    """
+    return (select(*AppUser.__table__.c,
+                   Role.name.label("role_name"), Role.code.label("role_code"),
+                   Structure.name.label("structure_name"), Structure.code.label("structure_code"))
+            .outerjoin(Role, Role.id == AppUser.role_id)
+            .outerjoin(Structure, Structure.id == AppUser.structure_id))
 
 
 # ----------------------------- Туслахууд -----------------------------
@@ -44,8 +49,8 @@ def needs_rehash(password_hash):
     return (password_hash or "").split("$", 1)[0] != HASH_METHOD
 
 
-def _exists(conn, table, rid):
-    return conn.execute(f"SELECT 1 FROM {table} WHERE id=?", (rid,)).fetchone() is not None
+def _exists(model, key):
+    return session().get(model, key) is not None
 
 
 def public_user(row):
@@ -67,46 +72,53 @@ def public_user(row):
     return d
 
 
-def _user_row(conn, uid):
-    return conn.execute(USER_SELECT + " WHERE u.id=?", (uid,)).fetchone()
+def _user_row(uid=None, username=None):
+    """Хэрэглэгчийн мөр (dict шиг RowMapping) id эсвэл username-аар; байхгүй бол None."""
+    cond = AppUser.id == uid if username is None else AppUser.username == username
+    return session().execute(user_select().where(cond)).mappings().first()
 
 
-def _user_profile(conn, row):
+def load_scope(uid):
+    """Тухайн хэрэглэгчийн хамрах хүрээ (мөр байхгүй бол None)."""
+    row = session().get(UserScope, uid)
+    return public_scope(row.to_dict()) if row is not None else None
+
+
+def _user_profile(row):
     """public_user + дүрээс удамшсан бодит эрхүүд + хамрах хүрээ
     (GET /api/user/<id>, /api/login, /api/me гурав ижил хэлбэртэй)."""
     out = public_user(row)
-    out["permissions"] = _role_perms(conn, row["role_id"]) if row["role_id"] else []
-    out["scope"] = load_scope(conn, row["id"])
+    out["permissions"] = _role_perms(row["role_id"]) if row["role_id"] else []
+    out["scope"] = load_scope(row["id"])
     return out
 
 
-def _role_perms_many(conn, role_ids):
+def _role_perms_many(role_ids):
     """Олон дүрийн эрхийг НЭГ query-ээр: {role_id: [permission, ...]} (эрхгүй бол [])."""
     out = {rid: [] for rid in role_ids}
     if not role_ids:
         return out
-    ph = ", ".join("?" * len(role_ids))
-    for r in conn.execute(
-            f"SELECT rp.role_id AS _role_id, p.* FROM role_permission rp "
-            f"JOIN permission p ON p.id = rp.permission_id "
-            f"WHERE rp.role_id IN ({ph}) ORDER BY rp.role_id, p.id", list(role_ids)).fetchall():
+    stmt = (select(RolePermission.role_id.label("_role_id"), *Permission.__table__.c)
+            .join(Permission, Permission.id == RolePermission.permission_id)
+            .where(RolePermission.role_id.in_(list(role_ids)))
+            .order_by(RolePermission.role_id, Permission.id))
+    for r in session().execute(stmt).mappings():
         perm = dict(r)
         out[perm.pop("_role_id")].append(perm)
     return out
 
 
-def _role_perms(conn, rid):
+def _role_perms(rid):
     """Тухайн дүрийн бүх эрхийг буцаана."""
-    return _role_perms_many(conn, [rid])[rid]
+    return _role_perms_many([rid])[rid]
 
 
-def _delete_by_id(table, rid, not_found):
-    """`table`-аас id-аар устгана (байхгүй бол 404)."""
-    conn = get_db()
-    cur = conn.execute(f"DELETE FROM {table} WHERE id=?", (rid,))
-    conn.commit()
-    conn.close()
-    if cur.rowcount == 0:
+def _delete_by_id(model, rid, not_found):
+    """`model`-оос id-аар устгана (байхгүй бол 404). Каскадыг DB өөрөө хийнэ."""
+    s = session()
+    count = s.execute(delete(model).where(model.id == rid)).rowcount
+    s.commit()
+    if count == 0:
         abort(404, description=not_found)
     return jsonify(deleted=rid)
 

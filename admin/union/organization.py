@@ -1,15 +1,18 @@
 """organization (Гишүүн байгууллага) — CRUD, бүртгэлийн код, хамрах хүрээ."""
 
 from flask import jsonify, request, abort
+from sqlalchemy import case, func, select, update
 
-from core.db import get_db
-from core.helpers import fail, json_body, pick, require, rows, update_row, fetch_page, list_json
-from core.scope_core import org_condition, require_org_in_scope
+from core.helpers import json_body, list_json, pick, require
+from core.orm import session
+from core.orm.models import Contact, Member, Organization, SchoolCategory, Structure
+from core.orm.query import paginate
+from core.scope_core import check_org_scope, org_clause
 
 from admin.union import bp
-from admin.union.common import (ORG_FULL_CODE_SQL, _arg_filters, _check_au, _check_ref,
-                                _create, _delete_by_id, _digit_code, _org_full_code,
-                                _purge_orphan_contacts, _purge_orphan_files, _where)
+from admin.union.common import (_arg_filters, _check_au, _check_ref, _create, _delete_by_id,
+                                _digit_code, _org_full_code, _purge_orphan_contacts,
+                                _purge_orphan_files, category_code, full_code, under35_cutoff)
 
 
 # --- Бүртгэлийн кодын бүтэц ---
@@ -26,24 +29,28 @@ ORG_FIELDS = (
     "phone1", "phone2", "email", "contact_name", "structure_id",
 )
 
-# Байгууллагыг сургуулийн ангилал + 5 оронтой кодтой нь хамт унших SELECT
-ORG_SELECT = f"""
-SELECT o.*,
-       st.name AS structure_name,
-       st.code AS structure_code,
-       sc.short_name AS school_category_short_name,
-       sc.full_name  AS school_category_name,
-       CASE WHEN o.school_category_id IS NULL THEN NULL
-            ELSE printf('%02d', o.school_category_id) END AS school_category_code,
-       {ORG_FULL_CODE_SQL.format(t='o')} AS full_code
-  FROM organization o
-  LEFT JOIN school_category sc ON sc.id = o.school_category_id
-  LEFT JOIN structure       st ON st.id = o.structure_id
-"""
+# Байгууллагыг сургуулийн ангилал + бүтцийн нэртэй нь хамт унших select; 2 оронтой
+# school_category_code ба 5 оронтой full_code-г org_row() Python-д бодно (DB-ээс хамааралгүй).
+ORG_QUERY = (
+    select(*Organization.__table__.c,
+           Structure.name.label("structure_name"),
+           Structure.code.label("structure_code"),
+           SchoolCategory.short_name.label("school_category_short_name"),
+           SchoolCategory.full_name.label("school_category_name"))
+    .outerjoin(SchoolCategory, SchoolCategory.id == Organization.school_category_id)
+    .outerjoin(Structure, Structure.id == Organization.structure_id))
 NOT_FOUND = "Байгууллага олдсонгүй"
 
 
-def org_stats_many(conn, org_ids):
+def org_row(mapping):
+    """ORG_QUERY-ийн мөр -> JSON dict (+ school_category_code, full_code)."""
+    d = dict(mapping)
+    d["school_category_code"] = category_code(d["school_category_id"])
+    d["full_code"] = full_code(d["school_category_id"], d["org_code"])
+    return d
+
+
+def org_stats_many(org_ids):
     """Олон байгууллагын гишүүдийн нийт / эмэгтэй / 35-аас доош тоог НЭГ query-ээр.
 
     Өмнө нь байгууллага бүрд тусдаа query (N+1) — PG дээр бүр нь сүлжээгээр явдаг байв.
@@ -53,67 +60,65 @@ def org_stats_many(conn, org_ids):
     if not org_ids:
         return {}
     out = {oid: dict(zero) for oid in org_ids}
-    ph = ", ".join("?" * len(org_ids))
-    for r in conn.execute(
-        f"""SELECT organization_id,
-             COUNT(*) AS total,
-             SUM(CASE WHEN gender='эм' THEN 1 ELSE 0 END) AS female,
-             SUM(CASE WHEN birth_date IS NOT NULL
-                       AND (julianday('now') - julianday(birth_date))/365.25 < 35
-                      THEN 1 ELSE 0 END) AS under35
-           FROM member WHERE organization_id IN ({ph}) GROUP BY organization_id""",
-        list(org_ids),
-    ).fetchall():
-        out[r["organization_id"]] = {"total_members": r["total"] or 0,
-                                     "female_members": r["female"] or 0,
-                                     "under35_members": r["under35"] or 0}
+    cutoff = under35_cutoff()
+    for r in session().execute(
+            select(Member.organization_id,
+                   func.count().label("total"),
+                   func.sum(case((Member.gender == "эм", 1), else_=0)).label("female"),
+                   func.sum(case((Member.birth_date.is_not(None) & (Member.birth_date > cutoff), 1),
+                                 else_=0)).label("under35"))
+            .where(Member.organization_id.in_(list(org_ids)))
+            .group_by(Member.organization_id)):
+        out[r.organization_id] = {"total_members": r.total or 0,
+                                  "female_members": r.female or 0,
+                                  "under35_members": r.under35 or 0}
     return out
 
 
-def org_stats(conn, org_id):
+def org_stats(org_id):
     """Нэг байгууллагын гишүүдийн тоо (org_stats_many-ийн нэг элементтэй хувилбар)."""
-    return org_stats_many(conn, [org_id])[org_id]
+    return org_stats_many([org_id])[org_id]
 
 
 # =================== organization (Гишүүн байгууллага) ===================
 @bp.route("/api/organization", methods=["GET"])
 def list_org():
-    conn = get_db()
-    page_rows, meta = fetch_page(conn, *org_list_query(conn))
-    data = rows(page_rows)
-    stats = org_stats_many(conn, [o["id"] for o in data])   # хуудасны мөрүүдэд, нэг query
+    items, meta = paginate(org_list_query(), mappings=True)
+    data = [org_row(m) for m in items]
+    stats = org_stats_many([o["id"] for o in data])   # хуудасны мөрүүдэд, нэг query
     for o in data:
         o.update(stats[o["id"]])
-    conn.close()
     return list_json(data, meta)
 
 
-def org_list_query(conn):
-    """GET /api/organization-ийн (sql, params) — шүүлт + хамрах хүрээ (Excel экспорт ч ашиглана).
+def org_list_query():
+    """GET /api/organization-ийн select — шүүлт + хамрах хүрээ (Excel экспорт ч ашиглана).
 
     ?school_category_id= ба ?structure_id= шүүлтүүр — хосолж болно.
     """
-    cond, params = _arg_filters(("school_category_id", "structure_id"), prefix="o.")
-    # Хамрах хүрээ — серверийн талд НЭМЭГДЭХ нөхцөл (спек §5)
-    scope_cond, scope_params = org_condition(conn, alias="o")
-    if scope_cond:
-        cond.append(scope_cond)
-        params += scope_params
-    return ORG_SELECT + _where(cond) + " ORDER BY o.id", params
+    cond = _arg_filters(Organization, ("school_category_id", "structure_id"))
+    scope = org_clause()        # Хамрах хүрээ — серверийн талд НЭМЭГДЭХ нөхцөл (спек §5)
+    if scope is not None:
+        cond.append(scope)
+    return ORG_QUERY.where(*cond).order_by(Organization.id)
+
+
+def _read(oid):
+    """Нэг байгууллага (join + код) — байхгүй бол None."""
+    row = session().execute(ORG_QUERY.where(Organization.id == oid)).mappings().first()
+    return org_row(row) if row else None
 
 
 @bp.route("/api/organization/<int:oid>", methods=["GET"])
 def get_org(oid):
-    conn = get_db()
-    require_org_in_scope(conn, oid)
-    row = conn.execute(ORG_SELECT + " WHERE o.id=?", (oid,)).fetchone()
-    if not row:
-        fail(conn, 404, NOT_FOUND)
-    out = dict(row)
-    out.update(org_stats(conn, oid))
-    out["contacts"] = rows(conn.execute(
-        "SELECT * FROM contact WHERE owner_type='organization' AND owner_id=?", (oid,)).fetchall())
-    conn.close()
+    check_org_scope(oid)
+    out = _read(oid)
+    if out is None:
+        abort(404, description=NOT_FOUND)
+    out.update(org_stats(oid))
+    out["contacts"] = [c.to_dict() for c in session().scalars(
+        select(Contact).where(Contact.owner_type == "organization", Contact.owner_id == oid)
+        .order_by(Contact.id))]
     return jsonify(out)
 
 
@@ -138,46 +143,47 @@ def _validate_org(data):
         data["school_category_id"] = cat
 
 
-def _check_org_code_unique(conn, data, oid=None):
+def _check_org_code_unique(data, oid=None):
     """Ангилал+код (5 орон) давхардвал 409 — гишүүдийн батламжийн дугаар давхцахаас сэргийлнэ.
 
     Засварлах үед зөвхөн нэг хэсгийг нь илгээж болох тул дутуу хэсгийг DB-ээс нөхнө.
     """
+    s = session()
     cat, code = data.get("school_category_id"), data.get("org_code")
     if oid is not None and (cat is None or code is None):
-        cur = conn.execute(
-            "SELECT school_category_id, org_code FROM organization WHERE id=?", (oid,)).fetchone()
+        cur = s.execute(select(Organization.school_category_id, Organization.org_code)
+                        .where(Organization.id == oid)).first()
         if cur:
-            cat = cur["school_category_id"] if cat is None else cat
-            code = cur["org_code"] if code is None else code
+            cat = cur.school_category_id if cat is None else cat
+            code = cur.org_code if code is None else code
     if cat is None or not code:
         return
-    sql = "SELECT id FROM organization WHERE school_category_id=? AND org_code=?"
-    params = [cat, code]
+    stmt = select(Organization.id).where(Organization.school_category_id == cat,
+                                         Organization.org_code == code)
     if oid is not None:
-        sql += " AND id<>?"
-        params.append(oid)
-    if conn.execute(sql, params).fetchone():
-        fail(conn, 409, f"{cat:02d}{code} код өөр байгууллагад бүртгэгдсэн байна")
+        stmt = stmt.where(Organization.id != oid)
+    if s.scalar(stmt.limit(1)) is not None:
+        abort(409, description=f"{cat:02d}{code} код өөр байгууллагад бүртгэгдсэн байна")
 
 
-def _recompute_cards(conn, oid):
+def _recompute_cards(oid):
     """Байгууллагын код өөрчлөгдөхөд гишүүдийн 9 оронтой дугаарыг дахин бодно."""
-    full = _org_full_code(conn, oid)
+    full = _org_full_code(oid)
+    stmt = update(Member).where(Member.organization_id == oid)
     if full:
-        conn.execute(
-            "UPDATE member SET union_card_number = ? || union_card_code "
-            "WHERE organization_id=? AND union_card_code IS NOT NULL", (full, oid))
+        stmt = (stmt.where(Member.union_card_code.is_not(None))
+                .values(union_card_number=full + Member.union_card_code))
     else:   # ангилал/код нь дутуу болсон бол дугаарыг цэвэрлэнэ
-        conn.execute("UPDATE member SET union_card_number = NULL WHERE organization_id=?", (oid,))
+        stmt = stmt.values(union_card_number=None)
+    session().execute(stmt.execution_options(synchronize_session=False))
 
 
-def _check_org_refs(conn, data, oid=None):
+def _check_org_refs(data, oid=None):
     """Байгууллагын лавлах холбоос, 5 оронтой кодын давхцал, хаягийг шалгана."""
-    _check_ref(conn, data, "school_category_id", "school_category", "Сургуулийн ангилал")
-    _check_ref(conn, data, "structure_id", "structure", "Бүтцийн удирдлага")
-    _check_org_code_unique(conn, data, oid)
-    _check_au(conn, data)
+    _check_ref(data, "school_category_id", SchoolCategory, "Сургуулийн ангилал")
+    _check_ref(data, "structure_id", Structure, "Бүтцийн удирдлага")
+    _check_org_code_unique(data, oid)
+    _check_au(data)
 
 
 @bp.route("/api/organization", methods=["POST"])
@@ -185,10 +191,8 @@ def create_org():
     data = request.get_json(silent=True)
     require(data, ["name"])
     _validate_org(data)
-    conn = get_db()
-    _check_org_refs(conn, data)
-    return _create(conn, "organization", {f: data.get(f) for f in ORG_FIELDS},
-                   ORG_SELECT + " WHERE o.id=?")
+    _check_org_refs(data)
+    return _create(Organization, {f: data.get(f) for f in ORG_FIELDS}, read=_read)
 
 
 @bp.route("/api/organization/<int:oid>", methods=["PUT", "PATCH"])
@@ -198,15 +202,15 @@ def update_org(oid):
     values = pick(data, ORG_FIELDS)
     if not values:
         abort(400, description="Шинэчлэх талбар алга")
-    conn = get_db()
-    require_org_in_scope(conn, oid)
-    _check_org_refs(conn, data, oid)
-    count = update_row(conn, "organization", oid, values)
+    check_org_scope(oid)
+    _check_org_refs(data, oid)
+    s = session()
+    count = s.execute(update(Organization).where(Organization.id == oid).values(values)
+                      .execution_options(synchronize_session=False)).rowcount
     # Кодын аль нэг хэсэг өөрчлөгдвөл гишүүдийн батламжийн дугаарыг дахин бодно
     if count and ("org_code" in values or "school_category_id" in values):
-        _recompute_cards(conn, oid)
-    conn.commit()
-    conn.close()
+        _recompute_cards(oid)
+    s.commit()
     if count == 0:
         abort(404, description=NOT_FOUND)
     return jsonify(updated=oid, fields=list(values))
@@ -214,7 +218,6 @@ def update_org(oid):
 
 @bp.route("/api/organization/<int:oid>", methods=["DELETE"])
 def delete_org(oid):
-    conn = get_db()
-    require_org_in_scope(conn, oid)
-    return _delete_by_id(conn, "organization", oid, NOT_FOUND,
+    check_org_scope(oid)
+    return _delete_by_id(Organization, oid, NOT_FOUND,
                          _purge_orphan_contacts, _purge_orphan_files)

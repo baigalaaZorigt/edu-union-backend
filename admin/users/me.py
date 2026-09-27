@@ -5,17 +5,20 @@
 g.user дээр ажиллана.
 """
 from flask import jsonify, request, abort, g
+from sqlalchemy import func, select, update
 from werkzeug.security import check_password_hash
 
 from core import audit
-from core.db import get_db
-from core.helpers import rows, require, json_body, fail, update_row, fetch_page
+from core.helpers import require, json_body
 from core.auth import make_token
-from core.scope_core import org_condition
+from core.orm import session
+from core.orm.models import AppUser, Organization
+from core.orm.query import paginate
+from core.scope_core import org_clause
 
 from admin.users import bp
 from admin.users import login_guard
-from admin.users.common import USER_SELECT, _hash, _now, _user_profile, _user_row, needs_rehash
+from admin.users.common import _hash, _now, _user_profile, _user_row, needs_rehash
 from admin.users.scope import _scope_get, _scope_save
 
 
@@ -24,23 +27,23 @@ from admin.users.scope import _scope_get, _scope_save
 def login():
     data = request.get_json(silent=True)
     require(data, ["username", "password"])
-    conn = get_db()
-    login_guard.check(conn, data["username"])            # brute-force хязгаар -> 429
-    row = conn.execute(USER_SELECT + " WHERE u.username=?", (data["username"],)).fetchone()
+    s = session()
+    login_guard.check(data["username"])                  # brute-force хязгаар -> 429
+    row = _user_row(username=data["username"])
     if not row or not check_password_hash(row["password_hash"], data["password"]):
-        login_guard.record_failure(conn, data["username"])
+        login_guard.record_failure(data["username"])
         audit.event("login_failed", username=data["username"], reason="bad_credentials")
-        fail(conn, 400, "Нэвтрэх нэр эсвэл нууц үг буруу")
+        abort(400, description="Нэвтрэх нэр эсвэл нууц үг буруу")
     if not row["is_active"]:
         audit.event("login_failed", username=data["username"], reason="inactive")
-        fail(conn, 400, "Хэрэглэгчийн эрх идэвхгүй байна")
-    login_guard.reset(conn, data["username"])
+        abort(400, description="Хэрэглэгчийн эрх идэвхгүй байна")
+    login_guard.reset(data["username"])
     if needs_rehash(row["password_hash"]):                # хуучин 1M давталттай hash -> 600k
-        update_row(conn, "app_user", row["id"], {"password_hash": _hash(data["password"])})
-    conn.commit()
+        s.execute(update(AppUser).where(AppUser.id == row["id"])
+                  .values(password_hash=_hash(data["password"])))
+    s.commit()
     audit.event("login", user_id=row["id"], username=row["username"])
-    out = _user_profile(conn, row)
-    conn.close()
+    out = _user_profile(row)
     # Дараагийн хүсэлтүүдэд ашиглах токен: Authorization: Bearer <token>
     out["token"] = make_token(row["id"])
     return jsonify(out)
@@ -67,16 +70,15 @@ def change_password():
     data = json_body()
     require(data, ["current_password", "new_password"])
     uid = _me_id()
-    conn = get_db()
-    row = conn.execute("SELECT password_hash FROM app_user WHERE id=?", (uid,)).fetchone()
-    if not row:
-        fail(conn, 404, "Хэрэглэгч олдсонгүй")
-    if not check_password_hash(row["password_hash"], data["current_password"]):
-        fail(conn, 422, "Одоогийн нууц үг буруу байна")
-    update_row(conn, "app_user", uid,
-               {"password_hash": _hash(data["new_password"]), "must_change_password": 0})
-    conn.commit()
-    conn.close()
+    s = session()
+    user = s.get(AppUser, uid)
+    if user is None:
+        abort(404, description="Хэрэглэгч олдсонгүй")
+    if not check_password_hash(user.password_hash, data["current_password"]):
+        abort(422, description="Одоогийн нууц үг буруу байна")
+    user.password_hash = _hash(data["new_password"])
+    user.must_change_password = 0
+    s.commit()
     return jsonify(status=True)
 
 
@@ -86,14 +88,10 @@ def get_me():
 
     Нууц үг солих / onboarding-ийн дараа frontend-д төлөвөө дахин уншихад.
     """
-    uid = _me_id()
-    conn = get_db()
-    row = _user_row(conn, uid)
+    row = _user_row(_me_id())
     if not row:
-        fail(conn, 404, "Хэрэглэгч олдсонгүй")
-    out = _user_profile(conn, row)
-    conn.close()
-    return jsonify(out)
+        abort(404, description="Хэрэглэгч олдсонгүй")
+    return jsonify(_user_profile(row))
 
 
 @bp.route("/api/me/scope", methods=["GET"])
@@ -115,15 +113,13 @@ def list_my_organizations():
     Мэргэжилтэн эндээс дутуу мэдээллийг хараад `PUT /api/organization/<id>`-ээр
     бөглөнө — ямар ч талбар ЗААВАЛ биш, зарим нь хоосон үлдэж болно.
     """
-    conn = get_db()
-    cond, params = org_condition(conn, alias="o")
-    sql = ("SELECT o.id, o.name, o.contact_name, o.phone1, o.phone2, o.email "
-           "FROM organization o")
-    if cond:
-        sql += " WHERE " + cond
-    data, meta = fetch_page(conn, sql + " ORDER BY o.id", params)
-    conn.close()
-    return jsonify(items=rows(data), **(meta or {}))
+    stmt = select(Organization.id, Organization.name, Organization.contact_name,
+                  Organization.phone1, Organization.phone2, Organization.email)
+    cond = org_clause()
+    if cond is not None:
+        stmt = stmt.where(cond)
+    data, meta = paginate(stmt.order_by(Organization.id), mappings=True)
+    return jsonify(items=[dict(r) for r in data], **(meta or {}))
 
 
 @bp.route("/api/me/onboarding/complete", methods=["POST"])
@@ -134,15 +130,11 @@ def complete_my_onboarding():
     харуулахгүй гэдгийг л тэмдэглэх зорилготой.
     """
     uid = _me_id()
-    conn = get_db()
-    cur = conn.execute(
-        "UPDATE app_user SET onboarding_completed_at=COALESCE(onboarding_completed_at, ?) "
-        "WHERE id=?", (_now(), uid))
-    conn.commit()
-    if cur.rowcount == 0:
-        fail(conn, 404, "Хэрэглэгч олдсонгүй")
-    row = conn.execute(
-        "SELECT onboarding_completed_at FROM app_user WHERE id=?", (uid,)).fetchone()
-    conn.close()
-    return jsonify(status=True, onboarding_completed=True,
-                   onboarding_completed_at=row["onboarding_completed_at"])
+    s = session()
+    count = s.execute(update(AppUser).where(AppUser.id == uid).values(
+        onboarding_completed_at=func.coalesce(AppUser.onboarding_completed_at, _now()))).rowcount
+    s.commit()
+    if count == 0:
+        abort(404, description="Хэрэглэгч олдсонгүй")
+    done = s.scalar(select(AppUser.onboarding_completed_at).where(AppUser.id == uid))
+    return jsonify(status=True, onboarding_completed=True, onboarding_completed_at=done)

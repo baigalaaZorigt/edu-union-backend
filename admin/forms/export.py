@@ -11,23 +11,28 @@
   * "Дүгнэлт" — GET .../results-ийн нэгтгэлийг (form_results) шууд бичнэ: сонголт бүрээр
     тоо/хувь, scale-д дундаж ба утга бүрийн тоо, open_text-д хариултын тоо.
 """
-from core.db import get_db
-from core.forms_core import form_results, require_form
+from sqlalchemy import select
+
+from core.orm import session
+from core.orm.models import FormAnswer, FormAnswerOption, FormOption, FormSubmission
+from core.forms_core import form_results, question_rows, require_form
 from core.xlsx import Sheet, as_datetime, xlsx_response
 
 from admin.forms import bp
 
 
-def _answers(conn, fid, questions):
+def _answers(fid, questions):
     """{submission_id: {question_id: утга}} — нэг query-ээр (сонголтуудыг label-ээр нэгтгэнэ)."""
     out = {}
-    for r in conn.execute(
-            "SELECT a.submission_id, a.question_id, a.text_value, a.numeric_value, o.label "
-            "FROM form_answer a JOIN form_submission s ON s.id = a.submission_id "
-            "LEFT JOIN form_answer_option ao ON ao.answer_id = a.id "
-            "LEFT JOIN form_option o ON o.id = ao.option_id "
-            "WHERE s.form_id=? ORDER BY a.submission_id, a.question_id, o.sort_order, o.id",
-            (fid,)).fetchall():
+    stmt = (select(FormAnswer.submission_id, FormAnswer.question_id, FormAnswer.text_value,
+                   FormAnswer.numeric_value, FormOption.label)
+            .join(FormSubmission, FormSubmission.id == FormAnswer.submission_id)
+            .outerjoin(FormAnswerOption, FormAnswerOption.answer_id == FormAnswer.id)
+            .outerjoin(FormOption, FormOption.id == FormAnswerOption.option_id)
+            .where(FormSubmission.form_id == fid)
+            .order_by(FormAnswer.submission_id, FormAnswer.question_id,
+                      FormOption.sort_order, FormOption.id))
+    for r in session().execute(stmt).mappings():
         cell = out.setdefault(r["submission_id"], {})
         qtype = questions.get(r["question_id"])
         if qtype in ("single_choice", "multiple_choice"):
@@ -66,17 +71,14 @@ def _summary_rows(results):
 
 @bp.route("/api/admin/forms/<int:fid>/results/export", methods=["GET"])
 def export_results(fid):
-    conn = get_db()
-    try:
-        form = require_form(conn, fid)
-        qs = conn.execute("SELECT id, title, question_type FROM form_question WHERE form_id=? "
-                          "ORDER BY sort_order, id", (fid,)).fetchall()
-        submissions = conn.execute("SELECT id, submitted_at FROM form_submission WHERE form_id=? "
-                                   "ORDER BY submitted_at, id", (fid,)).fetchall()
-        answers = _answers(conn, fid, {q["id"]: q["question_type"] for q in qs})
-        results = form_results(conn, fid)
-    finally:
-        conn.close()
+    form = require_form(fid)
+    qs = question_rows(fid)
+    submissions = session().execute(
+        select(FormSubmission.id, FormSubmission.submitted_at)
+        .where(FormSubmission.form_id == fid)
+        .order_by(FormSubmission.submitted_at, FormSubmission.id)).mappings().all()
+    answers = _answers(fid, {q["id"]: q["question_type"] for q in qs})
+    results = form_results(fid)
     headers = ["№", "Огноо"] + [q["title"] for q in qs]
     kind = "санал-асуулга" if form["type"] == "poll" else "судалгаа"
     return xlsx_response(f"{kind}-{fid}-үр-дүн", [

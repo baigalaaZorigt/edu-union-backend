@@ -14,56 +14,52 @@
 хүрээний мөргүй хэрэглэгч) бүх системийн тоог харна.
 """
 from flask import Blueprint, jsonify
+from sqlalchemy import case, func, select
 
-from core.db import get_db
-from core.helpers import rows
-from core.scope_core import org_condition, member_condition
+from core.orm import session
+from core.orm.models import Member, Organization, SchoolCategory
+from core.scope_core import member_clause, org_clause
 
 bp = Blueprint("admin_dashboard", __name__)
 
 
-def _where(cond):
-    """Хамрах хүрээний нөхцөлийг WHERE болгоно (нөхцөлгүй бол хоосон)."""
-    return (" WHERE " + cond) if cond else ""
-
-
-def _and(cond):
-    """Хамрах хүрээний нөхцөлийг байгаа WHERE-д залгана (нөхцөлгүй бол хоосон)."""
-    return (" AND " + cond) if cond else ""
+def _filtered(stmt, cond):
+    """Хамрах хүрээний нөхцөл байвал select-д нэмнэ (None бол шүүлтгүй)."""
+    return stmt if cond is None else stmt.where(cond)
 
 
 @bp.route("/api/admin/dashboard/summary", methods=["GET"])
 def summary():
     """Нийт тоо + ангиллаар + хүйсээр (спек §3)."""
-    conn = get_db()
-    # Хамрах хүрээ: байгууллагад o.id-гаар, гишүүнд m.organization_id-гаар
-    org_cond, org_args = org_condition(conn, alias="o")
-    mem_cond, mem_args = member_condition(conn, alias="m")
+    s = session()
+    # Хамрах хүрээ: байгууллагад Organization-оор, гишүүнд харьяа байгууллагаар нь
+    org_cond, mem_cond = org_clause(), member_clause()
 
-    total_orgs = conn.execute(
-        "SELECT COUNT(*) FROM organization o" + _where(org_cond), org_args).fetchone()[0]
-    total_members = conn.execute(
-        "SELECT COUNT(*) FROM member m" + _where(mem_cond), mem_args).fetchone()[0]
+    total_orgs = s.scalar(_filtered(select(func.count()).select_from(Organization), org_cond))
+    total_members = s.scalar(_filtered(select(func.count()).select_from(Member), mem_cond))
 
-    # Ангилал бүрээр: байгууллагын тоо ба тэдгээрийн гишүүдийн тоо.
-    # Дэд query-ууд нь хамрах хүрээний нөхцөлийг өөртөө агуулна.
-    by_category = rows(conn.execute(
-        "SELECT sc.id AS school_category_id, sc.short_name, sc.full_name, "
-        "  (SELECT COUNT(*) FROM organization o "
-        f"    WHERE o.school_category_id = sc.id{_and(org_cond)}) "
-        "    AS organization_count, "
-        "  (SELECT COUNT(*) FROM member m JOIN organization o ON o.id = m.organization_id "
-        f"    WHERE o.school_category_id = sc.id{_and(mem_cond)}) "
-        "    AS member_count "
-        "FROM school_category sc ORDER BY sc.id",
-        org_args + mem_args).fetchall())
+    # Ангилал бүрээр: байгууллагын тоо ба тэдгээрийн гишүүдийн тоо (correlated дэд query —
+    # байгууллагагүй ангилал ч 0-ээр гарна). Гишүүн нь харьяа байгууллагаараа хүрээнд
+    # багтдаг тул гишүүдийн тоонд байгууллагын нөхцөлийг join-оор шууд тавина.
+    org_count = _filtered(
+        select(func.count(Organization.id))
+        .where(Organization.school_category_id == SchoolCategory.id), org_cond
+    ).correlate(SchoolCategory).scalar_subquery()
+    member_count = _filtered(
+        select(func.count(Member.id)).join(Organization, Organization.id == Member.organization_id)
+        .where(Organization.school_category_id == SchoolCategory.id), org_cond
+    ).correlate(SchoolCategory).scalar_subquery()
+    by_category = [dict(r) for r in s.execute(
+        select(SchoolCategory.id.label("school_category_id"), SchoolCategory.short_name,
+               SchoolCategory.full_name, org_count.label("organization_count"),
+               member_count.label("member_count"))
+        .order_by(SchoolCategory.id)).mappings()]
 
     # Хүйс — member.gender-ийн "эр" / "эм" утгаар (спек §3)
-    gender = conn.execute(
-        "SELECT SUM(CASE WHEN m.gender='эр' THEN 1 ELSE 0 END) AS male, "
-        "       SUM(CASE WHEN m.gender='эм' THEN 1 ELSE 0 END) AS female "
-        "  FROM member m" + _where(mem_cond), mem_args).fetchone()
-    conn.close()
+    gender = s.execute(_filtered(
+        select(func.sum(case((Member.gender == "эр", 1), else_=0)).label("male"),
+               func.sum(case((Member.gender == "эм", 1), else_=0)).label("female")),
+        mem_cond)).mappings().one()
 
     return jsonify(
         total_members=total_members,

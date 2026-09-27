@@ -1,30 +1,36 @@
 """Гүйцэтгэл ба нэвтрэлтийн хамгаалалт: N+1 арилсан, brute-force хязгаар, hash шинэчлэлт."""
+from sqlalchemy import event, select, update
+
 from werkzeug.security import generate_password_hash
 
 import admin.users.login_guard as guard
-from core import db
+import core.orm as orm
+from core.orm.models import AppUser, LoginAttempt
 from conftest import uniq
 
 
 def _count_queries(client_call):
-    """Хүсэлтийн үед ажилласан SQL тоо (SQLite trace)."""
+    """Хүсэлтийн үед ORM engine дээр ажилласан SQL-ийн тоо (before_cursor_execute)."""
     n = {"q": 0}
-    orig = db.get_db
 
-    def counting():
-        conn = orig()
-        conn.set_trace_callback(lambda _s: n.__setitem__("q", n["q"] + 1))
-        return conn
-    import sys
-    mods = [m for m in list(sys.modules.values()) if getattr(m, "get_db", None) is orig]
-    for m in mods:
-        m.get_db = counting
+    def bump(*_a, **_kw):
+        n["q"] += 1
+
+    eng = orm.engine()
+    event.listen(eng, "before_cursor_execute", bump)
     try:
         r = client_call()
     finally:
-        for m in mods:
-            m.get_db = orig
+        event.remove(eng, "before_cursor_execute", bump)
     return r, n["q"]
+
+
+def _password_hash(uid):
+    s = orm.new_session()
+    try:
+        return s.scalar(select(AppUser.password_hash).where(AppUser.id == uid))
+    finally:
+        s.close()
 
 
 # ================================ N+1 ================================
@@ -108,30 +114,28 @@ def test_window_expiry(client, make_user):
     for _ in range(guard.MAX_PER_USER_IP):
         _login(client, name, "wrong")
     assert _login(client, name, "Right1234").status_code == 429
-    conn = db.get_db()
-    conn.execute("UPDATE login_attempt SET created_at='2000-01-01 00:00:00'")
-    conn.commit()
-    conn.close()
+    s = orm.new_session()
+    s.execute(update(LoginAttempt).values(created_at="2000-01-01 00:00:00"))
+    s.commit()
+    s.close()
     assert _login(client, name, "Right1234").status_code == 200
 
 
 # ============================== hash ==============================
 def test_old_hash_upgraded_on_login(client, make_user):
     _, user = make_user([], password="Right1234")
-    conn = db.get_db()
-    conn.execute("UPDATE app_user SET password_hash=? WHERE id=?",
-                 (generate_password_hash("Right1234", method="pbkdf2:sha256:1000000"), user["id"]))
-    conn.commit()
+    s = orm.new_session()
+    s.execute(update(AppUser).where(AppUser.id == user["id"]).values(
+        password_hash=generate_password_hash("Right1234", method="pbkdf2:sha256:1000000")))
+    s.commit()
+    s.close()
     assert _login(client, user["username"], "Right1234").status_code == 200
-    h = conn.execute("SELECT password_hash FROM app_user WHERE id=?", (user["id"],)).fetchone()[0]
-    conn.close()
+    h = _password_hash(user["id"])
     assert h.startswith("pbkdf2:sha256:600000$")
     assert _login(client, user["username"], "Right1234").status_code == 200   # шинэ hash ажиллана
 
 
 def test_new_users_use_600k(api, make_user):
     _, user = make_user([])
-    conn = db.get_db()
-    h = conn.execute("SELECT password_hash FROM app_user WHERE id=?", (user["id"],)).fetchone()[0]
-    conn.close()
+    h = _password_hash(user["id"])
     assert h.startswith("pbkdf2:sha256:600000$")

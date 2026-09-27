@@ -21,13 +21,16 @@ import html
 import re
 import time
 
-from core.db import get_db
+from sqlalchemy import func, select
+
+from core.orm import session
+from core.orm.models import Form, Menu, News, NewsBlock, Page, PageBlock, Partner
 
 MIN_Q, MAX_Q = 2, 60
 SNIPPET = 160
 # Индекс барих эх хүснэгтүүд — эдгээрийн аль нэг өөрчлөгдвөл индекс дахин баригдана
 CORPUS_MAX_AGE = 10                  # хээ ижил байсан ч үүнээс хуучин индексийг дахин барина
-SOURCES = ("news", "news_block", "menu", "page", "page_block", "form", "partner")
+SOURCES = (News, NewsBlock, Menu, Page, PageBlock, Form, Partner)
 TYPES = ("news", "page", "document", "survey", "poll", "partner")
 
 _TAG = re.compile(r"<[^>]+>")
@@ -78,72 +81,77 @@ def _block_title(b):
     return plain(m.group(1)) if m else None
 
 
-def build_corpus(conn):
+def build_corpus(s):
+    """Порталд харагдах бүх контентыг индекс болгоно (`s` — ORM session)."""
     docs = []
     blocks = {}
-    for b in conn.execute("SELECT news_id, text FROM news_block WHERE type='text' "
-                          "ORDER BY sort_order, id"):
-        blocks.setdefault(b["news_id"], []).append(plain(b["text"]))
-    for n in conn.execute("SELECT id, title, summary, published_at, created_at FROM news "
-                          "WHERE status='published' AND deleted_at IS NULL"):
-        docs.append({"type": "news", "id": n["id"], "title": n["title"], "path": f"/news/{n['id']}",
-                     "anchor": None, "date": _date(n["published_at"] or n["created_at"]),
-                     "body": " ".join([plain(n["summary"])] + blocks.get(n["id"], []))})
+    for b in s.execute(select(NewsBlock.news_id, NewsBlock.text).where(NewsBlock.type == "text")
+                       .order_by(NewsBlock.sort_order, NewsBlock.id)):
+        blocks.setdefault(b.news_id, []).append(plain(b.text))
+    for n in s.execute(select(News.id, News.title, News.summary, News.published_at,
+                              News.created_at)
+                       .where(News.status == "published", News.deleted_at.is_(None))):
+        docs.append({"type": "news", "id": n.id, "title": n.title, "path": f"/news/{n.id}",
+                     "anchor": None, "date": _date(n.published_at or n.created_at),
+                     "body": " ".join([plain(n.summary)] + blocks.get(n.id, []))})
 
-    paths = _page_paths(conn.execute(
-        "SELECT id, parent_id, slug, type, is_visible FROM menu").fetchall())
+    paths = _page_paths(s.execute(select(Menu.id, Menu.parent_id, Menu.slug, Menu.type,
+                                         Menu.is_visible)).mappings().all())
     pages = {}
-    for p in conn.execute("SELECT p.id, p.menu_id, p.body, p.updated_at, m.title FROM page p "
-                          "JOIN menu m ON m.id = p.menu_id WHERE p.status='published'"):
-        if p["menu_id"] not in paths:
+    for p in s.execute(select(Page.id, Page.menu_id, Page.body, Page.updated_at, Menu.title)
+                       .join(Menu, Menu.id == Page.menu_id).where(Page.status == "published")):
+        if p.menu_id not in paths:
             continue
-        pages[p["id"]] = p
-        docs.append({"type": "page", "id": p["id"], "title": p["title"],
-                     "path": paths[p["menu_id"]], "anchor": None,
-                     "date": _date(p["updated_at"]), "body": plain(p["body"])})
-    for b in conn.execute("SELECT * FROM page_block ORDER BY sort_order, id"):
-        p = pages.get(b["page_id"])
+        pages[p.id] = p
+        docs.append({"type": "page", "id": p.id, "title": p.title,
+                     "path": paths[p.menu_id], "anchor": None,
+                     "date": _date(p.updated_at), "body": plain(p.body)})
+    for blk in s.scalars(select(PageBlock).order_by(PageBlock.sort_order, PageBlock.id)):
+        p = pages.get(blk.page_id)
         if p is None:
             continue
+        b = blk.to_dict()
         is_doc = b["type"] == "file"
         title = _block_title(b)
         if is_doc and not title:
             title = (b["url"] or "").rsplit("/", 1)[-1] or None
-        docs.append({"type": "document" if is_doc else "page", "id": p["id"],
-                     "title": title, "path": paths[p["menu_id"]], "anchor": f"block-{b['id']}",
-                     "date": _date(p["updated_at"]), "body": plain(b["text"]),
-                     "page_title": p["title"]})
+        docs.append({"type": "document" if is_doc else "page", "id": p.id,
+                     "title": title, "path": paths[p.menu_id], "anchor": f"block-{b['id']}",
+                     "date": _date(p.updated_at), "body": plain(b["text"]),
+                     "page_title": p.title})
 
-    for f in conn.execute("SELECT id, type, title, description, created_at FROM form "
-                          "WHERE status <> 'draft' AND deleted_at IS NULL"):
-        docs.append({"type": f["type"], "id": f["id"], "title": f["title"],
-                     "path": f"/{f['type']}/{f['id']}", "anchor": None,
-                     "date": _date(f["created_at"]), "body": plain(f["description"])})
-    for p in conn.execute("SELECT id, name, url, created_at FROM partner WHERE is_visible=1"):
-        docs.append({"type": "partner", "id": p["id"], "title": p["name"], "path": p["url"],
-                     "anchor": None, "date": _date(p["created_at"]), "body": ""})
+    for f in s.execute(select(Form.id, Form.type, Form.title, Form.description, Form.created_at)
+                       .where(Form.status != "draft", Form.deleted_at.is_(None))):
+        docs.append({"type": f.type, "id": f.id, "title": f.title,
+                     "path": f"/{f.type}/{f.id}", "anchor": None,
+                     "date": _date(f.created_at), "body": plain(f.description)})
+    for p in s.execute(select(Partner.id, Partner.name, Partner.url, Partner.created_at)
+                       .where(Partner.is_visible == 1)):
+        docs.append({"type": "partner", "id": p.id, "title": p.name, "path": p.url,
+                     "anchor": None, "date": _date(p.created_at), "body": ""})
     return docs
 
 
-def _signature(conn):
+def _signature(s):
     """Эх хүснэгт бүрийн (мөрийн тоо, MAX(updated_at)) — өөрчлөлтийг илрүүлэх хурууны хээ.
 
-    Нэмэх/устгах нь тоог, засах нь updated_at-ийг (timestamp trigger) өөрчилнө.
+    Нэмэх/устгах нь тоог, засах нь updated_at-ийг (timestamp trigger) өөрчилнө. Бүгдийг
+    скаляр дэд query болгон НЭГ query-ээр авна.
     """
-    sql = " UNION ALL ".join(f"SELECT COUNT(*), MAX(updated_at) FROM {t}" for t in SOURCES)
-    return tuple(tuple(r) for r in conn.execute(sql).fetchall())
+    parts = []
+    for m in SOURCES:
+        parts += [select(func.count()).select_from(m).scalar_subquery(),
+                  select(func.max(m.updated_at)).scalar_subquery()]
+    return tuple(s.execute(select(*parts)).one())
 
 
 def corpus():
     """Кэшилсэн индекс; эх өгөгдөл өөрчлөгдсөн бол л DB-ээс дахин барина."""
-    conn = get_db()
-    try:
-        sig, now = _signature(conn), time.monotonic()
-        if sig != _corpus["sig"] or now - _corpus["at"] >= CORPUS_MAX_AGE:
-            _corpus["docs"] = build_corpus(conn)
-            _corpus["sig"], _corpus["at"] = sig, now
-    finally:
-        conn.close()
+    s = session()
+    sig, now = _signature(s), time.monotonic()
+    if sig != _corpus["sig"] or now - _corpus["at"] >= CORPUS_MAX_AGE:
+        _corpus["docs"] = build_corpus(s)
+        _corpus["sig"], _corpus["at"] = sig, now
     return _corpus["docs"]
 
 

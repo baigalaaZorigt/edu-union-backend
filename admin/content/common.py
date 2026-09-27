@@ -3,9 +3,11 @@
 from datetime import datetime, timezone
 
 from flask import jsonify, abort
+from sqlalchemy import false, func, select
 
-from core.db import get_db
-from core.helpers import json_body, fail, insert_row
+from core.helpers import json_body
+from core.orm import session
+from core.orm.models import Page, PageBlock
 
 from admin.content.storage import remove_upload
 
@@ -29,108 +31,103 @@ def _now():
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
-def _next_sort(conn, table, column, value):
-    """Тухайн эцэг доторх дараагийн эрэмбийн дугаар."""
-    where = f"{column} IS NULL" if value is None else f"{column}=?"
-    args = () if value is None else (value,)
-    return (conn.execute(
-        f"SELECT COALESCE(MAX(sort_order), 0) + 1 FROM {table} WHERE {where}",
-        args).fetchone()[0])
+def _eq_arg(column, value):
+    """Query string-ийн утгаар тоон баганыг шүүх нөхцөл (тоо биш бол юу ч таарахгүй)."""
+    return column == int(value) if str(value).isdigit() else false()
 
 
-def _ensure_page(conn, menu_id, title):
+def _next_sort(column, value):
+    """Тухайн эцэг доторх дараагийн эрэмбийн дугаар (`column` нь эцгийн багана)."""
+    model = column.class_
+    cond = column.is_(None) if value is None else column == value
+    return session().scalar(
+        select(func.coalesce(func.max(model.sort_order), 0) + 1).where(cond))
+
+
+def _ensure_page(menu_id, title):
     """type='page' цэсэнд хоосон page бичлэг үүсгэнэ (байхгүй бол)."""
-    if conn.execute("SELECT 1 FROM page WHERE menu_id=?", (menu_id,)).fetchone():
+    s = session()
+    if s.scalar(select(Page.id).where(Page.menu_id == menu_id)) is not None:
         return
-    insert_row(conn, "page", {"menu_id": menu_id, "title": title,
-                              "status": "draft", "updated_at": _now()})
+    s.add(Page(menu_id=menu_id, title=title, status="draft", updated_at=_now()))
+    s.flush()
 
 
 # ----------------------------- Блокийн туслахууд -----------------------------
-def _public_block(row):
+def _public_block(block):
     """Блокийг төрөлдөө хамаарах талбаруудаар нь цэвэрхэн буцаана."""
-    out = {"id": row["id"], "page_id": row["page_id"],
-           "type": row["type"], "sort_order": row["sort_order"],
-           "created_at": row["created_at"], "updated_at": row["updated_at"]}
-    for f in BLOCK_FIELDS.get(row["type"], ()):
-        out[f] = row[f]
-    if row["type"] == "video":
-        out["youtube_url"] = row["url"]      # спекийн нэршил
+    out = {"id": block.id, "page_id": block.page_id,
+           "type": block.type, "sort_order": block.sort_order,
+           "created_at": block.created_at, "updated_at": block.updated_at}
+    for f in BLOCK_FIELDS.get(block.type, ()):
+        out[f] = getattr(block, f)
+    if block.type == "video":
+        out["youtube_url"] = block.url      # спекийн нэршил
     return out
 
 
-def _block_query(column, value, btype=None):
-    """`page_block`-ийг нэг баганаар (сонголтоор төрлөөр нь ч) шүүх SELECT + параметр."""
-    sql, args = f"SELECT * FROM page_block WHERE {column}=?", [value]
-    if btype:
-        sql += " AND type=?"
-        args.append(btype)
-    return sql, args
-
-
-def _blocks_of(conn, page_id, btype=None):
+def _blocks_of(page_id, btype=None):
     """Хуудасны блокуудыг эрэмбээр нь (сонголтоор нэг төрлөөр шүүж) буцаана."""
-    sql, args = _block_query("page_id", page_id, btype)
-    return [_public_block(r)
-            for r in conn.execute(sql + " ORDER BY sort_order, id", args).fetchall()]
+    stmt = select(PageBlock).where(PageBlock.page_id == page_id)
+    if btype:
+        stmt = stmt.where(PageBlock.type == btype)
+    return [_public_block(b) for b in
+            session().scalars(stmt.order_by(PageBlock.sort_order, PageBlock.id))]
 
 
-def _check_page(conn, page_id):
+def _check_page(page_id):
     """page_id байгаа эсэхийг шалгана (байхгүй бол 400)."""
-    if not str(page_id).isdigit() or not conn.execute(
-            "SELECT 1 FROM page WHERE id=?", (page_id,)).fetchone():
-        fail(conn, 400, "page_id (эцэг хуудас) олдсонгүй")
+    if not str(page_id).isdigit() or session().get(Page, int(page_id)) is None:
+        abort(400, description="page_id (эцэг хуудас) олдсонгүй")
     return int(page_id)
 
 
-def _insert_block(conn, page_id, btype, values):
-    """Блок нэмээд шинэ мөрийг нь буцаана (эрэмбийг автоматаар төгсгөлд тавина)."""
-    row = {"page_id": page_id, "type": btype,
-           "sort_order": values.get("sort_order")
-           or _next_sort(conn, "page_block", "page_id", page_id)}
-    row.update({f: values.get(f) for f in BLOCK_FIELDS[btype]})
-    bid = insert_row(conn, "page_block", row)
-    return conn.execute("SELECT * FROM page_block WHERE id=?", (bid,)).fetchone()
+def _insert_block(page_id, btype, values):
+    """Блок нэмээд шинэ объектыг нь буцаана (эрэмбийг автоматаар төгсгөлд тавина)."""
+    block = PageBlock(page_id=page_id, type=btype,
+                      sort_order=values.get("sort_order")
+                      or _next_sort(PageBlock.page_id, page_id),
+                      **{f: values.get(f) for f in BLOCK_FIELDS[btype]})
+    session().add(block)
+    session().flush()
+    return block
 
 
 def _create_block(data, btype):
     """Шалгагдсан их биеэс блок нэмээд 201 хариу буцаана (page_block ба төрөлжсөн замууд)."""
-    conn = get_db()
-    page_id = _check_page(conn, data["page_id"])
-    row = _insert_block(conn, page_id, btype, data)
-    conn.commit()
-    conn.close()
-    return jsonify(_public_block(row)), 201
+    page_id = _check_page(data["page_id"])
+    block = _insert_block(page_id, btype, data)
+    session().commit()
+    return jsonify(_public_block(block)), 201
 
 
 def _delete_block(bid, btype=None, label="Блок"):
     """Блокийг устгаад (хэрэв төрөл заасан бол зөвхөн тэр төрлийг) файлыг нь арилгана."""
-    conn = get_db()
-    row = conn.execute(*_block_query("id", bid, btype)).fetchone()
-    if not row:
-        fail(conn, 404, f"{label} олдсонгүй")
-    conn.execute("DELETE FROM page_block WHERE id=?", (bid,))
-    conn.commit()
-    conn.close()
-    remove_upload(row["url"])
+    s = session()
+    block = s.get(PageBlock, bid)
+    if block is None or (btype and block.type != btype):
+        abort(404, description=f"{label} олдсонгүй")
+    url = block.url
+    s.delete(block)
+    s.commit()
+    remove_upload(url)
     return jsonify(deleted=bid)
 
 
-def _order_items(table, label):
-    """reorder-ийн {"order": [...]} их биеийг шалгана; (conn, [(id, item), ...]) буцаана.
+def _order_items(model, label):
+    """reorder-ийн {"order": [...]} их биеийг шалгана; [(объект, item), ...] буцаана.
 
     Бичлэг бүр тоон id-тай, DB дээр байгаа байх ёстой (эс бөгөөс 400 / 404).
     """
     order = json_body().get("order")
     if not isinstance(order, list) or not order:
         abort(400, description="order (жагсаалт) шаардлагатай")
-    conn = get_db()
     items = []
     for item in order:
         if not isinstance(item, dict) or not str(item.get("id", "")).isdigit():
-            fail(conn, 400, "order доторх бичлэг бүр id-тай байна")
-        rid = int(item["id"])
-        if not conn.execute(f"SELECT 1 FROM {table} WHERE id=?", (rid,)).fetchone():
-            fail(conn, 404, f"{label} олдсонгүй: {rid}")
-        items.append((rid, item))
-    return conn, items
+            abort(400, description="order доторх бичлэг бүр id-тай байна")
+        obj = session().get(model, int(item["id"]))
+        if obj is None:
+            abort(404, description=f"{label} олдсонгүй: {int(item['id'])}")
+        items.append((obj, item))
+    return items

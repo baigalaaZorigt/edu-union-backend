@@ -141,20 +141,23 @@ def test_logo_replacement_removes_old_upload(api, original):
 
 
 def test_get_autocreates_row_when_missing(api, original):
+    from sqlalchemy import delete, select
     from core import db
-    conn = db.get_db()
-    saved = dict(conn.execute("SELECT * FROM portal_settings").fetchone())
-    conn.execute("DELETE FROM portal_settings")
-    conn.commit()
+    from core.orm import new_session
+    from core.orm.models import PortalSettings
+    s = new_session()
+    saved = s.scalars(select(PortalSettings)).one().to_dict()
+    s.execute(delete(PortalSettings))
+    s.commit()
+    s.close()
     try:
         r = api.get("/api/portal_settings")
         assert r.status_code == 200
         assert r.get_json()["header_title"] == db.DEFAULT_PORTAL_SETTINGS["header_title"]
         assert r.get_json()["phones"] == db.DEFAULT_PORTAL_SETTINGS["phones"]
     finally:
-        conn.execute("DELETE FROM portal_settings")
-        cols = list(saved)
-        conn.execute(f"INSERT INTO portal_settings({', '.join(cols)}) "
-                     f"VALUES ({', '.join('?' * len(cols))})", [saved[c] for c in cols])
-        conn.commit()
-        conn.close()
+        s = new_session()
+        s.execute(delete(PortalSettings))
+        s.add(PortalSettings(**saved))
+        s.commit()
+        s.close()

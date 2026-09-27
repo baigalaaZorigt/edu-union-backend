@@ -31,13 +31,14 @@ import sys
 # `python scripts/<нэр>.py` гэж ажиллуулахад repo-ийн үндэс sys.path-д байхгүй тул нэмнэ.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from core.db import get_db  # noqa: E402
+import core.orm as orm  # noqa: E402
 from admin.notifications import dispatch_due  # noqa: E402
 
 if __name__ == "__main__":
-    conn = get_db()
+    s = orm.new_session()
     try:
-        sent = dispatch_due(conn)
+        sent = dispatch_due(s)
     finally:
-        conn.close()
+        s.close()
+        orm.dispose()
     print(f"Илгээсэн хуваарьт мэдэгдэл: {sent}")

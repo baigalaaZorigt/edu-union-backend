@@ -11,9 +11,13 @@
 (list_au1, get_au2, ...) хэвээр үлдэнэ.
 """
 from flask import Blueprint, jsonify, request, abort
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 
-from core.db import get_db
-from core.helpers import rows, require, json_body, fail, pick, insert_row, update_row, fetch_page, list_json
+from core.helpers import require, json_body, pick, list_json
+from core.orm import session
+from core.orm.models import AdminUnit1, AdminUnit2, AdminUnit3, SchoolCategory
+from core.orm.query import paginate
 
 bp = Blueprint("admin_units", __name__)
 
@@ -22,24 +26,24 @@ bp = Blueprint("admin_units", __name__)
 # prefix   — URL болон endpoint-ийн нэр (/api/au1, list_au1 ...)
 # key      — TEXT анхдагч түлхүүр, name — засаж болох цорын ганц талбар
 # create   — POST-д заавал талбарууд (INSERT-ийн баганууд мөн эдгээр)
-# parent   — (эцэг хүснэгт, түлхүүр багана, хүсэлтийн талбар, алдааны мессеж)
+# parent   — (эцэг model, эцгийн түлхүүрийг агуулсан хүсэлтийн талбар, алдааны мессеж)
 # same     — эцэг мөрийн ИЖИЛ байх ёстой талбар: (талбар, алдааны мессеж) — ж: багийн au1_code
 #            нь эцэг сумынхтай таарах ёстой (өөр аймгийн сумд баг бүртгэгдэхгүй)
 # filters  — жагсаалтын шүүлтүүрүүд; эхнийх нь өгөгдсөн бол түүгээр л шүүнэ
 ADMIN_UNITS = (
-    {"prefix": "au1", "table": "admin_unit1", "key": "code", "name": "name",
+    {"prefix": "au1", "model": AdminUnit1, "key": "code", "name": "name",
      "create": ("code", "name"), "parent": None, "filters": (),
      "not_found": "Аймаг олдсонгүй",
      "conflict": "Энэ код аль хэдийн бүртгэгдсэн байна"},
-    {"prefix": "au2", "table": "admin_unit2", "key": "au2_code", "name": "au2_name",
+    {"prefix": "au2", "model": AdminUnit2, "key": "au2_code", "name": "au2_name",
      "create": ("au2_code", "au2_name", "au1_code"),
-     "parent": ("admin_unit1", "code", "au1_code", "au1_code (эцэг аймаг) олдсонгүй"),
+     "parent": (AdminUnit1, "au1_code", "au1_code (эцэг аймаг) олдсонгүй"),
      "filters": ("au1_code",),
      "not_found": "Сум олдсонгүй",
      "conflict": "Энэ сумын код аль хэдийн бүртгэгдсэн байна"},
-    {"prefix": "au3", "table": "admin_unit3", "key": "au3_code", "name": "au3_name",
+    {"prefix": "au3", "model": AdminUnit3, "key": "au3_code", "name": "au3_name",
      "create": ("au3_code", "au3_name", "au1_code", "au2_code"),
-     "parent": ("admin_unit2", "au2_code", "au2_code", "au2_code (эцэг сум) олдсонгүй"),
+     "parent": (AdminUnit2, "au2_code", "au2_code (эцэг сум) олдсонгүй"),
      "same": ("au1_code", "au1_code нь эцэг сумын аймагтай таарахгүй байна"),
      "filters": ("au2_code", "au1_code"),
      "not_found": "Баг олдсонгүй",
@@ -49,67 +53,63 @@ ADMIN_UNITS = (
 
 def _register_unit(u):
     """Нэг түвшний list/get/create/update/delete маршрутуудыг bp дээр бүртгэнэ."""
-    table, key, name = u["table"], u["key"], u["name"]
+    model, key, name = u["model"], u["key"], u["name"]
+    key_col = getattr(model, key)
 
     def list_units():
-        sql, params = f"SELECT * FROM {table}", ()
+        stmt = select(model)
         for f in u["filters"]:
             value = request.args.get(f)
             if value:
-                sql, params = sql + f" WHERE {f}=?", (value,)
+                stmt = stmt.where(getattr(model, f) == value)
                 break
-        conn = get_db()
-        data, meta = fetch_page(conn, sql + f" ORDER BY {key}", params)
-        conn.close()
-        return list_json(rows(data), meta)
+        items, meta = paginate(stmt.order_by(key_col))
+        return list_json([o.to_dict() for o in items], meta)
 
     def get_unit(code):
-        conn = get_db()
-        row = conn.execute(f"SELECT * FROM {table} WHERE {key}=?", (code,)).fetchone()
-        conn.close()
-        if not row:
+        obj = session().get(model, code)
+        if obj is None:
             abort(404, description=u["not_found"])
-        return jsonify(dict(row))
+        return jsonify(obj.to_dict())
 
     def create_unit():
         data = request.get_json(silent=True)
         require(data, u["create"])
-        conn = get_db()
+        s = session()
         if u["parent"]:
-            p_table, p_key, field, message = u["parent"]
-            parent = conn.execute(f"SELECT * FROM {p_table} WHERE {p_key}=?",
-                                  (data[field],)).fetchone()
-            if not parent:
-                fail(conn, 400, message)
+            p_model, field, message = u["parent"]
+            parent = s.get(p_model, data[field])
+            if parent is None:
+                abort(400, description=message)
             same = u.get("same")
-            if same and str(parent[same[0]]) != str(data[same[0]]):
-                fail(conn, 400, same[1])
+            if same and str(getattr(parent, same[0])) != str(data[same[0]]):
+                abort(400, description=same[1])
+        s.add(model(**{f: data[f] for f in u["create"]}))
         try:
-            insert_row(conn, table, {f: data[f] for f in u["create"]})
-            conn.commit()
-        except Exception:
-            fail(conn, 409, u["conflict"])
-        conn.close()
+            s.commit()
+        except IntegrityError:
+            s.rollback()
+            abort(409, description=u["conflict"])
         return jsonify(data), 201
 
     def update_unit(code):
         data = request.get_json(silent=True)
         require(data, [name])
-        conn = get_db()
-        count = update_row(conn, table, code, {name: data[name]}, key=key)
-        conn.commit()
-        conn.close()
-        if count == 0:
+        s = session()
+        obj = s.get(model, code)
+        if obj is None:
             abort(404, description=u["not_found"])
+        setattr(obj, name, data[name])
+        s.commit()
         return jsonify({key: code, name: data[name]})
 
     def delete_unit(code):
-        conn = get_db()
-        cur = conn.execute(f"DELETE FROM {table} WHERE {key}=?", (code,))
-        conn.commit()
-        conn.close()
-        if cur.rowcount == 0:
+        s = session()
+        obj = s.get(model, code)
+        if obj is None:
             abort(404, description=u["not_found"])
+        s.delete(obj)                      # хүүхэд нэгжүүд DB-ийн ON DELETE CASCADE-аар
+        s.commit()
         return jsonify(deleted=code)
 
     base, p = f"/api/{u['prefix']}", u["prefix"]
@@ -133,26 +133,26 @@ SCHOOL_CATEGORY_FIELDS = ("full_name", "short_name", "english_name")
 
 # Ангиллын id нь бүртгэлийн кодны ЭХНИЙ 2 ОРОН болно (1 -> "01"), тиймээс 1..99.
 # code-г хадгалахгүй — id-аас бодогдоно (эх сурвалж нэг байхын тулд).
-SCHOOL_CATEGORY_SELECT = "SELECT sc.*, printf('%02d', sc.id) AS code FROM school_category sc"
 MAX_SCHOOL_CATEGORY_ID = 99
+
+
+def _category_json(obj):
+    """Ангиллын мөр + id-аас бодсон 2 оронтой code."""
+    return dict(obj.to_dict(), code=f"{obj.id:02d}")
 
 
 @bp.route("/api/school_category", methods=["GET"])
 def list_school_category():
-    conn = get_db()
-    data, meta = fetch_page(conn, SCHOOL_CATEGORY_SELECT + " ORDER BY sc.id")
-    conn.close()
-    return list_json(rows(data), meta)
+    items, meta = paginate(select(SchoolCategory).order_by(SchoolCategory.id))
+    return list_json([_category_json(o) for o in items], meta)
 
 
 @bp.route("/api/school_category/<int:cid>", methods=["GET"])
 def get_school_category(cid):
-    conn = get_db()
-    row = conn.execute(SCHOOL_CATEGORY_SELECT + " WHERE sc.id=?", (cid,)).fetchone()
-    conn.close()
-    if not row:
+    obj = session().get(SchoolCategory, cid)
+    if obj is None:
         abort(404, description="Ангилал олдсонгүй")
-    return jsonify(dict(row))
+    return jsonify(_category_json(obj))
 
 
 @bp.route("/api/school_category", methods=["POST"])
@@ -171,16 +171,15 @@ def create_school_category():
             abort(400, description="id нь 1-99 хооронд байна (код нь 2 орон тул)")
         values["id"] = cid
     values.update({f: data.get(f) for f in SCHOOL_CATEGORY_FIELDS})
-    conn = get_db()
+    s = session()
+    obj = SchoolCategory(**values)
+    s.add(obj)
     try:
-        new_id = insert_row(conn, "school_category", values)
-        conn.commit()
-    except Exception:
-        fail(conn, 409, "Энэ id аль хэдийн бүртгэгдсэн байна")
-    new_id = data.get("id") or new_id
-    row = conn.execute(SCHOOL_CATEGORY_SELECT + " WHERE sc.id=?", (new_id,)).fetchone()
-    conn.close()
-    return jsonify(dict(row)), 201
+        s.commit()
+    except IntegrityError:
+        s.rollback()
+        abort(409, description="Энэ id аль хэдийн бүртгэгдсэн байна")
+    return jsonify(_category_json(obj)), 201
 
 
 @bp.route("/api/school_category/<int:cid>", methods=["PUT", "PATCH"])
@@ -188,21 +187,22 @@ def update_school_category(cid):
     values = pick(json_body(), SCHOOL_CATEGORY_FIELDS)
     if not values:
         abort(400, description="Шинэчлэх талбар алга")
-    conn = get_db()
-    count = update_row(conn, "school_category", cid, values)
-    conn.commit()
-    conn.close()
-    if count == 0:
+    s = session()
+    obj = s.get(SchoolCategory, cid)
+    if obj is None:
         abort(404, description="Ангилал олдсонгүй")
+    for k, v in values.items():
+        setattr(obj, k, v)
+    s.commit()
     return jsonify(updated=cid, fields=list(values))
 
 
 @bp.route("/api/school_category/<int:cid>", methods=["DELETE"])
 def delete_school_category(cid):
-    conn = get_db()
-    cur = conn.execute("DELETE FROM school_category WHERE id=?", (cid,))
-    conn.commit()
-    conn.close()
-    if cur.rowcount == 0:
+    s = session()
+    obj = s.get(SchoolCategory, cid)
+    if obj is None:
         abort(404, description="Ангилал олдсонгүй")
+    s.delete(obj)
+    s.commit()
     return jsonify(deleted=cid)

@@ -32,7 +32,8 @@ from core.forms_core.base import (  # noqa: F401
 )
 from core.forms_core.questions import (  # noqa: F401
     has_submitted, insert_options, insert_question, next_sort, one_question, public_option,
-    public_question, question_list, scale_range, submission_count, validate_question,
+    public_question, question_list, question_rows, scale_range, submission_count,
+    validate_question,
 )
 from core.forms_core.results import (  # noqa: F401
     form_results, open_text_answers, results_trend,

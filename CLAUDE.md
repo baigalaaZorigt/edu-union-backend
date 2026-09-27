@@ -95,20 +95,24 @@ and `client/forms.py` (`/api/portal/...` — list, open, submit). See
 same import path: `__init__.py` creates the blueprint (`bp`) and imports the route submodules
 *after* it, each submodule does `from <package> import bp`, and every name other code imports
 is re-exported from `__init__.py` — so `from admin.content import remove_upload`,
-`from core.db import get_db`, `from core.forms_core import ...` keep working. Blueprint and
+`from core.orm.models import Member`, `from core.forms_core import ...` keep working. Blueprint and
 function names never change on a split, so endpoint names stay the same.
 
 ```
 run.py              # entry point: create_app() + registers both sites' blueprints
 core/               # ── SHARED (хоёр site хуваалцана) ──
-  db/               #   schema + seed + SQLite/Postgres layer; __init__ holds DB_PATH + get_db()
-    schema_base|schema_admin|schema_portal.py   # DDL strings; schema.py = init_db()
-    pg.py pg_schema.py                          # Postgres wrapper + DDL translation
-    migrate.py migrate_data.py                  # in-place SQLite migrations
-    seed_ref|seed_data|seed_portal.py, reference_data.py, bootstrap.py (seed_all, ensure_seeded)
-    __main__.py                                 # python -m core.db
+  orm/              #   SQLAlchemy 2.0 — engine/session (__init__), Base + Int/Str (base.py),
+    models/         #     44 model (geo, union, union_refs, users, content, news, forms)
+    query.py        #     paginate(), get_or_404()
+  db/               #   DB_PATH/DATABASE_URL + seeds (ORM) + FROZEN baseline schema code
+    schema_*.py schema.py pg*.py migrate*.py    # хуучин DDL/migration — зөвхөн alembic 0001 ба
+                                                # Alembic-ээс өмнөх DB-г шинэчлэхэд (засахгүй)
+    seed_ref|seed_data|seed_portal.py, reference_data.py
+    bootstrap.py    #     migrate() (Alembic), seed_all(), ensure_seeded()
+    __main__.py     #     python -m core.db
+alembic/            # migration-ууд (versions/0001_baseline.py = одоогийн бүх схем)
   auth.py           #   JWT + global permission check (before_request)
-  helpers.py        #   rows, require, json_body, fail, pick, insert_row, update_row, now_str
+  helpers.py        #   require, json_body, pick, client_ip, now_str, page_params, list_json
   forms_core/       #   survey/poll домэйний цөм (base, questions, results, documents)
   news_core.py  scope_core.py  feedback_core.py  settings_core.py  home_core.py
   search_core.py    #   порталын хайлтын индекс, тааруулалт, snippet
@@ -161,13 +165,14 @@ Flask + PyJWT + gunicorn, and `psycopg[binary]` **only** when running on Postgre
 ```bash
 pip install -r requirements.txt
 
-python -m core.db              # create schema + seed everything (idempotent)
+python -m core.db              # migrate (Alembic) + seed everything (idempotent)
+alembic revision -m "..."      # шинэ схемийн migration (autogenerate бол ЗААВАЛ Postgres-тэй)
 python run.py                  # dev server on http://127.0.0.1:5001 (no reload)
 FLASK_DEBUG=1 python run.py    # dev server with auto-reload/debugger
 gunicorn run:app               # production WSGI server (loads the module-level `app`)
 
 pip install pytest
-python -m pytest tests -q      # the whole pytest suite (~460 tests, ~15 s)
+python -m pytest tests -q      # the whole pytest suite (571 tests, ~13 s)
 ```
 
 - The dev server binds `PORT` (env) or 5001; `debug` is on only when `FLASK_DEBUG=1`.
@@ -248,24 +253,32 @@ python -m pytest tests -q      # the whole pytest suite (~460 tests, ~15 s)
 
 ## Architecture notes
 
-- **Two databases, one codebase.** `DATABASE_URL` (env) decides: set → **Postgres**, unset →
-  **SQLite** (`admin_units.db`). Rather than rewrite 500+ queries, `db.py` wraps the Postgres
-  connection (`_PgConn`/`_PgCursor`) and rewrites SQLite dialect **at execute time**: `?` → `%s`
-  (with `%` escaped first), `INSERT OR IGNORE` → `ON CONFLICT DO NOTHING`, `printf('%02d', x)` →
-  `to_char(x,'FM00')`, `julianday('now') - julianday(x)` → `CURRENT_DATE - x::date`. Rows come back
-  as a `dict` subclass so both `row["col"]` and `row[0]` work, like `sqlite3.Row`. Three things do
-  **not** translate and are branched instead: `_migrate()` (SQLite-only legacy patching — a fresh
-  Postgres never needs it, but an *existing* one still needs new columns, which is what
-  `_pg_migrate()` does: it replays `_MIGRATIONS` as `ALTER TABLE … ADD COLUMN IF NOT EXISTS`,
-  since `CREATE TABLE IF NOT EXISTS` never alters a table that already exists), the timestamp triggers (`_pg_timestamps()` installs a `set_timestamps()`
-  plpgsql function), and the schema itself. **`lastrowid` is `RETURNING id`, never `lastval()`** —
-  `lastval()` reads the session's last sequence value, so an INSERT nested inside a handler (menu →
-  `_ensure_page()`) would hand back the wrong id.
-- **Postgres schema is derived from the SQLite DDL** by `_pg_schema()`: `id INTEGER PRIMARY KEY
-  [AUTOINCREMENT]` becomes `GENERATED BY DEFAULT AS IDENTITY` (the reference tables still supply
-  their own ids, so `pg_sync_sequences()` re-aligns each sequence after seeding), and **every
-  `FOREIGN KEY` line is lifted out of `CREATE TABLE` into a deferred `ALTER TABLE`** — SQLite
-  tolerates a forward reference to a table created later in the script, Postgres does not.
+- **All queries go through the SQLAlchemy 2.0 ORM — no SQL strings in app code.** `core.orm`:
+  one engine per process (`DATABASE_URL` set → Postgres via `postgresql+psycopg`, else SQLite at
+  `core.db.DB_PATH`, read when the engine is built so tests can repoint it); Postgres gets a
+  `QueuePool` (`DB_POOL_MAX`, default 5, `pool_pre_ping`), SQLite gets `PRAGMA foreign_keys=ON` on
+  every connection (cascades depend on it). `session()` is **one session per request** (Flask
+  `g`), rolled back and closed by `teardown_appcontext` — so an `abort()` anywhere leaks nothing and
+  uncommitted writes never survive an error; handlers call `session().commit()` and map
+  `IntegrityError` to 409 after `rollback()`. Outside a request use `new_session()` and close it.
+  `create_app()` calls `orm.dispose()` after `ensure_seeded()` so the gunicorn `--preload` master
+  hands no sockets to its forks. Models (`core/orm/models/`) mirror the production schema exactly
+  (Alembic `compare_metadata` against Postgres = 0 differences); their `Int`/`Str` column types
+  **coerce bound values** — `"5"` → `5`, a non-numeric string → `NULL`, a number into TEXT → str —
+  because query strings and JSON send ids as strings, which SQLite tolerates and Postgres rejects
+  (`integer = varchar`). Anything dialect-specific (`printf`, `julianday`, `DATE()`) is computed
+  in Python instead (`full_code`, the under-35 cutoff, trend days). `Base.to_dict()` = the old
+  `dict(row)`; joined/derived columns come from labelled selects read with `.mappings()`.
+- **Schema changes go through Alembic.** `alembic/versions/0001_baseline.py` runs the frozen
+  legacy DDL (`core/db/schema*.py` + `_pg_schema()` + timestamp triggers), so a fresh database is
+  byte-for-byte the production schema (checked with `pg_dump`). `core.db.bootstrap.migrate()`
+  (called by `ensure_seeded()` on every start): a database from before Alembic (tables but no
+  `alembic_version` — production, the committed `admin_units.db`) is brought up to date by the old
+  `init_db()` once and then **stamped** `0001` (no data touched); after that it is always
+  `alembic upgrade head`. New columns/tables = a new revision after 0001 — never edit the
+  `SCHEMA_*` strings or `_MIGRATIONS` again. Run `--autogenerate` against **Postgres** (SQLite's
+  reflection reports false PK/UNIQUE differences) and review it. `core.db.get_db()` is the only
+  raw connection left and exists solely for that frozen code and `scripts/migrate_to_pg.py`.
 - **Two sites, one Flask app.** `run.py` builds the app via `create_app()` and registers fourteen
   blueprints — `admin_units` + `union` + `users` + `content` + `admin_forms` + `admin_news` +
   `portal_settings` + `admin_feedback` + `notifications` + `admin_dashboard` (admin site) and
@@ -303,35 +316,16 @@ python -m pytest tests -q      # the whole pytest suite (~460 tests, ~15 s)
 - **Error handling is centralized.** `register_error_handlers(app)` in `run.py` maps
   400/401/403/404/405/409/**422** to `{"error": ...}` JSON for the whole app — including unmatched-URL 404s and
   aborts raised inside any blueprint (Flask falls back to app-level handlers for blueprint errors).
-- **Shared helpers live in `core/helpers.py`.** `rows()` (Row→dict list), `require(data, fields)`
-  (required-field check → 400), `json_body()` (parse JSON body or 400),
-  `fail(conn, code, msg)` (close the connection, then abort — the one-line form of the
-  close-before-abort rule), `pick(data, fields)` (allowlist a body), `insert_row(conn, table,
-  values)` → new id, `update_row(conn, table, key, values)` → rowcount, `now_str()` (UTC
-  `"YYYY-MM-DD HH:MM:SS"`) and `register_error_handlers(target)`. Every route module imports
-  these — do not re-define them. Table/column names passed to `insert_row`/`update_row` always
-  come from a code allowlist (`*_FIELDS`), never from request input.
-  `admin/union/common.py` adds the union-only layer on top (`_list_rows`, `_get_one`, `_create`,
-  `_update_by_id`, `_delete_by_id`, `_require_row`, `_check_ref`, …).
-- **`core/db/` is the single source of schema.** It defines `SCHEMA` (admin units), `SCHEMA_UNION`,
-  `SCHEMA_REF`, `SCHEMA_USER`, and `SCHEMA_CONTENT` separately, all run inside `init_db()`. `get_db()` returns a
-  connection with `row_factory = sqlite3.Row` and `PRAGMA foreign_keys = ON` — foreign-key cascades
-  only work because of that pragma, set per-connection. `_migrate()` patches older DBs in place
-  (add/rename columns → `_migrate_data()` moves the old values → drop columns) since
-  `CREATE TABLE IF NOT EXISTS` won't alter existing tables. When a column is retired, move its data
-  in `_migrate_data()` **before** listing it in `_DROP_COLUMNS`.
-- **Postgres uses a per-process connection pool** (`psycopg_pool`, `DB_POOL_MIN`/`DB_POOL_MAX`,
-  default 1/5 → ≤ 15 RDS connections for 3 workers). `get_db()` checks a connection out and
-  `_PgConn.close()` **returns it** (rolling back an unfinished transaction; idempotent). The pool
-  is keyed by pid: `create_app()` calls `close_pool()` after `ensure_seeded()` so the gunicorn
-  `--preload` master hands no sockets to its forks, and each worker builds its own on first use.
-  `release_request_connections` (teardown) returns anything a handler forgot, so a leak can't
-  exhaust the pool. `id_tables()` (which tables get `RETURNING id`) is cached per process and
-  cleared by any `executescript`. Before this every request opened a fresh TLS connection to RDS
-  — two for token requests — which was most of each request's time.
-- **Per-request connection lifecycle.** Every handler opens `get_db()`, does its work, and
-  `conn.close()`s before returning — including on every error path. When editing handlers, keep
-  the close-before-abort pattern; an early `abort()` without closing leaks the connection.
+- **Shared helpers**: `core/helpers.py` — `require(data, fields)` (→ 400), `json_body()`,
+  `pick(data, fields)` (allowlist a body), `client_ip()`, `now_str()` (UTC
+  `"YYYY-MM-DD HH:MM:SS"`), `page_params()` / `slice_page()` / `list_json()` and
+  `register_error_handlers(target)`; `core/orm/query.py` — `paginate(stmt[, mappings])` and
+  `get_or_404(model, key, msg)`. `admin/union/common.py` adds the union CRUD layer (`_list_rows`,
+  `_get_one`, `_create`, `_update_by_id`, `_delete_by_id`, `_require_row`, `_check_ref`, …) over
+  model classes.
+- **Legacy schema code is frozen** (`core/db/schema*.py`, `migrate*.py`, `pg.py`, `pg_schema.py`):
+  it is what migration 0001 runs and what upgrades a pre-Alembic database once. `_migrate()` /
+  `_MIGRATIONS` / `_DROP_COLUMNS` are history now — add a new Alembic revision instead.
 - **Uniqueness/parent checks are manual.** Creates verify the parent row exists (returning 400),
   then rely on a `try/except` around the INSERT to map PK/UNIQUE collisions to 409. There are no
   DB-level unique constraints beyond primary keys and a few `UNIQUE` columns (`permission.code`,
@@ -682,7 +676,7 @@ python -m pytest tests -q      # the whole pytest suite (~460 tests, ~15 s)
   `?horoo_id=` (horoo only), `?school_category_id=` (organization), `?organization_id=`, `?owner_type=&owner_id=`, `?resource=`, `?role_id=`, `?status=`).
   **Every other list endpoint is paginated on request**: send `?page=` and/or `?per_page=` and
   it answers `{items, total, page, per_page, pages}`; send neither and it still answers the plain
-  array (the deployed frontend depends on that). `core/helpers.fetch_page()` does COUNT +
+  array (the deployed frontend depends on that). `core/orm/query.paginate()` does COUNT +
   `LIMIT/OFFSET` in SQL (so per-row extras like `org_stats` run only for the page) and
   `slice_page()` handles lists filtered in Python (`/api/portal/forms?active=1`); `list_json()`
   picks the shape. Defaults 20 per page, capped at 100, `page<1` → 1, non-numeric → 400.
@@ -694,5 +688,5 @@ python -m pytest tests -q      # the whole pytest suite (~460 tests, ~15 s)
   (`{data, total, per_page, current_page, pages}`), forms and feedback in the other
   (`{items, total, page, per_page, pages}`). `per_page` is capped at 100 and a non-numeric
   `page`/`per_page` is a 400.
-- Imports are absolute (`from db import get_db`, `from client.union import bp`) and assume the repo
+- Imports are absolute (`from core.orm import session`, `from admin.union import bp`) and assume the repo
   root is on `sys.path` — always run from the repo root (`python run.py`).

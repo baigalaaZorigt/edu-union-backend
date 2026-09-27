@@ -4,9 +4,10 @@ import os
 import uuid
 
 from flask import jsonify, request, abort
+from sqlalchemy import delete
 
-from core.db import get_db
-from core.helpers import insert_row
+from core.orm import session
+from core.orm.models import FormDocument
 from core.forms_core import (
     STORE, UPLOAD_URL_PREFIX, bad, now_str, public_document, document_list,
     remove_upload, require_form, validate_pdf,
@@ -18,11 +19,8 @@ from admin.forms import bp
 # ====================== form_document (Санал асуулгын PDF) ======================
 @bp.route("/api/admin/forms/<int:fid>/documents", methods=["GET"])
 def list_documents(fid):
-    conn = get_db()
-    require_form(conn, fid)
-    data = document_list(conn, fid)
-    conn.close()
-    return jsonify(data)
+    require_form(fid)
+    return jsonify(document_list(fid))
 
 
 @bp.route("/api/admin/forms/<int:fid>/document", methods=["POST"])
@@ -35,34 +33,31 @@ def upload_document(fid):
     if not files:
         abort(400, description="Файл алга — 'file' талбараар илгээнэ")
     checked = [validate_pdf(f) for f in files]
-    conn = get_db()
-    require_form(conn, fid)
+    require_form(fid)
+    s = session()
     now = now_str()
-    new_ids = []
+    docs = []
     for f, (name, size) in zip(files, checked):
         stored = f"{uuid.uuid4().hex}.pdf"
         STORE.save(stored, f, "application/pdf")
-        new_ids.append(insert_row(conn, "form_document", {
-            "form_id": fid, "file_name": name, "file_path": UPLOAD_URL_PREFIX + stored,
-            "mime_type": "application/pdf", "file_size": size, "created_at": now}))
-    conn.commit()
-    ph = ", ".join("?" * len(new_ids))
-    data = [public_document(r) for r in conn.execute(
-        f"SELECT * FROM form_document WHERE id IN ({ph}) ORDER BY id", new_ids).fetchall()]
-    conn.close()
-    return jsonify(data), 201
+        doc = FormDocument(form_id=fid, file_name=name, file_path=UPLOAD_URL_PREFIX + stored,
+                           mime_type="application/pdf", file_size=size, created_at=now)
+        s.add(doc)
+        docs.append(doc)
+    s.commit()
+    return jsonify([public_document(d.to_dict()) for d in sorted(docs, key=lambda d: d.id)]), 201
 
 
 @bp.route("/api/admin/documents/<int:did>", methods=["DELETE"])
 def delete_document(did):
-    conn = get_db()
-    row = conn.execute("SELECT * FROM form_document WHERE id=?", (did,)).fetchone()
-    if not row:
-        bad(conn, "Файл олдсонгүй", 404)
-    conn.execute("DELETE FROM form_document WHERE id=?", (did,))
-    conn.commit()
-    conn.close()
-    remove_upload(row["file_path"])
+    s = session()
+    doc = s.get(FormDocument, did)
+    if doc is None:
+        bad("Файл олдсонгүй", 404)
+    path = doc.file_path
+    s.execute(delete(FormDocument).where(FormDocument.id == did))
+    s.commit()
+    remove_upload(path)
     return jsonify(deleted=did)
 
 

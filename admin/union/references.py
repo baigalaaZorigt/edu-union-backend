@@ -1,9 +1,12 @@
 """Лавлах хүснэгтүүд: education_degree, position, profession, reward_type, structure."""
 
 from flask import jsonify, request, abort
+from sqlalchemy import select, update
 
-from core.db import get_db
-from core.helpers import fail, insert_row, json_body, pick, require, update_row
+from core.helpers import json_body, pick, require
+from core.orm import session
+from core.orm.models import (AppUser, EducationDegree, MemberReward, Member, Organization,
+                             Position, Profession, RewardType, Structure)
 
 from admin.union import bp
 from admin.union.common import _delete_by_id, _get_one, _list_rows
@@ -14,62 +17,68 @@ CODED_REF_FIELDS = ("code", "name")
 DEGREE_NOT_FOUND = "Боловсролын зэрэг олдсонгүй"
 ID_TAKEN = "Энэ id аль хэдийн бүртгэгдсэн байна"
 
+# Хүснэгтийн нэр -> model (маршрутууд хүснэгтийн нэрээр дууддаг)
+REF_MODELS = {"position": Position, "profession": Profession,
+              "reward_type": RewardType, "structure": Structure}
+
 # Лавлахын мөрийг устгахад ямар баганууд NULL болох ёстой вэ.
 # ON DELETE SET NULL нь ЗӨВХӨН шинэ DB дээр ажиллана: хуучин DB дээр эдгээр
 # багана нь ALTER TABLE ADD COLUMN-оор нэмэгдсэн бөгөөд SQLite тэгж FK үүсгэж
 # чаддаггүй. Тиймээс хоёр тохиолдолд ижил ажиллуулахын тулд гараар цэвэрлэнэ.
 REF_CLEAR_REFS = {
-    "structure": (("organization", "structure_id"), ("app_user", "structure_id")),
-    "position": (("member", "position_id"),),
-    "profession": (("member", "profession_id"),),
-    "reward_type": (("member_reward", "reward_type_id"),),
+    "structure": (Organization.structure_id, AppUser.structure_id),
+    "position": (Member.position_id,),
+    "profession": (Member.profession_id,),
+    "reward_type": (MemberReward.reward_type_id,),
 }
 
 
-def _insert_with_id(conn, table, values, data):
+def _insert_with_id(model, values, data):
     """`values` (+ өгсөн бол гараар сонгосон `id`)-г нэмээд шинэ мөрийг буцаана → 201.
 
     Лавлахууд seed-ээс өөрийн id-тай ирдэг тул id давхцвал 409.
     """
     if data.get("id") is not None:
         values = {**values, "id": data["id"]}
+    s = session()
+    obj = model(**values)
     try:
-        new_id = insert_row(conn, table, values)
-        conn.commit()
+        s.add(obj)
+        s.commit()
     except Exception:
-        fail(conn, 409, ID_TAKEN)
-    row = conn.execute(f"SELECT * FROM {table} WHERE id=?",
-                       (data.get("id") or new_id,)).fetchone()
-    conn.close()
-    return jsonify(dict(row)), 201
+        s.rollback()
+        abort(409, description=ID_TAKEN)
+    row = s.scalar(select(model).where(model.id == (data.get("id") or obj.id)))
+    return jsonify(row.to_dict()), 201
 
 
 # ================ education_degree (Боловсролын зэрэг, лавлах) ================
 @bp.route("/api/education_degree", methods=["GET"])
 def list_education_degree():
-    return _list_rows("SELECT * FROM education_degree ORDER BY id")
+    return _list_rows(select(EducationDegree).order_by(EducationDegree.id))
 
 
 @bp.route("/api/education_degree/<int:eid>", methods=["GET"])
 def get_education_degree(eid):
-    return _get_one("SELECT * FROM education_degree WHERE id=?", (eid,), DEGREE_NOT_FOUND)
+    return _get_one(EducationDegree, eid, DEGREE_NOT_FOUND)
 
 
 @bp.route("/api/education_degree", methods=["POST"])
 def create_education_degree():
     data = request.get_json(silent=True)
     require(data, ["name"])
-    return _insert_with_id(get_db(), "education_degree", {"name": data["name"]}, data)
+    return _insert_with_id(EducationDegree, {"name": data["name"]}, data)
 
 
 @bp.route("/api/education_degree/<int:eid>", methods=["PUT", "PATCH"])
 def update_education_degree(eid):
     data = request.get_json(silent=True)
     require(data, ["name"])
-    conn = get_db()
-    count = update_row(conn, "education_degree", eid, {"name": data["name"]})
-    conn.commit()
-    conn.close()
+    s = session()
+    count = s.execute(update(EducationDegree).where(EducationDegree.id == eid)
+                      .values(name=data["name"])
+                      .execution_options(synchronize_session=False)).rowcount
+    s.commit()
     if count == 0:
         abort(404, description=DEGREE_NOT_FOUND)
     return jsonify(id=eid, name=data["name"])
@@ -77,37 +86,37 @@ def update_education_degree(eid):
 
 @bp.route("/api/education_degree/<int:eid>", methods=["DELETE"])
 def delete_education_degree(eid):
-    return _delete_by_id(get_db(), "education_degree", eid, DEGREE_NOT_FOUND)
+    return _delete_by_id(EducationDegree, eid, DEGREE_NOT_FOUND)
 
 
 # ====== Кодтой лавлахууд (position / profession / reward_type / structure) ======
 # Бүгд ижил бүтэцтэй (id + code + name) тул CRUD-ыг доорх туслахууд хуваалцана.
-def _check_code_unique(conn, table, code, label, exclude_id=None):
+def _check_code_unique(model, code, label, exclude_id=None):
     """Лавлахын код давхцсан эсэхийг шалгана (DB-д UNIQUE байхгүй тул гараар, 409)."""
     if code is None or code == "":
         return
-    sql, params = f"SELECT 1 FROM {table} WHERE code=?", [code]
+    stmt = select(model.id).where(model.code == code)
     if exclude_id is not None:
-        sql += " AND id<>?"
-        params.append(exclude_id)
-    if conn.execute(sql, params).fetchone():
-        fail(conn, 409, f"{label}: '{code}' код аль хэдийн бүртгэгдсэн байна")
+        stmt = stmt.where(model.id != exclude_id)
+    if session().scalar(stmt.limit(1)) is not None:
+        abort(409, description=f"{label}: '{code}' код аль хэдийн бүртгэгдсэн байна")
 
 
 def _ref_list(table):
-    return _list_rows(f"SELECT * FROM {table} ORDER BY id")
+    model = REF_MODELS[table]
+    return _list_rows(select(model).order_by(model.id))
 
 
 def _ref_get(table, rid, label):
-    return _get_one(f"SELECT * FROM {table} WHERE id=?", (rid,), f"{label} олдсонгүй")
+    return _get_one(REF_MODELS[table], rid, f"{label} олдсонгүй")
 
 
 def _ref_create(table, label):
     data = request.get_json(silent=True)
     require(data, ["name"])
-    conn = get_db()
-    _check_code_unique(conn, table, data.get("code"), label)
-    return _insert_with_id(conn, table, pick(data, CODED_REF_FIELDS, skip_none=True), data)
+    model = REF_MODELS[table]
+    _check_code_unique(model, data.get("code"), label)
+    return _insert_with_id(model, pick(data, CODED_REF_FIELDS, skip_none=True), data)
 
 
 def _ref_update(table, rid, label):
@@ -118,22 +127,23 @@ def _ref_update(table, rid, label):
         abort(400, description="Шинэчлэх талбар алга")
     if "name" in data and not (data["name"] or "").strip():
         abort(400, description="name хоосон байж болохгүй")
-    conn = get_db()
-    _check_code_unique(conn, table, data.get("code"), label, rid)
-    count = update_row(conn, table, rid, values)
-    conn.commit()
+    model = REF_MODELS[table]
+    _check_code_unique(model, data.get("code"), label, rid)
+    s = session()
+    count = s.execute(update(model).where(model.id == rid).values(values)
+                      .execution_options(synchronize_session=False)).rowcount
+    s.commit()
     if count == 0:
-        fail(conn, 404, f"{label} олдсонгүй")
-    row = conn.execute(f"SELECT * FROM {table} WHERE id=?", (rid,)).fetchone()
-    conn.close()
-    return jsonify(dict(row))
+        abort(404, description=f"{label} олдсонгүй")
+    return jsonify(s.scalar(select(model).where(model.id == rid)).to_dict())
 
 
 def _ref_delete(table, rid, label):
-    conn = get_db()
-    for ref_table, col in REF_CLEAR_REFS.get(table, ()):
-        conn.execute(f"UPDATE {ref_table} SET {col}=NULL WHERE {col}=?", (rid,))
-    return _delete_by_id(conn, table, rid, f"{label} олдсонгүй")
+    s = session()
+    for col in REF_CLEAR_REFS.get(table, ()):
+        s.execute(update(col.class_).where(col == rid).values({col.key: None})
+                  .execution_options(synchronize_session=False))
+    return _delete_by_id(REF_MODELS[table], rid, f"{label} олдсонгүй")
 
 
 # ==================== position (Албан тушаал, лавлах) ====================

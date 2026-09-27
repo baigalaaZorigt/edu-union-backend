@@ -5,13 +5,15 @@ import uuid
 from datetime import datetime, timezone
 
 from flask import jsonify, request, abort
+from sqlalchemy import select
 
-from core.db import get_db
-from core.helpers import insert_row, json_body, rows
+from core.helpers import json_body
+from core.orm import session
+from core.orm.models import Member, MemberFile
 
 from admin.union import bp
 from admin.union.common import (MEMBER_STORE, _arg_filters, _delete_by_id, _get_one, _list_rows,
-                                _purge_orphan_files, _require_row, _update_by_id, _where)
+                                _purge_orphan_files, _require_row, _update_by_id)
 
 
 MAX_FILE_SIZE = 10 * 1024 * 1024          # 10 MB (файл тус бүрд)
@@ -55,25 +57,23 @@ def _save_pdf(f, member_id):
 
 @bp.route("/api/member_file", methods=["GET"])
 def list_member_file():
-    cond, params = _arg_filters(("member_id",))
-    return _list_rows("SELECT * FROM member_file" + _where(cond) + " ORDER BY id", params)
+    return _list_rows(select(MemberFile).where(*_arg_filters(MemberFile, ("member_id",)))
+                      .order_by(MemberFile.id))
 
 
 @bp.route("/api/member_file/<int:fid>", methods=["GET"])
 def get_member_file(fid):
-    return _get_one("SELECT * FROM member_file WHERE id=?", (fid,), NOT_FOUND)
+    return _get_one(MemberFile, fid, NOT_FOUND)
 
 
 @bp.route("/api/member_file/<int:fid>/download", methods=["GET"])
 def download_member_file(fid):
     """Файлын агуулгыг PDF-ээр буцаана (анхны нэрээр нь татагдана)."""
-    conn = get_db()
-    row = conn.execute("SELECT * FROM member_file WHERE id=?", (fid,)).fetchone()
-    conn.close()
-    if not row:
+    row = session().get(MemberFile, fid)
+    if row is None:
         abort(404, description=NOT_FOUND)
-    resp = MEMBER_STORE.send(row["stored_name"].replace(os.sep, "/"), "application/pdf",
-                             download_name=row["file_name"])
+    resp = MEMBER_STORE.send(row.stored_name.replace(os.sep, "/"), "application/pdf",
+                             download_name=row.file_name)
     if resp is None:
         abort(404, description="Файлын агуулга дискнээс олдсонгүй")
     return resp
@@ -94,21 +94,17 @@ def upload_member_file():
 
     checked = [_validate_pdf(f) for f in files]   # бүгд зөв эсэхийг эхлээд шалгана
 
-    conn = get_db()
-    _require_row(conn, "member", member_id, "member_id (эцэг гишүүн) олдсонгүй")
+    _require_row(Member.id, int(member_id), "member_id (эцэг гишүүн) олдсонгүй")
     note = request.form.get("note")
     now = datetime.now(timezone.utc).isoformat(timespec="seconds")
-    new_ids = [
-        insert_row(conn, "member_file", {
-            "member_id": member_id, "file_name": name, "stored_name": _save_pdf(f, member_id),
-            "size": size, "note": note, "uploaded_at": now})
-        for f, (name, size) in zip(files, checked)]
-    conn.commit()
-    ph = ", ".join("?" * len(new_ids))
-    data = rows(conn.execute(
-        f"SELECT * FROM member_file WHERE id IN ({ph}) ORDER BY id", new_ids).fetchall())
-    conn.close()
-    return jsonify(data), 201
+    s = session()
+    added = [MemberFile(member_id=int(member_id), file_name=name,
+                        stored_name=_save_pdf(f, member_id), size=size, note=note,
+                        uploaded_at=now)
+             for f, (name, size) in zip(files, checked)]
+    s.add_all(added)
+    s.commit()
+    return jsonify([m.to_dict() for m in sorted(added, key=lambda m: m.id)]), 201
 
 
 @bp.route("/api/member_file/<int:fid>", methods=["PUT", "PATCH"])
@@ -117,10 +113,10 @@ def update_member_file(fid):
     data = json_body()
     if "note" not in data:
         abort(400, description="Шинэчлэх талбар алга (note)")
-    return _update_by_id(get_db(), "member_file", fid, {"note": data["note"]}, NOT_FOUND)
+    return _update_by_id(MemberFile, fid, {"note": data["note"]}, NOT_FOUND)
 
 
 @bp.route("/api/member_file/<int:fid>", methods=["DELETE"])
 def delete_member_file(fid):
     # мөр устсаны дараа дискнээс нь ч арилгана
-    return _delete_by_id(get_db(), "member_file", fid, NOT_FOUND, _purge_orphan_files)
+    return _delete_by_id(MemberFile, fid, NOT_FOUND, _purge_orphan_files)

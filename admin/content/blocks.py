@@ -1,40 +1,40 @@
 """page_block (Хуудасны блокууд) ба page_image|page_file|page_video төрөлжсөн харагдац."""
 
 from flask import jsonify, request, abort
+from sqlalchemy import select
 
-from core.db import get_db
-from core.helpers import require, json_body, fail, pick, update_row, fetch_page, list_json
+from core.helpers import require, json_body, pick, list_json
+from core.orm import session
+from core.orm.models import PageBlock
+from core.orm.query import paginate
 
 from admin.content import bp
 from admin.content.storage import remove_upload
 from admin.content.common import (BLOCK_FIELDS, BLOCK_TYPES, _create_block,
-                                  _delete_block, _order_items, _public_block)
+                                  _delete_block, _eq_arg, _order_items, _public_block)
+
+BLOCK_ORDER = (PageBlock.page_id, PageBlock.sort_order, PageBlock.id)
 
 
 # ==================== page_block (Хуудасны блокууд) ====================
 @bp.route("/api/page_block", methods=["GET"])
 def list_page_block():
     """Блокууд. ?page_id= (эрэмбээрээ), ?type= -ээр шүүнэ."""
-    filters = [(col, request.args[col]) for col in ("page_id", "type")
-               if request.args.get(col)]
-    sql = "SELECT * FROM page_block"
-    if filters:
-        sql += " WHERE " + " AND ".join(f"{col}=?" for col, _ in filters)
-    sql += " ORDER BY page_id, sort_order, id"
-    conn = get_db()
-    page_rows, meta = fetch_page(conn, sql, [v for _, v in filters])
-    conn.close()
-    return list_json([_public_block(r) for r in page_rows], meta)
+    stmt = select(PageBlock)
+    if request.args.get("page_id"):
+        stmt = stmt.where(_eq_arg(PageBlock.page_id, request.args["page_id"]))
+    if request.args.get("type"):
+        stmt = stmt.where(PageBlock.type == request.args["type"])
+    blocks, meta = paginate(stmt.order_by(*BLOCK_ORDER))
+    return list_json([_public_block(b) for b in blocks], meta)
 
 
 @bp.route("/api/page_block/<int:bid>", methods=["GET"])
 def get_page_block(bid):
-    conn = get_db()
-    row = conn.execute("SELECT * FROM page_block WHERE id=?", (bid,)).fetchone()
-    conn.close()
-    if not row:
+    block = session().get(PageBlock, bid)
+    if block is None:
         abort(404, description="Блок олдсонгүй")
-    return jsonify(_public_block(row))
+    return jsonify(_public_block(block))
 
 
 @bp.route("/api/page_block", methods=["POST"])
@@ -53,33 +53,32 @@ def create_page_block():
 @bp.route("/api/page_block/reorder", methods=["PUT", "PATCH"])
 def reorder_page_block():
     """Блокийн эрэмбийг хадгална: {"order": [{"id": 3, "sort_order": 1}, ...]}."""
-    conn, items = _order_items("page_block", "Блок")
-    updates = [(item.get("sort_order", 0), bid) for bid, item in items]
-    conn.executemany("UPDATE page_block SET sort_order=? WHERE id=?", updates)
-    conn.commit()
-    conn.close()
-    return jsonify(updated=[b for _, b in updates])
+    items = _order_items(PageBlock, "Блок")
+    for block, item in items:
+        block.sort_order = item.get("sort_order", 0)
+    ids = [b.id for b, _ in items]
+    session().commit()
+    return jsonify(updated=ids)
 
 
 @bp.route("/api/page_block/<int:bid>", methods=["PUT", "PATCH"])
 def update_page_block(bid):
     """Блок засах — төрөлдөө хамаарах талбарууд + sort_order."""
     data = json_body()
-    conn = get_db()
-    row = conn.execute("SELECT * FROM page_block WHERE id=?", (bid,)).fetchone()
-    if not row:
-        fail(conn, 404, "Блок олдсонгүй")
-    allowed = BLOCK_FIELDS[row["type"]] + ("sort_order",)
+    block = session().get(PageBlock, bid)
+    if block is None:
+        abort(404, description="Блок олдсонгүй")
+    allowed = BLOCK_FIELDS[block.type] + ("sort_order",)
     values = pick(data, allowed)
     if not values:
-        fail(conn, 400, "Шинэчлэх талбар алга. Сонголт: " + ", ".join(allowed))
-    update_row(conn, "page_block", bid, values)
-    conn.commit()
-    new = conn.execute("SELECT * FROM page_block WHERE id=?", (bid,)).fetchone()
-    conn.close()
-    if "url" in values and row["url"] != new["url"]:
-        remove_upload(row["url"])      # солигдсон хуучин файлыг арилгана
-    return jsonify(_public_block(new))
+        abort(400, description="Шинэчлэх талбар алга. Сонголт: " + ", ".join(allowed))
+    old_url = block.url
+    for f, v in values.items():
+        setattr(block, f, v)
+    session().commit()
+    if "url" in values and old_url != block.url:
+        remove_upload(old_url)      # солигдсон хуучин файлыг арилгана
+    return jsonify(_public_block(block))
 
 
 @bp.route("/api/page_block/<int:bid>", methods=["DELETE"])
@@ -90,14 +89,11 @@ def delete_page_block(bid):
 # ======== page_image / page_file / page_video (спекийн төрөлжсөн харагдац) ========
 # Эдгээр нь page_block дээрх нимгэн бүрхүүл — өгөгдөл нэг хүснэгтэд хадгалагдана.
 def _list_typed(btype):
-    sql, args = "SELECT * FROM page_block WHERE type=?", [btype]
+    stmt = select(PageBlock).where(PageBlock.type == btype)
     if request.args.get("page_id"):
-        sql += " AND page_id=?"
-        args.append(request.args["page_id"])
-    conn = get_db()
-    page_rows, meta = fetch_page(conn, sql + " ORDER BY page_id, sort_order, id", args)
-    conn.close()
-    return list_json([_public_block(r) for r in page_rows], meta)
+        stmt = stmt.where(_eq_arg(PageBlock.page_id, request.args["page_id"]))
+    blocks, meta = paginate(stmt.order_by(*BLOCK_ORDER))
+    return list_json([_public_block(b) for b in blocks], meta)
 
 
 @bp.route("/api/page_image", methods=["GET"])

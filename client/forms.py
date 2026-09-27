@@ -16,12 +16,16 @@
 Бүх шалгалт ЭХЛЭЭД хийгдэж, дараа нь илгээмж + хариултууд нэг гүйлгээгээр бичигдэнэ.
 """
 from flask import Blueprint, jsonify, request, abort
+from sqlalchemy import func, select
 
-from core.db import get_db
-from core.helpers import json_body, insert_row, list_json, slice_page
+from core.helpers import json_body, list_json, slice_page
+from core.orm import session
+from core.orm.models import (
+    Form, FormAnswer, FormAnswerOption, FormOption, FormQuestion, FormSubmission,
+)
 from core.forms_core import (
     CHOICE_TYPES, bad, current_user_id, document_list, form_results, has_submitted,
-    is_open, load_settings, now_str, public_form, question_list, require_form,
+    is_open, load_settings, now_str, public_form, question_list, question_rows, require_form,
     scale_range, submission_count,
 )
 
@@ -35,24 +39,21 @@ def list_forms():
 
     Шүүлт: ?type=survey|poll  ?status=published|closed  ?active=1 (одоо бөглөж болох)
     """
-    conn = get_db()
-    where, args = ["f.deleted_at IS NULL", "f.status <> 'draft'"], []
+    conds = [Form.deleted_at.is_(None), Form.status != "draft"]
     if request.args.get("type"):
-        where.append("f.type=?")
-        args.append(request.args["type"])
+        conds.append(Form.type == request.args["type"])
     if request.args.get("status"):
-        where.append("f.status=?")
-        args.append(request.args["status"])
-    data = conn.execute(
-        "SELECT f.*, (SELECT COUNT(*) FROM form_question q WHERE q.form_id=f.id) "
-        "AS total_questions, (SELECT COUNT(*) FROM form_submission s WHERE s.form_id=f.id "
-        "AND s.user_id=?) AS mine FROM form f WHERE " + " AND ".join(where) +
-        " ORDER BY f.id DESC", [current_user_id()] + args).fetchall()
-    docs = {r["id"]: document_list(conn, r["id"]) for r in data if r["type"] == "poll"}
-    conn.close()
-    out = [public_form(r, total_questions=r["total_questions"],
-                       has_submitted=bool(r["mine"]),
-                       documents=docs.get(r["id"], [])) for r in data]
+        conds.append(Form.status == request.args["status"])
+    questions = (select(func.count()).select_from(FormQuestion)
+                 .where(FormQuestion.form_id == Form.id).scalar_subquery())
+    mine = (select(func.count()).select_from(FormSubmission)
+            .where(FormSubmission.form_id == Form.id,
+                   FormSubmission.user_id == current_user_id()).scalar_subquery())
+    data = [(f.to_dict(), tq, m) for f, tq, m in session().execute(
+        select(Form, questions, mine).where(*conds).order_by(Form.id.desc())).all()]
+    docs = {r["id"]: document_list(r["id"]) for r, _, _ in data if r["type"] == "poll"}
+    out = [public_form(r, total_questions=tq, has_submitted=bool(m),
+                       documents=docs.get(r["id"], [])) for r, tq, m in data]
     if request.args.get("active") in ("1", "true", "True"):
         out = [f for f in out if f["is_open"]]
     return list_json(*slice_page(out))
@@ -61,18 +62,15 @@ def list_forms():
 @bp.route("/api/portal/forms/<int:fid>", methods=["GET"])
 def get_form_detail(fid):
     """Маягтын асуултууд, сонголтууд, хавсралт PDF + өөрөө бөглөсөн эсэх."""
-    conn = get_db()
-    row = require_form(conn, fid)
+    row = require_form(fid)
     if row["status"] == "draft":
-        bad(conn, "Энэ маягт хараахан нийтлэгдээгүй байна", 404)
-    mine = has_submitted(conn, fid, current_user_id())
-    out = public_form(row,
-                      questions=question_list(conn, fid),
-                      documents=document_list(conn, fid),
-                      has_submitted=mine,
-                      can_submit=is_open(row) and not mine)
-    conn.close()
-    return jsonify(out)
+        bad("Энэ маягт хараахан нийтлэгдээгүй байна", 404)
+    mine = has_submitted(fid, current_user_id())
+    return jsonify(public_form(row,
+                               questions=question_list(fid),
+                               documents=document_list(fid),
+                               has_submitted=mine,
+                               can_submit=is_open(row) and not mine))
 
 
 @bp.route("/api/portal/forms/<int:fid>/results", methods=["GET"])
@@ -81,19 +79,16 @@ def get_public_results(fid):
 
     Мөн өөрөө бөглөсөн эсвэл маягт хаагдсан үед л харагдана (санал нөлөөлөхөөс сэргийлнэ).
     """
-    conn = get_db()
-    row = require_form(conn, fid)
+    row = require_form(fid)
     if not row["show_results"]:
-        bad(conn, "Энэ маягтын үр дүнг нийтэд харуулахгүй", 403)
-    if row["status"] != "closed" and not has_submitted(conn, fid, current_user_id()):
-        bad(conn, "Үр дүнг зөвхөн бөглөсний дараа харна", 403)
-    data = form_results(conn, fid)
-    conn.close()
-    return jsonify(data)
+        bad("Энэ маягтын үр дүнг нийтэд харуулахгүй", 403)
+    if row["status"] != "closed" and not has_submitted(fid, current_user_id()):
+        bad("Үр дүнг зөвхөн бөглөсний дараа харна", 403)
+    return jsonify(form_results(fid))
 
 
 # ============================ Бөглөх (submit) ============================
-def _prepare_answer(conn, item, question, options):
+def _prepare_answer(item, question, options):
     """Нэг хариултыг шалгаж (текст, тоо, сонголтууд) бэлдэнэ.
 
     Утга огт өгөөгүй бол None буцаана — тухайн асуултыг алгассан гэж үзнэ.
@@ -105,15 +100,15 @@ def _prepare_answer(conn, item, question, options):
         if ids in (None, [], ""):
             return None
         if not isinstance(ids, list):
-            bad(conn, f"'{title}': option_ids нь жагсаалт байх ёстой")
+            bad(f"'{title}': option_ids нь жагсаалт байх ёстой")
         if qtype == "single_choice" and len(ids) != 1:
-            bad(conn, f"'{title}': зөвхөн НЭГ сонголт хийнэ")
+            bad(f"'{title}': зөвхөн НЭГ сонголт хийнэ")
         chosen = []
         for oid in ids:
             if not str(oid).isdigit() or int(oid) not in options:
-                bad(conn, f"'{title}': сонголт олдсонгүй эсвэл өөр асуултынх ({oid})")
+                bad(f"'{title}': сонголт олдсонгүй эсвэл өөр асуултынх ({oid})")
             if int(oid) in chosen:
-                bad(conn, f"'{title}': нэг сонголтыг давхардуулж илгээжээ ({oid})")
+                bad(f"'{title}': нэг сонголтыг давхардуулж илгээжээ ({oid})")
             chosen.append(int(oid))
         return {"option_ids": chosen}
 
@@ -124,17 +119,17 @@ def _prepare_answer(conn, item, question, options):
         try:
             value = int(value)
         except (TypeError, ValueError):
-            bad(conn, f"'{title}': numeric_value нь бүхэл тоо байх ёстой")
+            bad(f"'{title}': numeric_value нь бүхэл тоо байх ёстой")
         lo, hi = scale_range(load_settings(question["settings"]))
         if value < lo or value > hi:
-            bad(conn, f"'{title}': үнэлгээ {lo}-{hi} хооронд байна")
+            bad(f"'{title}': үнэлгээ {lo}-{hi} хооронд байна")
         return {"numeric_value": value}
 
     text = item.get("text_value")               # open_text
     if text in (None, ""):
         return None
     if not isinstance(text, str):
-        bad(conn, f"'{title}': text_value нь текст байх ёстой")
+        bad(f"'{title}': text_value нь текст байх ёстой")
     text = text.strip()
     return {"text_value": text} if text else None
 
@@ -152,44 +147,42 @@ def submit_form(fid):
     if not isinstance(answers, list) or not answers:
         abort(400, description="answers (жагсаалт) шаардлагатай")
 
-    conn = get_db()
-    form = require_form(conn, fid)
+    form = require_form(fid)
     if form["status"] != "published":
-        bad(conn, "Энэ маягт нийтлэгдээгүй эсвэл хаагдсан байна")
+        bad("Энэ маягт нийтлэгдээгүй эсвэл хаагдсан байна")
     now = now_str()
     if form["start_at"] and now < form["start_at"]:
-        bad(conn, f"Бөглөх хугацаа {form['start_at']}-аас эхэлнэ")
+        bad(f"Бөглөх хугацаа {form['start_at']}-аас эхэлнэ")
     if form["end_at"] and now > form["end_at"]:
-        bad(conn, f"Бөглөх хугацаа {form['end_at']}-д дууссан")
+        bad(f"Бөглөх хугацаа {form['end_at']}-д дууссан")
     uid = current_user_id()
     # one_response нь НЭВТЭРСЭН хэрэглэгчид л үйлчилнэ — зочны хувьд хэн болохыг
     # тогтоох боломжгүй (спекийн V1-д IP/төхөөрөмжийн хязгаарлалт шаардлагагүй).
-    if form["one_response"] and uid and has_submitted(conn, fid, uid):
-        bad(conn, "Та энэ маягтыг аль хэдийн бөглөсөн байна", 409)
+    if form["one_response"] and uid and has_submitted(fid, uid):
+        bad("Та энэ маягтыг аль хэдийн бөглөсөн байна", 409)
 
-    questions = {q["id"]: q for q in conn.execute(
-        "SELECT * FROM form_question WHERE form_id=? ORDER BY sort_order, id",
-        (fid,)).fetchall()}
+    questions = {q["id"]: q for q in question_rows(fid)}
     if not questions:
-        bad(conn, "Энэ маягтад асуулт алга")
+        bad("Энэ маягтад асуулт алга")
     options = {}
-    for o in conn.execute(
-            "SELECT o.id, o.question_id FROM form_option o "
-            "JOIN form_question q ON q.id = o.question_id WHERE q.form_id=?",
-            (fid,)).fetchall():
-        options.setdefault(o["question_id"], set()).add(o["id"])
+    s = session()
+    for oid, question_id in s.execute(
+            select(FormOption.id, FormOption.question_id)
+            .join(FormQuestion, FormQuestion.id == FormOption.question_id)
+            .where(FormQuestion.form_id == fid)):
+        options.setdefault(question_id, set()).add(oid)
 
     # 1) Бүх хариултыг шалгаж бэлдэнэ (нэг нь ч буруу бол юу ч бичигдэхгүй)
     prepared, seen = [], set()
     for item in answers:
         if not isinstance(item, dict) or not str(item.get("question_id", "")).isdigit():
-            bad(conn, "answers доторх бичлэг бүр question_id-тай байна")
+            bad("answers доторх бичлэг бүр question_id-тай байна")
         qid = int(item["question_id"])
         if qid not in questions:
-            bad(conn, f"Энэ маягтад харьяалагдахгүй асуулт: {qid}")
+            bad(f"Энэ маягтад харьяалагдахгүй асуулт: {qid}")
         if qid in seen:
-            bad(conn, f"Нэг асуултад хоёр хариулт илгээжээ: {qid}")
-        value = _prepare_answer(conn, item, questions[qid], options.get(qid, set()))
+            bad(f"Нэг асуултад хоёр хариулт илгээжээ: {qid}")
+        value = _prepare_answer(item, questions[qid], options.get(qid, set()))
         if value is not None:               # алгассан (хоосон) хариулт давхардалд тооцогдохгүй
             seen.add(qid)
             prepared.append((qid, value))
@@ -198,27 +191,28 @@ def submit_form(fid):
     missing = [q["title"] for q in questions.values()
                if q["is_required"] and q["id"] not in seen]
     if missing:
-        bad(conn, "Заавал хариулах асуулт дутуу: " + ", ".join(missing))
+        bad("Заавал хариулах асуулт дутуу: " + ", ".join(missing))
     if not prepared:
-        bad(conn, "Хариулт хоосон байна")
+        bad("Хариулт хоосон байна")
 
     # 3) Илгээмж + хариултуудыг нэг гүйлгээгээр хадгална
     try:
-        sid = insert_row(conn, "form_submission", {
-            "form_id": fid, "user_id": uid, "submitted_at": now, "created_at": now})
+        sub = FormSubmission(form_id=fid, user_id=uid, submitted_at=now, created_at=now)
+        s.add(sub)
+        s.flush()
+        sid = sub.id
         for qid, value in prepared:
-            aid = insert_row(conn, "form_answer", {
-                "submission_id": sid, "question_id": qid,
-                "text_value": value.get("text_value"),
-                "numeric_value": value.get("numeric_value"), "created_at": now})
+            ans = FormAnswer(submission_id=sid, question_id=qid,
+                             text_value=value.get("text_value"),
+                             numeric_value=value.get("numeric_value"), created_at=now)
+            s.add(ans)
+            s.flush()
             for oid in value.get("option_ids", []):
-                insert_row(conn, "form_answer_option", {"answer_id": aid, "option_id": oid})
-        conn.commit()
+                s.add(FormAnswerOption(answer_id=ans.id, option_id=oid))
+        s.commit()
     except Exception:
-        conn.rollback()
-        conn.close()
+        s.rollback()
         abort(409, description="Хариулт хадгалахад алдаа гарлаа — дахин оролдоно уу")
-    total = submission_count(conn, fid)
-    conn.close()
+    total = submission_count(fid)
     return jsonify(status=True, message="Таны санал бүртгэгдлээ.",
                    submission_id=sid, submitted_at=now, total_responses=total), 201

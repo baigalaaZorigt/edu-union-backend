@@ -12,7 +12,7 @@
 дээр ажиллах тул auth.py тусгай эрх шаардахгүй (SELF_PATHS / SELF_PREFIXES).
 
 Модулиуд (бүгд НЭГ `users` blueprint дээр маршрутаа бүртгэнэ):
-    common       — хуваалцсан тогтмол, USER_SELECT, туслах функцууд (public_user г.м.)
+    common       — хуваалцсан тогтмол, user_select, туслах функцууд (public_user г.м.)
     permissions  — /api/permission
     roles        — /api/role, /api/role/<id>/permission
     accounts     — /api/user

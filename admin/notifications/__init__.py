@@ -16,7 +16,7 @@ SELF_PREFIXES дотор — токен шаардана ч `notification.read` 
 мэдэгдлүүдийг илгээнэ. Репод үйлчилгээний scheduler байхгүй тул үүнийг
   * `scripts/send_due_notifications.py` (cron/systemd timer дуудна), мөн
   * жагсаалт/inbox уншихад ЗАЛХУУ (lazy) — cron тохируулаагүй ч ажиллахын тулд
-хоёр талаас дуудна. Fan-out нь INSERT OR IGNORE + UNIQUE тул хэд ч удаа
+хоёр талаас дуудна. Fan-out нь UNIQUE + ON CONFLICT DO NOTHING тул хэд ч удаа
 ажиллуулахад аюулгүй.
 
 Модулиуд (бүгд НЭГ `notifications` blueprint дээр):

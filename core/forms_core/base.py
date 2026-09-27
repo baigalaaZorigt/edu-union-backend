@@ -3,8 +3,11 @@ import json
 from datetime import datetime
 
 from flask import abort, g
+from sqlalchemy import select
 
 from core.helpers import now_str
+from core.orm import session
+from core.orm.models import Form
 
 FORM_TYPES = ("survey", "poll")
 FORM_STATUSES = ("draft", "published", "closed")
@@ -24,10 +27,8 @@ SCALE_DEFAULT_MAX = 5                      # settings.max өгөөгүй үеи�
 
 
 # ----------------------------- Жижиг туслахууд -----------------------------
-def bad(conn, message, code=400):
-    """Холболтыг хааж байгаад алдаа шидэнэ (холболт алдагдахаас сэргийлнэ)."""
-    if conn is not None:
-        conn.close()
+def bad(message, code=400):
+    """Алдаа шидэнэ (хүсэлтийн ORM session-ийг teardown rollback + close хийнэ)."""
     abort(code, description=message)
 
 
@@ -83,18 +84,19 @@ def load_settings(raw):
 
 
 # ----------------------------- form -----------------------------
-def get_form(conn, fid, include_deleted=False):
-    """Маягтын мөрийг буцаана (устгагдсаныг анхдагчаар алгасна)."""
-    sql = "SELECT * FROM form WHERE id=?"
+def get_form(fid, include_deleted=False):
+    """Маягтын мөрийг dict-ээр буцаана (устгагдсаныг анхдагчаар алгасна; байхгүй бол None)."""
+    stmt = select(Form).where(Form.id == fid)
     if not include_deleted:
-        sql += " AND deleted_at IS NULL"
-    return conn.execute(sql, (fid,)).fetchone()
+        stmt = stmt.where(Form.deleted_at.is_(None))
+    obj = session().scalar(stmt)
+    return obj.to_dict() if obj is not None else None
 
 
-def require_form(conn, fid, include_deleted=False):
-    row = get_form(conn, fid, include_deleted)
+def require_form(fid, include_deleted=False):
+    row = get_form(fid, include_deleted)
     if not row:
-        bad(conn, "Маягт олдсонгүй", 404)
+        bad("Маягт олдсонгүй", 404)
     return row
 
 
@@ -132,15 +134,15 @@ def public_form(row, **extra):
     return out
 
 
-def validate_form(conn, data, current=None):
+def validate_form(data, current=None):
     """type / status / огнооны хүрээг шалгаад жигдрүүлсэн утгуудыг буцаана."""
     ftype = data.get("type") or (current["type"] if current else "survey")
     if ftype not in FORM_TYPES:
-        bad(conn, "type буруу. Сонголт: " + ", ".join(FORM_TYPES))
+        bad("type буруу. Сонголт: " + ", ".join(FORM_TYPES))
     start = parse_dt(data["start_at"], "start_at") if "start_at" in data else (
         current["start_at"] if current else None)
     end = parse_dt(data["end_at"], "end_at", end=True) if "end_at" in data else (
         current["end_at"] if current else None)
     if start and end and end < start:
-        bad(conn, "end_at нь start_at-аас өмнө байж болохгүй")
+        bad("end_at нь start_at-аас өмнө байж болохгүй")
     return ftype, start, end

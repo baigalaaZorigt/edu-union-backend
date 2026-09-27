@@ -1,16 +1,21 @@
 """member (Гишүүн) — CRUD, эвлэлийн картын дугаар, хамрах хүрээ."""
 
 from flask import jsonify, request, abort
+from sqlalchemy import select
 
-from core.db import get_db
-from core.helpers import fail, json_body, pick, require, rows, fetch_page, list_json
-from core.scope_core import member_condition, require_org_in_scope, require_member_in_scope
+from core.helpers import json_body, list_json, pick, require
+from core.orm import session
+from core.orm.models import (Contact, Member, MemberEducation, MemberFile, MemberReward,
+                             Organization, Position, Profession, SalaryScale, SchoolCategory)
+from core.orm.query import paginate
+from core.scope_core import check_member_scope, check_org_scope, member_clause
 
 from admin.union import bp
-from admin.union.common import (CARD_CODE_LEN, MEMBER_REWARD_SELECT, ORG_FULL_CODE_SQL,
-                                _check_au, _check_ref, _create, _delete_by_id, _digit_code,
-                                _org_full_code, _purge_orphan_contacts, _purge_orphan_files,
-                                _require_row, _update_by_id, _where)
+from admin.union.common import (CARD_CODE_LEN, MEMBER_REWARD_QUERY, _check_au, _check_ref,
+                                _create, _delete_by_id, _digit_code, _org_full_code,
+                                _purge_orphan_contacts, _purge_orphan_files, _require_row,
+                                _update_by_id, full_code)
+from admin.union.member_education import EDUCATION_QUERY
 
 
 # Гишүүний бүртгэлийн талбарууд (organization_id-аас бусад, оруулж/засаж болох).
@@ -24,44 +29,49 @@ MEMBER_FIELDS = (
     "au1_code", "au2_code", "au3_code", "address_detail", "signature", "is_active",
 )
 
-# Гишүүнийг лавлах + байгууллагын кодтой нь хамт унших SELECT
-MEMBER_SELECT = f"""
-SELECT m.*,
-       p.name  AS position_name,
-       pr.name AS profession_name,
-       ss.code AS salary_scale_code,
-       ss.salary AS salary_scale_salary,
-       {ORG_FULL_CODE_SQL.format(t='o')} AS organization_code,
-       sc.short_name AS school_category_short_name,
-       o.name AS organization_name
-  FROM member m
-  LEFT JOIN position      p  ON p.id  = m.position_id
-  LEFT JOIN profession    pr ON pr.id = m.profession_id
-  LEFT JOIN salary_scale  ss ON ss.id = m.salary_scale_id
-  LEFT JOIN organization  o  ON o.id  = m.organization_id
-  LEFT JOIN school_category sc ON sc.id = o.school_category_id
-"""
+# Гишүүнийг лавлах + байгууллагын нэртэй нь хамт унших select; 5 оронтой
+# organization_code-г member_row() Python-д бодно (DB-ээс хамааралгүй).
+MEMBER_QUERY = (
+    select(*Member.__table__.c,
+           Position.name.label("position_name"),
+           Profession.name.label("profession_name"),
+           SalaryScale.code.label("salary_scale_code"),
+           SalaryScale.salary.label("salary_scale_salary"),
+           Organization.school_category_id.label("_org_category"),
+           Organization.org_code.label("_org_code"),
+           SchoolCategory.short_name.label("school_category_short_name"),
+           Organization.name.label("organization_name"))
+    .outerjoin(Position, Position.id == Member.position_id)
+    .outerjoin(Profession, Profession.id == Member.profession_id)
+    .outerjoin(SalaryScale, SalaryScale.id == Member.salary_scale_id)
+    .outerjoin(Organization, Organization.id == Member.organization_id)
+    .outerjoin(SchoolCategory, SchoolCategory.id == Organization.school_category_id))
 NOT_FOUND = "Гишүүн олдсонгүй"
 
 
-def _card_number(conn, org_id, card_code):
+def member_row(mapping):
+    """MEMBER_QUERY-ийн мөр -> JSON dict (+ байгууллагын 5 оронтой organization_code)."""
+    d = dict(mapping)
+    d["organization_code"] = full_code(d.pop("_org_category"), d.pop("_org_code"))
+    return d
+
+
+def _card_number(org_id, card_code):
     """Гишүүний 9 оронтой батламжийн дугаар = байгууллагын 5 орон + гишүүний 4 орон."""
-    full = _org_full_code(conn, org_id)
+    full = _org_full_code(org_id)
     if not full:
-        fail(conn, 400, "Байгууллагад сургуулийн ангилал ба 3 оронтой код (org_code) "
-                        "тохируулаагүй тул батламжийн дугаар үүсгэх боломжгүй")
+        abort(400, description="Байгууллагад сургуулийн ангилал ба 3 оронтой код (org_code) "
+                               "тохируулаагүй тул батламжийн дугаар үүсгэх боломжгүй")
     return full + card_code
 
 
-def _check_card_unique(conn, card_number, member_id=None):
+def _check_card_unique(card_number, member_id=None):
     """Батламжийн 9 оронтой дугаар давхардаж байвал 409."""
-    sql = "SELECT id FROM member WHERE union_card_number=?"
-    params = [card_number]
+    stmt = select(Member.id).where(Member.union_card_number == card_number)
     if member_id is not None:
-        sql += " AND id<>?"
-        params.append(member_id)
-    if conn.execute(sql, params).fetchone():
-        fail(conn, 409, f"Батламжийн дугаар {card_number} аль хэдийн бүртгэгдсэн байна")
+        stmt = stmt.where(Member.id != member_id)
+    if session().scalar(stmt.limit(1)) is not None:
+        abort(409, description=f"Батламжийн дугаар {card_number} аль хэдийн бүртгэгдсэн байна")
 
 
 def _validate_member(data):
@@ -92,68 +102,66 @@ def _validate_member(data):
             data["union_card_code"], CARD_CODE_LEN, "union_card_code")
 
 
-def _member_refs(conn, data):
+def _member_refs(data):
     """Гишүүний лавлах холбоосуудыг (албан тушаал, мэргэжил, цалингийн шатлал) шалгана."""
-    _check_ref(conn, data, "position_id", "position", "Албан тушаал")
-    _check_ref(conn, data, "profession_id", "profession", "Мэргэжил")
-    _check_ref(conn, data, "salary_scale_id", "salary_scale", "Цалингийн шатлал")
+    _check_ref(data, "position_id", Position, "Албан тушаал")
+    _check_ref(data, "profession_id", Profession, "Мэргэжил")
+    _check_ref(data, "salary_scale_id", SalaryScale, "Цалингийн шатлал")
+
+
+def _read(mid):
+    row = session().execute(MEMBER_QUERY.where(Member.id == mid)).mappings().first()
+    return member_row(row) if row else None
 
 
 # ======================= member (Гишүүн) =======================
 @bp.route("/api/member", methods=["GET"])
 def list_member():
-    conn = get_db()
-    data, meta = fetch_page(conn, *member_list_query(conn))
-    conn.close()
-    return list_json(rows(data), meta)
+    items, meta = paginate(member_list_query(), mappings=True)
+    return list_json([member_row(m) for m in items], meta)
 
 
-def member_list_query(conn):
-    """GET /api/member-ийн (sql, params) — шүүлт + хамрах хүрээ. Excel экспорт (export.py)
+def member_list_query():
+    """GET /api/member-ийн select — шүүлт + хамрах хүрээ. Excel экспорт (export.py)
     ЯГ ЭНИЙГ ашиглана, тиймээс файл жагсаалттай ижил мөрүүдийг агуулна.
 
     ?organization_id= ба ?is_active= (0/1) шүүлтүүд — хосолж болно.
     """
-    cond, params = [], []
+    cond = []
     if request.args.get("organization_id"):
-        cond.append("m.organization_id=?")
-        params.append(request.args["organization_id"])
+        cond.append(Member.organization_id == request.args["organization_id"])
     if request.args.get("is_active") is not None:
-        cond.append("m.is_active=?")
-        params.append(1 if request.args["is_active"] in ("1", "true", "True") else 0)
+        cond.append(Member.is_active ==
+                    (1 if request.args["is_active"] in ("1", "true", "True") else 0))
     # Хамрах хүрээ — гишүүн нь харьяа байгууллагаараа дамжин шүүгдэнэ (спек §5)
-    scope_cond, scope_params = member_condition(conn, alias="m")
-    if scope_cond:
-        cond.append(scope_cond)
-        params += scope_params
-    return MEMBER_SELECT + _where(cond) + " ORDER BY m.id", params
+    scope = member_clause()
+    if scope is not None:
+        cond.append(scope)
+    return MEMBER_QUERY.where(*cond).order_by(Member.id)
 
 
 @bp.route("/api/member/<int:mid>", methods=["GET"])
 def get_member(mid):
-    conn = get_db()
-    require_member_in_scope(conn, mid)
-    row = conn.execute(MEMBER_SELECT + " WHERE m.id=?", (mid,)).fetchone()
-    if not row:
-        fail(conn, 404, NOT_FOUND)
-    out = dict(row)
+    check_member_scope(mid)
+    out = _read(mid)
+    if out is None:
+        abort(404, description=NOT_FOUND)
+    s = session()
     # Боловсролыг зэргийн нэртэй нь хамт буцаана
-    out["educations"] = rows(conn.execute(
-        "SELECT me.*, ed.name AS education_degree_name "
-        "FROM member_education me "
-        "LEFT JOIN education_degree ed ON ed.id = me.education_degree_id "
-        "WHERE me.member_id=? ORDER BY me.id", (mid,)).fetchall())
+    out["educations"] = [dict(r) for r in s.execute(
+        EDUCATION_QUERY.where(MemberEducation.member_id == mid)
+        .order_by(MemberEducation.id)).mappings()]
     # Утас/факс/и-мэйл нь олон байж болно — contact-оос (owner_type='member')
-    out["contacts"] = rows(conn.execute(
-        "SELECT * FROM contact WHERE owner_type='member' AND owner_id=? ORDER BY id",
-        (mid,)).fetchall())
+    out["contacts"] = [c.to_dict() for c in s.scalars(
+        select(Contact).where(Contact.owner_type == "member", Contact.owner_id == mid)
+        .order_by(Contact.id))]
     # Шагнал, урамшуулал (олон байж болно) — төрлийнх нь нэртэй хамт
-    out["rewards"] = rows(conn.execute(
-        MEMBER_REWARD_SELECT + " WHERE mr.member_id=? ORDER BY mr.id", (mid,)).fetchall())
+    out["rewards"] = [dict(r) for r in s.execute(
+        MEMBER_REWARD_QUERY.where(MemberReward.member_id == mid)
+        .order_by(MemberReward.id)).mappings()]
     # Хавсаргасан PDF файлууд (батламж г.м.)
-    out["files"] = rows(conn.execute(
-        "SELECT * FROM member_file WHERE member_id=? ORDER BY id", (mid,)).fetchall())
-    conn.close()
+    out["files"] = [f.to_dict() for f in s.scalars(
+        select(MemberFile).where(MemberFile.member_id == mid).order_by(MemberFile.id))]
     return jsonify(out)
 
 
@@ -162,20 +170,19 @@ def create_member():
     data = request.get_json(silent=True)
     require(data, ["organization_id", "first_name"])
     _validate_member(data)
-    conn = get_db()
-    _require_row(conn, "organization", data["organization_id"],
+    _require_row(Organization.id, data["organization_id"],
                  "organization_id (эцэг байгууллага) олдсонгүй")
-    require_org_in_scope(conn, data["organization_id"])
-    _member_refs(conn, data)
-    _check_au(conn, data)
+    check_org_scope(data["organization_id"])
+    _member_refs(data)
+    _check_au(data)
     values = {"organization_id": data["organization_id"],
               **pick(data, MEMBER_FIELDS, skip_none=True)}
     # 4 оронтой код өгсөн бол 9 оронтой батламжийн дугаарыг үүсгэнэ
     if data.get("union_card_code") is not None:
-        card = _card_number(conn, data["organization_id"], data["union_card_code"])
-        _check_card_unique(conn, card)
+        card = _card_number(data["organization_id"], data["union_card_code"])
+        _check_card_unique(card)
         values["union_card_number"] = card
-    return _create(conn, "member", values, MEMBER_SELECT + " WHERE m.id=?")
+    return _create(Member, values, read=_read)
 
 
 @bp.route("/api/member/<int:mid>", methods=["PUT", "PATCH"])
@@ -185,24 +192,21 @@ def update_member(mid):
     values = pick(data, MEMBER_FIELDS)
     if not values:
         abort(400, description="Шинэчлэх талбар алга")
-    conn = get_db()
-    require_member_in_scope(conn, mid)
-    _member_refs(conn, data)
-    _check_au(conn, data)
+    check_member_scope(mid)
+    _member_refs(data)
+    _check_au(data)
     # 4 оронтой кодыг сольсон бол 9 оронтой дугаарыг дахин үүсгэнэ
     if data.get("union_card_code") is not None:
-        row = conn.execute("SELECT organization_id FROM member WHERE id=?", (mid,)).fetchone()
-        if not row:
-            fail(conn, 404, NOT_FOUND)
-        card = _card_number(conn, row["organization_id"], data["union_card_code"])
-        _check_card_unique(conn, card, mid)
+        org_id = session().scalar(select(Member.organization_id).where(Member.id == mid))
+        if org_id is None:
+            abort(404, description=NOT_FOUND)
+        card = _card_number(org_id, data["union_card_code"])
+        _check_card_unique(card, mid)
         values["union_card_number"] = card
-    return _update_by_id(conn, "member", mid, values, NOT_FOUND)
+    return _update_by_id(Member, mid, values, NOT_FOUND)
 
 
 @bp.route("/api/member/<int:mid>", methods=["DELETE"])
 def delete_member(mid):
-    conn = get_db()
-    require_member_in_scope(conn, mid)
-    return _delete_by_id(conn, "member", mid, NOT_FOUND,
-                         _purge_orphan_contacts, _purge_orphan_files)
+    check_member_scope(mid)
+    return _delete_by_id(Member, mid, NOT_FOUND, _purge_orphan_contacts, _purge_orphan_files)

@@ -1,10 +1,10 @@
-"""Засаг захиргааны нэгж (JSON) ба үйлдвэрчний эвлэлийн жишээ өгөгдлийн seed."""
+"""Засаг захиргааны нэгж (JSON) ба үйлдвэрчний эвлэлийн жишээ өгөгдлийн seed — ORM-оор."""
 
 import json
 import os
 
-from core.db import BASE_DIR, get_db
-from core.db.schema import init_db
+from core.db import BASE_DIR
+from core.db.seed_ref import count, insert_missing
 
 
 def _load_json(name):
@@ -15,107 +15,75 @@ def _load_json(name):
 
 def seed():
     """JSON файлуудаас өгөгдлийг хүснэгтэд ачаална (давхардлыг алгасна)."""
-    init_db()
-    conn = get_db()
-    cur = conn.cursor()
-
+    from core.orm import new_session
     au1 = _load_json("admin_unit1.json")
-    cur.executemany(
-        "INSERT OR IGNORE INTO admin_unit1(code, name) VALUES (?, ?)",
-        [(r["code"], r["name"]) for r in au1],
-    )
-
     au2 = _load_json("admin_unit2.json")
-    cur.executemany(
-        "INSERT OR IGNORE INTO admin_unit2(au2_code, au2_name, au1_code) VALUES (?, ?, ?)",
-        [(r["au2_code"], r["au2_name"], r["au1_code"]) for r in au2],
-    )
-
     au3 = _load_json("admin_unit3.json")
     # Зарим au3 мөрийн au2_code эх хүснэгтэд байхгүй байж болзошгүй тул шүүнэ.
     valid_au2 = {r["au2_code"] for r in au2}
-    rows3 = [
-        (r["au3_code"], r["au3_name"], r["au1_code"], r["au2_code"])
-        for r in au3
-        if r["au2_code"] in valid_au2
-    ]
+    rows3 = [{k: r[k] for k in ("au3_code", "au3_name", "au1_code", "au2_code")}
+             for r in au3 if r["au2_code"] in valid_au2]
     skipped = len(au3) - len(rows3)
-    cur.executemany(
-        "INSERT OR IGNORE INTO admin_unit3"
-        "(au3_code, au3_name, au1_code, au2_code) VALUES (?, ?, ?, ?)",
-        rows3,
-    )
 
-    conn.commit()
-    counts = {
-        t: conn.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0]
-        for t in ("admin_unit1", "admin_unit2", "admin_unit3")
-    }
-    conn.close()
+    s = new_session()
+    try:
+        insert_missing(s, "admin_unit1", [{"code": r["code"], "name": r["name"]} for r in au1])
+        insert_missing(s, "admin_unit2", [{k: r[k] for k in ("au2_code", "au2_name", "au1_code")}
+                                          for r in au2])
+        insert_missing(s, "admin_unit3", rows3)
+        s.commit()
+        counts = {t: count(s, t) for t in ("admin_unit1", "admin_unit2", "admin_unit3")}
+    finally:
+        s.close()
     print("Ачаалал дууслаа:", counts, "| алгассан au3:", skipped)
 
 
 def seed_union():
     """Үйлдвэрчний эвлэлийн бүтцэд жишээ өгөгдөл нэмнэ (хоосон үед л)."""
-    init_db()
-    conn = get_db()
-    cur = conn.cursor()
-    if cur.execute("SELECT COUNT(*) FROM holboo").fetchone()[0] > 0:
-        conn.close()
-        print("Union өгөгдөл аль хэдийн орсон байна — алгаслаа.")
-        return
+    from core.orm import new_session
+    from core.orm.models import Contact, Holboo, Horoo, Member, Organization
+    s = new_session()
+    try:
+        if count(s, "holboo") > 0:
+            print("Union өгөгдөл аль хэдийн орсон байна — алгаслаа.")
+            return
 
-    cur.execute("INSERT INTO holboo(name) VALUES (?)",
-                ("Боловсрол, шинжлэх ухааны үйлдвэрчний эвлэлийн холбоо",))
-    holboo_id = cur.lastrowid
+        holboo = Holboo(name="Боловсрол, шинжлэх ухааны үйлдвэрчний эвлэлийн холбоо")
+        s.add(holboo)
+        s.flush()
+        horoo = Horoo(holboo_id=holboo.id, name="Сүхбаатар дүүргийн хороо", type="Дүүргийн хороо",
+                      registration_number="2811234", founded_date="2005-04-12")
+        org = Organization(
+            name="АШУҮИС-ийн харьяа сургууль", school_category_id=14, org_code="001",  # -> 14001
+            registration_number="9923659", state_reg_number="9019001234",
+            founded_date="2023-01-31", activity_code="8530",
+            activity_name="Дээд боловсрол олгох үйл ажиллагаа",
+            parent_org="Анагаахын шинжлэх ухааны үндэсний их сургууль",
+            au1_code="011", au2_code="01101", address_detail="Ард Аюушийн гудамж",
+            postal_address="Улаанбаатар 14210, ШУТИС-14-р байр",
+            phone1="70112233", phone2="99112233", email="info@example.mn", contact_name="Б.Болд")
+        s.add_all([horoo, org])
+        s.flush()
 
-    cur.execute(
-        "INSERT INTO horoo(holboo_id, name, type, registration_number, founded_date) "
-        "VALUES (?,?,?,?,?)",
-        (holboo_id, "Сүхбаатар дүүргийн хороо", "Дүүргийн хороо",
-         "2811234", "2005-04-12"),
-    )
-    horoo_id = cur.lastrowid
-
-    cur.execute(
-        """INSERT INTO organization
-           (name, school_category_id, org_code, registration_number,
-            state_reg_number, founded_date, activity_code, activity_name, parent_org,
-            au1_code, au2_code, address_detail, postal_address,
-            phone1, phone2, email, contact_name)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-        ("АШУҮИС-ийн харьяа сургууль", 14, "001",  # 14 + 001 -> 14001
-         "9923659", "9019001234", "2023-01-31", "8530",
-         "Дээд боловсрол олгох үйл ажиллагаа",
-         "Анагаахын шинжлэх ухааны үндэсний их сургууль",
-         "011", "01101", "Ард Аюушийн гудамж", "Улаанбаатар 14210, ШУТИС-14-р байр",
-         "70112233", "99112233", "info@example.mn", "Б.Болд"),
-    )
-    org_id = cur.lastrowid
-
-    # union_card_number = байгууллагын 5 оронтой код (14001) + гишүүний 4 оронтой код
-    cur.executemany(
-        "INSERT INTO member(organization_id, last_name, first_name, gender, birth_date, "
-        "union_card_code, union_card_number) VALUES (?,?,?,?,?,?,?)",
-        [
-            (org_id, "Батын", "Болд", "эр", "1980-05-10", "0001", "140010001"),
-            (org_id, "Доржийн", "Сараа", "эм", "1995-09-20", "0002", "140010002"),
-            (org_id, "Цэрэнгийн", "Дулмаа", "эм", "2000-03-15", "0003", "140010003"),
-            (org_id, "Наранбаатарын", "Ганбат", "эр", "1975-12-01", "0004", "140010004"),
-        ],
-    )
-
-    cur.executemany(
-        "INSERT INTO contact(owner_type, owner_id, type, value, note) VALUES (?,?,?,?,?)",
-        [
-            ("horoo", horoo_id, "утас", "99112233", "захиргаа"),
-            ("horoo", horoo_id, "и-мэйл", "horoo@example.mn", None),
-            ("organization", org_id, "утас", "70112233", "нягтлан"),
-            ("organization", org_id, "факс", "70112234", None),
-            ("organization", org_id, "и-мэйл", "info@example.mn", None),
-        ],
-    )
-
-    conn.commit()
-    conn.close()
+        # union_card_number = байгууллагын 5 оронтой код (14001) + гишүүний 4 оронтой код
+        for last, first, gender, born, code in (
+                ("Батын", "Болд", "эр", "1980-05-10", "0001"),
+                ("Доржийн", "Сараа", "эм", "1995-09-20", "0002"),
+                ("Цэрэнгийн", "Дулмаа", "эм", "2000-03-15", "0003"),
+                ("Наранбаатарын", "Ганбат", "эр", "1975-12-01", "0004")):
+            s.add(Member(organization_id=org.id, last_name=last, first_name=first, gender=gender,
+                         birth_date=born, union_card_code=code, union_card_number="14001" + code))
+            s.flush()                               # id-ийн дараалал хуучинтай ижил
+        for owner_type, owner_id, ctype, value, note in (
+                ("horoo", horoo.id, "утас", "99112233", "захиргаа"),
+                ("horoo", horoo.id, "и-мэйл", "horoo@example.mn", None),
+                ("organization", org.id, "утас", "70112233", "нягтлан"),
+                ("organization", org.id, "факс", "70112234", None),
+                ("organization", org.id, "и-мэйл", "info@example.mn", None)):
+            s.add(Contact(owner_type=owner_type, owner_id=owner_id, type=ctype, value=value,
+                          note=note))
+            s.flush()
+        s.commit()
+    finally:
+        s.close()
     print("Union жишээ өгөгдөл нэмэгдлээ.")

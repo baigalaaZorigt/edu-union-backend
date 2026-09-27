@@ -21,55 +21,15 @@ DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
 IS_PG = bool(DATABASE_URL)
 
 
-# --- Postgres connection pool ---
-# Өмнө нь хүсэлт бүр RDS руу ШИНЭ холболт (TCP + TLS + auth, ~20 ms) нээдэг байсан, токентой
-# хүсэлт бүр хоёрыг (auth + handler). Одоо процесс тус бүр жижиг pool барина; `conn.close()`
-# холболтыг хаахгүй, pool руу БУЦААНА. gunicorn --preload: мастер процесс ensure_seeded()-ийн
-# дараа close_pool() дуудаж, fork хийгдэх ажилтнуудад сокет өвлүүлэхгүй; ажилтан бүр анхны
-# get_db() дээрээ ӨӨРИЙН pool-оо (pid-ээр) үүсгэнэ.
-POOL_MIN = int(os.environ.get("DB_POOL_MIN", "1"))
-POOL_MAX = int(os.environ.get("DB_POOL_MAX", "5"))     # 3 ажилтан × 5 = RDS-т ≤ 15 холболт
-_pool = {"pid": None, "pool": None}
-
-
-def _pg_pool():
-    if _pool["pid"] != os.getpid():
-        from psycopg_pool import ConnectionPool
-        _pool["pool"] = ConnectionPool(
-            DATABASE_URL, min_size=POOL_MIN, max_size=POOL_MAX, timeout=15,
-            check=ConnectionPool.check_connection,   # RDS дахин асвал үхсэн холболтыг солино
-            name=f"edu-union-{os.getpid()}", open=True)
-        _pool["pid"] = os.getpid()
-    return _pool["pool"]
-
-
-def close_pool():
-    """Энэ процессын pool-ыг хаана (мастер fork-оос өмнө, скрипт дуусахад)."""
-    if _pool["pool"] is not None and _pool["pid"] == os.getpid():
-        _pool["pool"].close()
-    _pool["pid"] = _pool["pool"] = None
-
-
-def release_request_connections(_exc=None):
-    """Хүсэлтийн төгсгөлд (teardown) буцаагаагүй холболтуудыг pool руу буцаана.
-
-    Handler бүр `conn.close()` хийдэг ч алдааны замд мартагдвал pool шавхагдаж сайт
-    гацна — энэ нь хамгаалалт. `close()` идемпотент тул давхар буцаахгүй.
-    """
-    from flask import g
-    for conn in g.pop("_db_conns", []):
-        conn.close()
-
-
 def get_db():
-    """Мөр бүрийг dict шиг хандах боломжтой холболт буцаана (SQLite эсвэл Postgres)."""
+    """ТҮҮХЭН түвшний raw холболт — зөвхөн baseline схем/хуучин DB-г шинэчлэх код
+    (schema.py, migrate*.py, pg_schema.py; alembic 0001) ба scripts/migrate_to_pg.py ашиглана.
+
+    Апп-ын бүх query SQLAlchemy ORM-оор явна (core/orm) — энд шинэ хэрэглээ бүү нэм.
+    """
     if IS_PG:
-        pool = _pg_pool()
-        conn = _PgConn(pool.getconn(), pool)
-        from flask import g, has_app_context
-        if has_app_context():
-            g.setdefault("_db_conns", []).append(conn)
-        return conn
+        import psycopg
+        return _PgConn(psycopg.connect(DATABASE_URL))
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")   # PG-д FK үргэлж хүчинтэй
@@ -114,8 +74,6 @@ __all__ = [
     "DATABASE_URL",
     "IS_PG",
     "get_db",
-    "close_pool",
-    "release_request_connections",
     "SCHEMA",
     "SCHEMA_UNION",
     "SCHEMA_CONTENT",

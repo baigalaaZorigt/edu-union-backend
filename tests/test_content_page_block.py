@@ -27,12 +27,14 @@ def test_page_create(api):
 
 def test_page_create_on_page_menu_without_page(api):
     """Хуудас нь устгагдсан (эсвэл хуучин) page цэсэнд POST /api/page 201 буцаана."""
-    from core import db
+    from sqlalchemy import delete
+    from core.orm import new_session
+    from core.orm.models import Page
     m, page_id = _page_menu(api)
-    conn = db.get_db()
-    conn.execute("DELETE FROM page WHERE id=?", (page_id,))
-    conn.commit()
-    conn.close()
+    s = new_session()
+    s.execute(delete(Page).where(Page.id == page_id))
+    s.commit()
+    s.close()
     assert api.post("/api/page", json={"menu_id": m["id"], "status": "bad"}).status_code == 400
     r = api.post("/api/page", json={"menu_id": m["id"], "body": "<p>hi</p>",
                                     "status": "published"})

@@ -1,13 +1,15 @@
 """salary_request (Цалингийн хүсэлт) ба salary_scale (Цалингийн шатлал, лавлах)."""
 
 from flask import jsonify, request, abort
+from sqlalchemy import select, update
 
-from core.db import get_db
-from core.helpers import fail, insert_row, json_body, pick, require, update_row
+from core.helpers import json_body, pick, require
+from core.orm import session
+from core.orm.models import Member, SalaryRequest, SalaryScale
 
 from admin.union import bp
 from admin.union.common import (_arg_filters, _create, _delete_by_id, _get_one, _list_rows,
-                                _require_row, _update_by_id, _where)
+                                _require_row, _update_by_id)
 
 
 # Цалингийн хүсэлт
@@ -37,26 +39,26 @@ def _validate_salary(data):
         abort(400, description="sector буруу. Сонголт: " + ", ".join(SALARY_SECTORS))
 
 
-def _apply_scale(conn, data):
+def _apply_scale(data):
     """salary_scale_id өгсөн бол шатлалаас sector/code/position/salary-г хуулж буцаана."""
     scale_id = data.get("salary_scale_id")
     if scale_id is None:
         return data
-    sc = conn.execute("SELECT * FROM salary_scale WHERE id=?", (scale_id,)).fetchone()
-    if not sc:
-        fail(conn, 400, "salary_scale_id (цалингийн шатлал) олдсонгүй")
-    return {**data, **{f: sc[f] for f in SALARY_SCALE_FIELDS}}
+    sc = session().scalar(select(SalaryScale).where(SalaryScale.id == scale_id))
+    if sc is None:
+        abort(400, description="salary_scale_id (цалингийн шатлал) олдсонгүй")
+    return {**data, **{f: getattr(sc, f) for f in SALARY_SCALE_FIELDS}}
 
 
 @bp.route("/api/salary_request", methods=["GET"])
 def list_salary():
-    cond, params = _arg_filters(("member_id", "status"))
-    return _list_rows("SELECT * FROM salary_request" + _where(cond) + " ORDER BY id", params)
+    cond = _arg_filters(SalaryRequest, ("member_id", "status"))
+    return _list_rows(select(SalaryRequest).where(*cond).order_by(SalaryRequest.id))
 
 
 @bp.route("/api/salary_request/<int:sid>", methods=["GET"])
 def get_salary(sid):
-    return _get_one("SELECT * FROM salary_request WHERE id=?", (sid,), REQUEST_NOT_FOUND)
+    return _get_one(SalaryRequest, sid, REQUEST_NOT_FOUND)
 
 
 @bp.route("/api/salary_request", methods=["POST"])
@@ -64,56 +66,54 @@ def create_salary():
     data = request.get_json(silent=True)
     require(data, ["member_id"])
     _validate_salary(data)
-    conn = get_db()
-    _require_row(conn, "member", data["member_id"], "member_id (эцэг гишүүн) олдсонгүй")
-    data = _apply_scale(conn, data)  # шатлал сонгосон бол утгыг хуулна
+    _require_row(Member.id, data["member_id"], "member_id (эцэг гишүүн) олдсонгүй")
+    data = _apply_scale(data)  # шатлал сонгосон бол утгыг хуулна
     # Зөвхөн дамжуулсан талбарыг оруулна — оруулаагүй бол status DB-ийн default-аар бөглөгдөнө
     values = {"member_id": data["member_id"], **pick(data, SALARY_FIELDS, skip_none=True)}
-    return _create(conn, "salary_request", values, "SELECT * FROM salary_request WHERE id=?")
+    return _create(SalaryRequest, values)
 
 
 @bp.route("/api/salary_request/<int:sid>", methods=["PUT", "PATCH"])
 def update_salary(sid):
     data = json_body()
     _validate_salary(data)
-    conn = get_db()
-    data = _apply_scale(conn, data)  # шатлал сонгосон бол sector/code/.../salary-г хуулна
+    data = _apply_scale(data)  # шатлал сонгосон бол sector/code/.../salary-г хуулна
     values = pick(data, SALARY_FIELDS)
     if not values:
-        fail(conn, 400, "Шинэчлэх талбар алга")
-    return _update_by_id(conn, "salary_request", sid, values, REQUEST_NOT_FOUND)
+        abort(400, description="Шинэчлэх талбар алга")
+    return _update_by_id(SalaryRequest, sid, values, REQUEST_NOT_FOUND)
 
 
 @bp.route("/api/salary_request/<int:sid>", methods=["DELETE"])
 def delete_salary(sid):
-    return _delete_by_id(get_db(), "salary_request", sid, REQUEST_NOT_FOUND)
+    return _delete_by_id(SalaryRequest, sid, REQUEST_NOT_FOUND)
 
 
 # ==================== salary_scale (Цалингийн шатлал, лавлах) ====================
 @bp.route("/api/salary_scale", methods=["GET"])
 def list_salary_scale():
-    cond, params = _arg_filters(("sector",))
-    return _list_rows("SELECT * FROM salary_scale" + _where(cond) + " ORDER BY id", params)
+    cond = _arg_filters(SalaryScale, ("sector",))
+    return _list_rows(select(SalaryScale).where(*cond).order_by(SalaryScale.id))
 
 
 @bp.route("/api/salary_scale/<int:sid>", methods=["GET"])
 def get_salary_scale(sid):
-    return _get_one("SELECT * FROM salary_scale WHERE id=?", (sid,), SCALE_NOT_FOUND)
+    return _get_one(SalaryScale, sid, SCALE_NOT_FOUND)
 
 
 @bp.route("/api/salary_scale", methods=["POST"])
 def create_salary_scale():
     data = request.get_json(silent=True)
     require(data, ["sector", "code"])
-    conn = get_db()
+    s = session()
+    scale = SalaryScale(**{f: data.get(f) for f in SALARY_SCALE_FIELDS})
     try:   # salary_scale.code нь UNIQUE — давхцвал 409
-        new_id = insert_row(conn, "salary_scale", {f: data.get(f) for f in SALARY_SCALE_FIELDS})
-        conn.commit()
+        s.add(scale)
+        s.commit()
     except Exception:
-        fail(conn, 409, SCALE_CODE_TAKEN)
-    row = conn.execute("SELECT * FROM salary_scale WHERE id=?", (new_id,)).fetchone()
-    conn.close()
-    return jsonify(dict(row)), 201
+        s.rollback()
+        abort(409, description=SCALE_CODE_TAKEN)
+    return jsonify(scale.to_dict()), 201
 
 
 @bp.route("/api/salary_scale/<int:sid>", methods=["PUT", "PATCH"])
@@ -121,13 +121,14 @@ def update_salary_scale(sid):
     values = pick(json_body(), SALARY_SCALE_FIELDS)
     if not values:
         abort(400, description="Шинэчлэх талбар алга")
-    conn = get_db()
+    s = session()
     try:
-        count = update_row(conn, "salary_scale", sid, values)
-        conn.commit()
+        count = s.execute(update(SalaryScale).where(SalaryScale.id == sid).values(values)
+                          .execution_options(synchronize_session=False)).rowcount
+        s.commit()
     except Exception:
-        fail(conn, 409, SCALE_CODE_TAKEN)
-    conn.close()
+        s.rollback()
+        abort(409, description=SCALE_CODE_TAKEN)
     if count == 0:
         abort(404, description=SCALE_NOT_FOUND)
     return jsonify(updated=sid, fields=list(values))
@@ -135,4 +136,4 @@ def update_salary_scale(sid):
 
 @bp.route("/api/salary_scale/<int:sid>", methods=["DELETE"])
 def delete_salary_scale(sid):
-    return _delete_by_id(get_db(), "salary_scale", sid, SCALE_NOT_FOUND)
+    return _delete_by_id(SalaryScale, sid, SCALE_NOT_FOUND)

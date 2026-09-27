@@ -15,8 +15,11 @@ HTTP маршрутууд нь:
 import re
 
 from flask import abort
+from sqlalchemy import func, or_, select
 
-from core.helpers import insert_row, now_str
+from core.helpers import now_str
+from core.orm import session
+from core.orm.models import Complaint, Suggestion
 
 MAX_PER_PAGE = 100                    # хуудаслалтын дээд хэмжээ (forms/news-тэй ижил)
 
@@ -27,6 +30,7 @@ MAX_PER_PAGE = 100                    # хуудаслалтын дээд хэм
 KINDS = {
     "suggestions": {
         "table": "suggestions",
+        "model": Suggestion,
         "required": ("name", "email", "phone", "message"),
         "optional": (),
         "search": ("name", "email", "phone", "message"),
@@ -35,6 +39,7 @@ KINDS = {
     },
     "complaints": {
         "table": "complaints",
+        "model": Complaint,
         "required": ("name", "email", "phone", "description"),
         "optional": ("file_url", "file_name"),
         "search": ("name", "email", "phone", "description"),
@@ -58,10 +63,8 @@ _PHONE_TRIM_RE = re.compile(r"[\s()\-]")
 PHONE_DIGITS = 8                      # Монголын дугаар — 8 орон (+976 угтвар зөвшөөрнө)
 
 
-def bad(conn, message, code=400):
-    """Холболтыг хааж байгаад алдаа шидэнэ (холболт алдагдахаас сэргийлнэ)."""
-    if conn is not None:
-        conn.close()
+def bad(message, code=400):
+    """Алдаа шидэнэ (хүсэлтийн session-ийг teardown хаана)."""
     abort(code, description=message)
 
 
@@ -80,7 +83,7 @@ def check_phone(value):
     return digits.isdigit() and len(digits) == PHONE_DIGITS
 
 
-def validate(conn, kind, data):
+def validate(kind, data):
     """Маягтын их биеийг шалгаад, хадгалахад бэлэн dict буцаана (зөрвөл 400).
 
     Заавал талбар дутуу/хоосон, и-мэйлийн хэлбэр, утасны урт, талбарын дээд
@@ -89,7 +92,7 @@ def validate(conn, kind, data):
     """
     spec = KINDS[kind]
     if not isinstance(data, dict):
-        bad(conn, "JSON их бие шаардлагатай")
+        bad("JSON их бие шаардлагатай")
 
     out = {}
     missing = []
@@ -99,42 +102,43 @@ def validate(conn, kind, data):
             missing.append(f)
         out[f] = val
     if missing:
-        bad(conn, "Дутуу талбар: " + ", ".join(missing))
+        bad("Дутуу талбар: " + ", ".join(missing))
 
     if not _EMAIL_RE.match(out["email"]):
-        bad(conn, "И-мэйл хаяг буруу байна")
+        bad("И-мэйл хаяг буруу байна")
     if not check_phone(out["phone"]):
-        bad(conn, f"Утасны дугаар буруу байна ({PHONE_DIGITS} оронтой байх ёстой)")
+        bad(f"Утасны дугаар буруу байна ({PHONE_DIGITS} оронтой байх ёстой)")
 
     for f in spec["optional"]:
         out[f] = _text(data.get(f)) or None
 
     for f, limit in MAX_LEN.items():
         if out.get(f) and len(out[f]) > limit:
-            bad(conn, f"{f} нь {limit} тэмдэгтээс урт байж болохгүй")
+            bad(f"{f} нь {limit} тэмдэгтээс урт байж болохгүй")
 
     return out
 
 
-def insert(conn, kind, values):
+def insert(kind, values):
     """Шалгагдсан утгуудыг хүснэгтэд нэмж, шинэ мөрийн id-г буцаана."""
     now = now_str()
     # status нь ҮРГЭЛЖ 'new' (V1), огноог форматтай нь өөрсдөө бичнэ — хүснэгтийн
     # INSERT trigger нь COALESCE тул бичсэн утга ялна (CLAUDE.md-ийн зарчим).
-    new_id = insert_row(conn, KINDS[kind]["table"],
-                        {**values, "status": "new", "created_at": now, "updated_at": now})
-    conn.commit()
-    return new_id
+    row = KINDS[kind]["model"](**values, status="new", created_at=now, updated_at=now)
+    s = session()
+    s.add(row)
+    s.commit()
+    return row.id
 
 
 def public_row(kind, row):
     """Мөрийг спекийн §4 хэлбэрээр буцаана (updated_at нь гадагшаа хэрэггүй)."""
     spec = KINDS[kind]
-    return {f: row[f] for f in
+    return {f: getattr(row, f) for f in
             ("id",) + spec["required"] + spec["optional"] + ("status", "created_at")}
 
 
-def list_page(conn, kind, args):
+def list_page(kind, args):
     """Жагсаалт + хуудаслалт: {items, page, pages, per_page, total} (спек §4).
 
     `args` нь request.args (эсвэл ижил `.get`-тэй mapping). Шүүлтүүр:
@@ -142,22 +146,20 @@ def list_page(conn, kind, args):
     (ORDER BY id DESC) — админы жагсаалт хамгийн сүүлийн хүсэлтээс эхэлнэ.
     """
     spec = KINDS[kind]
-    where, params = [], []
+    model = spec["model"]
+    conds = []
     search = (args.get("search") or "").strip()
     if search:
-        where.append("(" + " OR ".join(f"{c} LIKE ?" for c in spec["search"]) + ")")
-        params += [f"%{search}%"] * len(spec["search"])
-    clause = (" WHERE " + " AND ".join(where)) if where else ""
-
-    total = conn.execute(
-        f"SELECT COUNT(*) FROM {spec['table']}{clause}", params).fetchone()[0]
+        pat = f"%{search}%"
+        conds.append(or_(*(getattr(model, c).ilike(pat) for c in spec["search"])))
+    s = session()
+    total = s.scalar(select(func.count()).select_from(model).where(*conds))
     try:
         page = max(1, int(args.get("page", 1)))
         per_page = min(MAX_PER_PAGE, max(1, int(args.get("per_page", 20))))
     except (TypeError, ValueError):
-        bad(conn, "page / per_page нь тоо байх ёстой")
-    data = conn.execute(
-        f"SELECT * FROM {spec['table']}{clause} ORDER BY id DESC LIMIT ? OFFSET ?",
-        params + [per_page, (page - 1) * per_page]).fetchall()
-    return {"items": [public_row(kind, r) for r in data], "total": total, "page": page, "per_page": per_page,
-            "pages": (total + per_page - 1) // per_page}
+        bad("page / per_page нь тоо байх ёстой")
+    data = s.scalars(select(model).where(*conds).order_by(model.id.desc())
+                     .limit(per_page).offset((page - 1) * per_page)).all()
+    return {"items": [public_row(kind, r) for r in data], "total": total, "page": page,
+            "per_page": per_page, "pages": (total + per_page - 1) // per_page}

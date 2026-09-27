@@ -1,36 +1,41 @@
 """role (Дүр) — CRUD ба дүрд эрх нэмэх / хасах."""
 from flask import jsonify, request, abort
+from sqlalchemy import delete, func, select, update
+from sqlalchemy.exc import SQLAlchemyError
 
-from core.db import get_db
-from core.helpers import rows, require, json_body, fail, insert_row, update_row, fetch_page, list_json
+from core.helpers import require, json_body, list_json
+from core.orm import session
+from core.orm.models import AppUser, Permission, Role, RolePermission
+from core.orm.query import paginate
 
 from admin.users import bp
 from admin.users.common import _delete_by_id, _exists, _role_perms, _role_perms_many
 
+NOT_FOUND = "Дүр олдсонгүй"
 
-def _role_out(conn, rid):
+
+def _role_out(rid):
     """Дүрийн мөр + эрхүүд."""
-    out = dict(conn.execute("SELECT * FROM role WHERE id=?", (rid,)).fetchone())
-    out["permissions"] = _role_perms(conn, rid)
+    out = session().get(Role, rid).to_dict()
+    out["permissions"] = _role_perms(rid)
     return out
 
 
-def _set_role_permissions(conn, rid, permission_ids):
+def _set_role_permissions(rid, permission_ids):
     """Дүрийн эрхийн жагсаалтыг бүхэлд нь солино (хуучныг устгаад шинээр оноох).
 
     Бүх id лавлахад байх ёстой (үгүй бол 400).
     """
+    s = session()
     ids = list(dict.fromkeys(permission_ids))  # давхардлыг арилгана, дараалал хадгална
     if ids:
-        found = conn.execute(
-            f"SELECT COUNT(*) FROM permission WHERE id IN ({', '.join('?' * len(ids))})",
-            ids).fetchone()[0]
+        found = s.scalar(select(func.count()).select_from(Permission)
+                         .where(Permission.id.in_(ids)))
         if found != len(ids):
-            fail(conn, 400, "Зарим permission_id олдсонгүй")
-    conn.execute("DELETE FROM role_permission WHERE role_id=?", (rid,))
-    conn.executemany(
-        "INSERT OR IGNORE INTO role_permission(role_id, permission_id) VALUES (?, ?)",
-        [(rid, pid) for pid in ids])
+            abort(400, description="Зарим permission_id олдсонгүй")
+    s.execute(delete(RolePermission).where(RolePermission.role_id == rid))
+    s.add_all([RolePermission(role_id=rid, permission_id=pid) for pid in ids])
+    s.flush()
 
 
 # ======================= role (Дүр) =======================
@@ -38,7 +43,7 @@ ROLE_DUP = "Энэ дүрийн нэр аль хэдийн бүртгэгдсэ�
 ROLE_FIELDS = ("name", "code", "description")
 
 
-def _role_values(conn, data, rid=None):
+def _role_values(data, rid=None):
     """Ирсэн талбаруудаас хадгалах утгыг бэлтгэнэ; `code`-г шалгана.
 
     code нь заавал биш: хоосон мөр -> NULL. Хуучин DB-д багана ALTER-ээр нэмэгдсэн тул
@@ -48,36 +53,32 @@ def _role_values(conn, data, rid=None):
     if "code" in values:
         code = values["code"]
         if code is not None and not isinstance(code, str):
-            fail(conn, 400, "code нь текст байх ёстой")
+            abort(400, description="code нь текст байх ёстой")
         code = (code or "").strip() or None
-        if code is not None and conn.execute(
-                "SELECT 1 FROM role WHERE code=? AND id<>?", (code, rid or 0)).fetchone():
-            fail(conn, 409, f"'{code}' кодтой дүр аль хэдийн бүртгэгдсэн байна")
+        if code is not None and session().scalar(
+                select(Role.id).where(Role.code == code, Role.id != (rid or 0))) is not None:
+            abort(409, description=f"'{code}' кодтой дүр аль хэдийн бүртгэгдсэн байна")
         values["code"] = code
     return values
 
 
 @bp.route("/api/role", methods=["GET"])
 def list_role():
-    conn = get_db()
-    page_rows, meta = fetch_page(conn, "SELECT * FROM role ORDER BY id")
-    data = rows(page_rows)
-    perms = _role_perms_many(conn, [r["id"] for r in data])   # N+1 биш — нэг query
+    items, meta = paginate(select(Role).order_by(Role.id))
+    data = [r.to_dict() for r in items]
+    perms = _role_perms_many([r["id"] for r in data])   # N+1 биш — нэг query
     for r in data:
         r["permissions"] = perms[r["id"]]
-    conn.close()
     return list_json(data, meta)
 
 
 @bp.route("/api/role/<int:rid>", methods=["GET"])
 def get_role(rid):
-    conn = get_db()
-    if not _exists(conn, "role", rid):
-        fail(conn, 404, "Дүр олдсонгүй")
-    out = _role_out(conn, rid)
-    out["user_count"] = conn.execute(
-        "SELECT COUNT(*) FROM app_user WHERE role_id=?", (rid,)).fetchone()[0]
-    conn.close()
+    if not _exists(Role, rid):
+        abort(404, description=NOT_FOUND)
+    out = _role_out(rid)
+    out["user_count"] = session().scalar(
+        select(func.count()).select_from(AppUser).where(AppUser.role_id == rid))
     return jsonify(out)
 
 
@@ -85,45 +86,44 @@ def get_role(rid):
 def create_role():
     data = request.get_json(silent=True)
     require(data, ["name"])
-    conn = get_db()
-    values = _role_values(conn, data)
+    s = session()
+    role = Role(**_role_values(data))
+    s.add(role)
     try:
-        rid = insert_row(conn, "role", values)
-        conn.commit()
-    except Exception:
-        fail(conn, 409, ROLE_DUP)
+        s.commit()
+    except SQLAlchemyError:
+        s.rollback()
+        abort(409, description=ROLE_DUP)
+    rid = role.id
     if isinstance(data.get("permission_ids"), list):
-        _set_role_permissions(conn, rid, data["permission_ids"])
-        conn.commit()
-    out = _role_out(conn, rid)
-    conn.close()
-    return jsonify(out), 201
+        _set_role_permissions(rid, data["permission_ids"])
+        s.commit()
+    return jsonify(_role_out(rid)), 201
 
 
 @bp.route("/api/role/<int:rid>", methods=["PUT", "PATCH"])
 def update_role(rid):
     data = json_body()
-    conn = get_db()
-    if not _exists(conn, "role", rid):
-        fail(conn, 404, "Дүр олдсонгүй")
-    values = _role_values(conn, data, rid)
+    s = session()
+    if not _exists(Role, rid):
+        abort(404, description=NOT_FOUND)
+    values = _role_values(data, rid)
     if values:
         try:
-            update_row(conn, "role", rid, values)
-        except Exception:
-            fail(conn, 409, ROLE_DUP)
+            s.execute(update(Role).where(Role.id == rid).values(**values))
+        except SQLAlchemyError:
+            s.rollback()
+            abort(409, description=ROLE_DUP)
     # permission_ids өгвөл эрхийн жагсаалтыг бүхэлд нь солино
     if isinstance(data.get("permission_ids"), list):
-        _set_role_permissions(conn, rid, data["permission_ids"])
-    conn.commit()
-    out = _role_out(conn, rid)
-    conn.close()
-    return jsonify(out)
+        _set_role_permissions(rid, data["permission_ids"])
+    s.commit()
+    return jsonify(_role_out(rid))
 
 
 @bp.route("/api/role/<int:rid>", methods=["DELETE"])
 def delete_role(rid):
-    return _delete_by_id("role", rid, "Дүр олдсонгүй")
+    return _delete_by_id(Role, rid, NOT_FOUND)
 
 
 # ---- Дүрд эрх нэг нэгээр нэмэх / хасах ----
@@ -131,28 +131,26 @@ def delete_role(rid):
 def add_role_permission(rid):
     data = request.get_json(silent=True)
     require(data, ["permission_id"])
-    conn = get_db()
-    if not _exists(conn, "role", rid):
-        fail(conn, 404, "Дүр олдсонгүй")
+    s = session()
+    if not _exists(Role, rid):
+        abort(404, description=NOT_FOUND)
     pid = data["permission_id"]
-    if not _exists(conn, "permission", pid):
-        fail(conn, 400, "permission_id олдсонгүй")
-    conn.execute(
-        "INSERT OR IGNORE INTO role_permission(role_id, permission_id) VALUES (?, ?)",
-        (rid, pid))
-    conn.commit()
-    out = _role_perms(conn, rid)
-    conn.close()
-    return jsonify(role_id=rid, permissions=out), 201
+    if not _exists(Permission, pid):
+        abort(400, description="permission_id олдсонгүй")
+    already = s.scalar(select(RolePermission.role_id).where(
+        RolePermission.role_id == rid, RolePermission.permission_id == pid))
+    if already is None:                        # давхар нэмэхгүй (хуучин "or ignore")
+        s.add(RolePermission(role_id=rid, permission_id=pid))
+        s.commit()
+    return jsonify(role_id=rid, permissions=_role_perms(rid)), 201
 
 
 @bp.route("/api/role/<int:rid>/permission/<int:pid>", methods=["DELETE"])
 def remove_role_permission(rid, pid):
-    conn = get_db()
-    cur = conn.execute(
-        "DELETE FROM role_permission WHERE role_id=? AND permission_id=?", (rid, pid))
-    conn.commit()
-    conn.close()
-    if cur.rowcount == 0:
+    s = session()
+    count = s.execute(delete(RolePermission).where(
+        RolePermission.role_id == rid, RolePermission.permission_id == pid)).rowcount
+    s.commit()
+    if count == 0:
         abort(404, description="Тухайн дүрд энэ эрх байхгүй байна")
     return jsonify(role_id=rid, removed_permission=pid)

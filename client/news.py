@@ -12,10 +12,10 @@
 """
 from flask import Blueprint, jsonify, request
 
-from core.db import get_db
 from core.news_core import (
     block_list, check_category, news_page, public_news, require_news,
 )
+from core.orm.models import News
 
 bp = Blueprint("portal_news", __name__)
 
@@ -27,26 +27,19 @@ def list_news():
     Шүүлт: ?category=Мэдээ|Сургалт (өгөөгүй бол бүгд), ?search=, ?page=, ?per_page=
     Буцаалт: {data, total, per_page, current_page, pages}
     """
-    conn = get_db()
-    where, args = ["deleted_at IS NULL", "status='published'"], []
+    conds = [News.deleted_at.is_(None), News.status == "published"]
     category = request.args.get("category")
     if category:
-        where.append("category=?")
-        args.append(check_category(conn, category))
+        conds.append(News.category == check_category(category))
     search = (request.args.get("search") or "").strip()
     if search:
-        where.append("(title LIKE ? OR summary LIKE ?)")
-        args += [f"%{search}%"] * 2
-    out = news_page(conn, where, args, default_per_page=12)
-    conn.close()
-    return jsonify(out)
+        pat = f"%{search}%"
+        conds.append(News.title.ilike(pat) | News.summary.ilike(pat))
+    return jsonify(news_page(conds, default_per_page=12))
 
 
 @bp.route("/api/portal/news/<int:nid>", methods=["GET"])
 def get_news_detail(nid):
     """Нэг мэдээ `blocks`-той нь хамт. Ноорог мэдээнд 404."""
-    conn = get_db()
-    row = require_news(conn, nid, published_only=True)
-    out = public_news(row, blocks=block_list(conn, nid))
-    conn.close()
-    return jsonify(out)
+    row = require_news(nid, published_only=True)
+    return jsonify(public_news(row, blocks=block_list(nid)))

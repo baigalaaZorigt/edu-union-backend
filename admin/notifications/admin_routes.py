@@ -1,42 +1,41 @@
 """Админ тал (§3) — /api/admin/notifications: бичих, илгээх, жагсаалт, устгах."""
 
-from flask import jsonify, request
+from flask import abort, jsonify, request
+from sqlalchemy import delete, func, select
 
-from core.db import get_db
-from core.helpers import fail, insert_row, now_str
+from core.helpers import now_str
+from core.orm import session
+from core.orm.models import Notification
 
 from admin.notifications import bp
-from admin.notifications.common import (MAX_PER_PAGE, NOTIFY_FIELDS, NOTIFY_SELECT, STATUSES,
-                                        dispatch_due, _public, _send, _user_id, _validate)
+from admin.notifications.common import (MAX_PER_PAGE, NOTIFY_FIELDS, STATUSES, dispatch_due,
+                                        notify_query, _public, _send, _user_id, _validate)
+
+
+def _one(nid):
+    return session().execute(notify_query().where(Notification.id == nid)).first()
 
 
 # ================= Админ тал (§3) — /api/admin/notifications =================
 @bp.route("/api/admin/notifications", methods=["GET"])
 def list_notifications():
     """Мэдэгдлийн жагсаалт. Шүүлт: ?status= &type= &search= &page= &per_page="""
-    conn = get_db()
-    dispatch_due(conn)                 # хуваарьт нь хугацаа хүрсэн бол эхлээд илгээнэ
-    where, args = [], []
-    for f in ("status", "type"):
-        if request.args.get(f):
-            where.append(f"n.{f}=?")
-            args.append(request.args[f])
+    s = session()
+    dispatch_due(s)                    # хуваарьт нь хугацаа хүрсэн бол эхлээд илгээнэ
+    conds = [getattr(Notification, f) == request.args[f] for f in ("status", "type")
+             if request.args.get(f)]
     search = (request.args.get("search") or "").strip()
     if search:
-        where.append("(n.title LIKE ? OR n.body LIKE ?)")
-        args += [f"%{search}%", f"%{search}%"]
-    clause = (" WHERE " + " AND ".join(where)) if where else ""
-
-    total = conn.execute("SELECT COUNT(*) FROM notifications n" + clause, args).fetchone()[0]
+        pat = f"%{search}%"
+        conds.append(Notification.title.ilike(pat) | Notification.body.ilike(pat))
+    total = s.scalar(select(func.count()).select_from(Notification).where(*conds))
     try:
         page = max(1, int(request.args.get("page", 1)))
         per_page = min(MAX_PER_PAGE, max(1, int(request.args.get("per_page", 20))))
     except ValueError:
-        fail(conn, 400, "page / per_page нь тоо байх ёстой")
-    data = conn.execute(
-        NOTIFY_SELECT + clause + " ORDER BY n.id DESC LIMIT ? OFFSET ?",
-        args + [per_page, (page - 1) * per_page]).fetchall()
-    conn.close()
+        abort(400, description="page / per_page нь тоо байх ёстой")
+    data = s.execute(notify_query().where(*conds).order_by(Notification.id.desc())
+                     .limit(per_page).offset((page - 1) * per_page)).all()
     return jsonify(items=[_public(r) for r in data], total=total, page=page,
                    per_page=per_page, pages=(total + per_page - 1) // per_page)
 
@@ -44,11 +43,9 @@ def list_notifications():
 @bp.route("/api/admin/notifications/<int:nid>", methods=["GET"])
 def get_notification(nid):
     """Нэг мэдэгдэл (хүлээн авагчдын тоо, уншсаны тоотой)."""
-    conn = get_db()
-    row = conn.execute(NOTIFY_SELECT + " WHERE n.id=?", (nid,)).fetchone()
-    if not row:
-        fail(conn, 404, "Мэдэгдэл олдсонгүй")
-    conn.close()
+    row = _one(nid)
+    if row is None:
+        abort(404, description="Мэдэгдэл олдсонгүй")
     return jsonify(_public(row))
 
 
@@ -62,29 +59,26 @@ def create_notification():
       draft-ыг дурддаг тул үүсгэх арга байх ёстой)
     """
     data = request.get_json(silent=True)
-    conn = get_db()
-    values = _validate(conn, data)
+    values = _validate(data)
     wanted = data.get("status")
     if wanted is not None and wanted not in STATUSES:
-        fail(conn, 400, "status буруу. Сонголт: " + ", ".join(STATUSES))
+        abort(400, description="status буруу. Сонголт: " + ", ".join(STATUSES))
     if wanted == "draft":
         status = "draft"
     elif values["scheduled_at"]:
         status = "scheduled"
     else:
         status = "sent"
-
     now = now_str()
-    nid = insert_row(conn, "notifications", {
-        **{f: values[f] for f in NOTIFY_FIELDS},
-        "status": status, "created_by": _user_id(), "created_at": now, "updated_at": now})
+    s = session()
+    n = Notification(**{f: values[f] for f in NOTIFY_FIELDS}, status=status,
+                     created_by=_user_id(), created_at=now, updated_at=now)
+    s.add(n)
+    s.flush()
     if status == "sent":
-        _send(conn, conn.execute(
-            "SELECT * FROM notifications WHERE id=?", (nid,)).fetchone(), now)
-    conn.commit()
-    row = conn.execute(NOTIFY_SELECT + " WHERE n.id=?", (nid,)).fetchone()
-    conn.close()
-    return jsonify(_public(row)), 201
+        _send(s, n, now)
+    s.commit()
+    return jsonify(_public(_one(n.id))), 201
 
 
 @bp.route("/api/admin/notifications/<int:nid>", methods=["DELETE"])
@@ -95,15 +89,14 @@ def delete_notification(nid):
     арилна) — `DELETE /api/admin/forms/<id>?hard=1`-тэй ижил гаргалгаа. Хүн
     санамсаргүй дарахаас хамгаалахын тулд зориуд ТОДОРХОЙ параметртэй.
     """
-    conn = get_db()
-    row = conn.execute("SELECT status FROM notifications WHERE id=?", (nid,)).fetchone()
-    if not row:
-        fail(conn, 404, "Мэдэгдэл олдсонгүй")
+    s = session()
+    status = s.scalar(select(Notification.status).where(Notification.id == nid))
+    if status is None:
+        abort(404, description="Мэдэгдэл олдсонгүй")
     hard = request.args.get("hard") in ("1", "true", "True")
-    if row["status"] == "sent" and not hard:
-        fail(conn, 422, "Илгээгдсэн мэдэгдлийг буцаах боломжгүй "
-                        "(шаардвал ?hard=1-ээр бүрмөсөн устгана)")
-    conn.execute("DELETE FROM notifications WHERE id=?", (nid,))   # recipients cascade
-    conn.commit()
-    conn.close()
+    if status == "sent" and not hard:
+        abort(422, description="Илгээгдсэн мэдэгдлийг буцаах боломжгүй "
+                               "(шаардвал ?hard=1-ээр бүрмөсөн устгана)")
+    s.execute(delete(Notification).where(Notification.id == nid))   # recipients cascade
+    s.commit()
     return jsonify(deleted=nid)

@@ -9,10 +9,12 @@
 5 минутын Cache-Control толгой нэмнэ. /api/portal/ нь auth.py-ийн PUBLIC_PREFIXES-д бий.
 """
 from flask import Blueprint, jsonify
+from sqlalchemy import or_, select
 
-from core.db import get_db
 from core.helpers import now_str
 from core.home_core import public_banner, public_partner
+from core.orm import session
+from core.orm.models import Banner, Partner
 
 bp = Blueprint("portal_home", __name__)
 
@@ -28,19 +30,16 @@ def _cached(items):
 @bp.route("/api/portal/banners", methods=["GET"])
 def public_banners():
     now = now_str()
-    conn = get_db()
-    data = [public_banner(r) for r in conn.execute(
-        "SELECT * FROM banner WHERE is_visible=1 "
-        "AND (starts_at IS NULL OR starts_at <= ?) AND (ends_at IS NULL OR ends_at >= ?) "
-        "ORDER BY sort_order, id", (now, now)).fetchall()]
-    conn.close()
-    return _cached(data)
+    rows = session().scalars(
+        select(Banner).where(Banner.is_visible == 1,
+                             or_(Banner.starts_at.is_(None), Banner.starts_at <= now),
+                             or_(Banner.ends_at.is_(None), Banner.ends_at >= now))
+        .order_by(Banner.sort_order, Banner.id))
+    return _cached([public_banner(b.to_dict()) for b in rows])
 
 
 @bp.route("/api/portal/partners", methods=["GET"])
 def public_partners():
-    conn = get_db()
-    data = [public_partner(r) for r in conn.execute(
-        "SELECT * FROM partner WHERE is_visible=1 ORDER BY sort_order, id").fetchall()]
-    conn.close()
-    return _cached(data)
+    rows = session().scalars(select(Partner).where(Partner.is_visible == 1)
+                             .order_by(Partner.sort_order, Partner.id))
+    return _cached([public_partner(p.to_dict()) for p in rows])

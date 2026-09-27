@@ -10,7 +10,6 @@ upload маршрут хэрэггүй (спек §3).
 """
 from flask import Blueprint, jsonify, request
 
-from core.db import get_db
 from core.feedback_core import KINDS, insert, validate
 
 bp = Blueprint("portal_feedback", __name__)
@@ -18,10 +17,8 @@ bp = Blueprint("portal_feedback", __name__)
 
 def _submit(kind):
     """Маягтыг шалгаад хадгална — хоёр төрөлд нэг л бие."""
-    values = validate(None, kind, request.get_json(silent=True))
-    conn = get_db()
-    new_id = insert(conn, kind, values)
-    conn.close()
+    values = validate(kind, request.get_json(silent=True))
+    new_id = insert(kind, values)
     return jsonify(status=True, id=new_id, message=KINDS[kind]["ok_message"]), 201
 
 

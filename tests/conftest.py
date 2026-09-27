@@ -138,7 +138,10 @@ def make_user(api, client):
 def _clear_login_attempts():
     """Нэвтрэлтийн brute-force тоолуурыг тест бүрийн өмнө тэглэнэ — тестүүд бие биедээ
     (нэг IP-ээс буруу оролдлого хуримтлуулж) нөлөөлөхгүй."""
-    conn = db.get_db()
-    conn.execute("DELETE FROM login_attempt")
-    conn.commit()
-    conn.close()
+    from sqlalchemy import delete
+    from core.orm import new_session
+    from core.orm.models import LoginAttempt
+    s = new_session()
+    s.execute(delete(LoginAttempt))
+    s.commit()
+    s.close()

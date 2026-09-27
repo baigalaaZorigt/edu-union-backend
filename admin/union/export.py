@@ -7,12 +7,15 @@
 (member_list_query / org_list_query) авдаг тул файл дэлгэцийн жагсаалтаас зөрөхгүй.
 Эрх нь auth.py-ийн ердийн дүрмээр: замын эхний сегмент (member / organization) + GET = read.
 """
-from core.db import get_db
+from sqlalchemy import select
+
+from core.orm import session
+from core.orm.models import Contact
 from core.xlsx import Sheet, as_date, xlsx_response
 
 from admin.union import bp
-from admin.union.member import member_list_query
-from admin.union.organization import org_list_query, org_stats_many
+from admin.union.member import member_list_query, member_row
+from admin.union.organization import org_list_query, org_row, org_stats_many
 
 MEMBER_HEADERS = ["№", "Овог нэр", "Төрсөн он", "Хүйс", "Регистрийн дугаар",
                   "ҮЭ-ийн бүртгэлийн дугаар", "ҮЭ-д элссэн огноо", "ҮЭ-ийн гишүүний статус",
@@ -23,12 +26,14 @@ ORG_HEADERS = ["№", "Код", "Нэр", "Төрөл", "Регистрийн д
 CHUNK = 500                        # IN (...) параметрийн тоог хязгаарлах
 
 
-def _member_phones(conn):
+def _member_phones():
     """Гишүүн бүрийн утас/факс (contact хүснэгт) — "99112233, 70112233" хэлбэрээр."""
     out = {}
-    for r in conn.execute("SELECT owner_id, value FROM contact WHERE owner_type='member' "
-                          "AND type IN ('утас', 'факс') ORDER BY id"):
-        out.setdefault(r["owner_id"], []).append(r["value"])
+    for r in session().execute(
+            select(Contact.owner_id, Contact.value)
+            .where(Contact.owner_type == "member", Contact.type.in_(("утас", "факс")))
+            .order_by(Contact.id)):
+        out.setdefault(r.owner_id, []).append(r.value)
     return {k: ", ".join(v) for k, v in out.items()}
 
 
@@ -47,12 +52,8 @@ def _member_rows(members, phones):
 
 @bp.route("/api/member/export", methods=["GET"])
 def export_members():
-    conn = get_db()
-    try:
-        members = conn.execute(*member_list_query(conn)).fetchall()
-        phones = _member_phones(conn)
-    finally:
-        conn.close()
+    members = [member_row(m) for m in session().execute(member_list_query()).mappings()]
+    phones = _member_phones()
     return xlsx_response("гишүүд", [Sheet("Гишүүд", MEMBER_HEADERS,
                                           _member_rows(members, phones))])
 
@@ -67,14 +68,10 @@ def _org_rows(orgs, stats):
 
 @bp.route("/api/organization/export", methods=["GET"])
 def export_organizations():
-    conn = get_db()
-    try:
-        orgs = conn.execute(*org_list_query(conn)).fetchall()
-        ids = [o["id"] for o in orgs]
-        stats = {}
-        for i in range(0, len(ids), CHUNK):
-            stats.update(org_stats_many(conn, ids[i:i + CHUNK]))
-    finally:
-        conn.close()
+    orgs = [org_row(o) for o in session().execute(org_list_query()).mappings()]
+    ids = [o["id"] for o in orgs]
+    stats = {}
+    for i in range(0, len(ids), CHUNK):
+        stats.update(org_stats_many(ids[i:i + CHUNK]))
     return xlsx_response("байгууллагууд", [Sheet("Байгууллагууд", ORG_HEADERS,
                                                   _org_rows(orgs, stats))])

@@ -2,7 +2,10 @@
 import os
 
 from flask import abort
+from sqlalchemy import select
 
+from core.orm import session
+from core.orm.models import FormDocument
 from core.storage import Area
 
 # --- Санал асуулгын PDF (form_document) ---
@@ -46,9 +49,9 @@ def validate_pdf(f):
     return name, size
 
 
-def document_list(conn, form_id):
-    return [public_document(r) for r in conn.execute(
-        "SELECT * FROM form_document WHERE form_id=? ORDER BY id", (form_id,)).fetchall()]
+def document_list(form_id):
+    return [public_document(d.to_dict()) for d in session().scalars(
+        select(FormDocument).where(FormDocument.form_id == form_id).order_by(FormDocument.id))]
 
 
 def remove_upload(file_path):
