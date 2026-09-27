@@ -1,7 +1,7 @@
 {
  "info": {
   "name": "edu-union-backend — Засаг захиргаа, ҮЭ, Хэрэглэгчийн удирдлага",
-  "description": "edu-union-backend — Flask + SQLite JSON API-ийн бүрэн лавлах цуглуулга.\n\n## Хэрхэн ажиллуулах\n1. Сервер: `python run.py` (анхдагч http://127.0.0.1:5001).\n2. `base_url` хувьсагчийг серверийнхээ хаягаар тохируулна.\n3. **'0. Нэвтрэлт (login)'-ийг ЭХЭЛЖ ажиллуулна** — токен `{{token}}`-д хадгалагдаж, бусад бүх хүсэлт үүнийг Bearer толгойгоор автоматаар авна.\n4. Дараа нь Runner-ээр бүх цуглуулгыг дээрээс доош ажиллуулж болно.\n\n## Зарчим\n- Фолдер бүр **өөрийгөө цэвэрлэдэг**: `Нэмэх` шинэ бичлэг үүсгэж id-г нь `{{new_*}}` хувьсагчид хадгална, `Засах`/`Устгах` нь ЗӨВХӨН тэр бичлэгийг онилно. Тиймээс цуглуулгыг хэдэн ч удаа ажиллуулсан seed өгөгдөл (аймаг, лавлахууд, admin дүр/хэрэглэгч) хэвээр үлдэнэ.\n- `GET` хүсэлтүүд seed мөрүүдийг (ж: `{{au1_code}}`=011) уншина.\n- Хүсэлт бүрд статусын шалгалт (`pm.test`) байгаа тул Runner-т ногоон/улаанаар харагдана.\n\n## Файлтай хүсэлтүүд\n`ҮЭ — Гишүүний файл` болон `Портал 2 — Файл байршуулах` дотор Body → form-data → `file` мөрөнд компьютерээсээ файлаа СОНГОНО. Сонгоогүй үед тэдгээр хүсэлт алгасагдаж, дараагийнх нь анхдагч утгаар үргэлжилнэ.\n\n## Портал (цэс ба контент)\n`Портал 1..7` фолдерууд дараалан ажиллах бүтэн урсгал: цэс үүсгэх → файл байршуулах → контент засах → блок нэмэх/эрэмбэлэх → спекийн зураг/файл/видео маршрут → алдааны шалгалт → cascade устгал.\n\n## Судалгаа / Санал асуулга\n`Судалгаа 1..8` фолдерууд дараалан ажиллах бүтэн урсгал: маягт үүсгэх → асуулт барих → сонголт → PDF хавсаргах → **токенгүй** порталаас бөглөх → үр дүн/трэнд → алдааны шалгалт → бүрэн цэвэрлэгээ.\n\n`/api/portal/...` нь НЭЭЛТТЭЙ тул тэдгээр хүсэлт `noauth`-той явна — зочин хүн нэвтрэхгүйгээр судалгаа бөглөнө. Токен ирвэл бөглөлт хэрэглэгчийн нэр дээр бүртгэгдэж `one_response` үйлчилнэ.\n\n## Метод\nЗасварын БҮХ маршрут `PUT` ба `PATCH` хоёуланг хүлээж авдаг (хоёулаа хэсэгчилсэн\nзасвар — зөвхөн илгээсэн талбарыг сольдог). Цуглуулгад `Засах` хүсэлт бүрийн\nдэргэд `— PATCH-аар мөн` хувилбар байгаа нь үүнийг батална. Онцгой тохиолдол нь\n`PUT|PATCH /api/user/{id}/scope`: `PUT` бүхэлд нь дарж бичнэ, `PATCH` merge хийнэ.\nБуруу метод (ж: `PATCH /api/login`) нь HTML биш JSON 405 буцаана.\n\n## Огноо\nХүснэгт бүр `created_at` / `updated_at`-тай (DB-ийн trigger автоматаар бөглөнө) —\n`Огноо — created_at / updated_at (бүх жагсаалт)` фолдер үүнийг бүх жагсаалт дээр\nшалгана. Миграциас ӨМНӨ үүссэн мөрүүд NULL хэвээр байж болно.\n\n## Лавлахууд\n`position` / `profession` / `reward_type` / `structure` дөрвүүлээ `id` + `code` +\n`name` бүтэцтэй, код давхцвал 409. `structure` (Бүтцийн удирдлага) -г\n`organization` ба `user` хоёул `structure_id`-аар сонгоно.\n\n## Хэрэглэгч\nНэр нь `last_name` + `first_name` (`full_name` байхгүй). `Хэрэглэгч — Хамрах\nхүрээ (user_scope)` фолдер нь тухайн хэрэглэгч АЛЬ өгөгдлийг харахыг тодорхойлох\n`/api/user/{id}/scope`-ыг бүрэн шалгана.\n\n## Мэдээ ба порталын тохиргоо\n`Мэдээ 1..6` фолдерууд дараалан ажиллах бүтэн урсгал: мэдээ үүсгэх → блок нэмэх (текст/зураг/видео) → эрэмбэлэх → нийтлэх → **токенгүй** порталаас унших → порталын тохиргоо (толгой, баннер, холбоо барих) → алдааны шалгалт → cascade устгал.\n\n`Мэдээ 4` нь `portal_settings` singleton-ыг дарж бичээд, ТЭР ЖИШЭЭ ФОЛДЕРТ анхны утгуудыг нь буцааж сэргээдэг тул цуглуулгыг хэдэн ч удаа ажиллуулахад тохиргоо хэвээр үлдэнэ. Кирилл шүүлтүүр (`?category=Мэдээ`) нь URL-encoded хэлбэрээр явна.\n\n## Байгууллага\n`organization` нь хороонд ХАРЬЯАЛАГДАХГҮЙ (`horoo_id` хасагдсан) — жагсаалтыг\n`?school_category_id=` / `?structure_id=`-ээр шүүнэ. `ҮЭ — Алдааны шалгалт\n(сөрөг тест)` фолдер энэ бүх ирмэгийн тохиолдлыг гүйлгэнэ.",
+  "description": "edu-union-backend — Flask + SQLite JSON API-ийн бүрэн лавлах цуглуулга.\n\n## Хэрхэн ажиллуулах\n1. Сервер: `python run.py` (анхдагч http://127.0.0.1:5001).\n2. `base_url` хувьсагчийг серверийнхээ хаягаар тохируулна.\n3. **'0. Нэвтрэлт (login)'-ийг ЭХЭЛЖ ажиллуулна** — токен `{{token}}`-д хадгалагдаж, бусад бүх хүсэлт үүнийг Bearer толгойгоор автоматаар авна.\n4. Дараа нь Runner-ээр бүх цуглуулгыг дээрээс доош ажиллуулж болно.\n\n## Зарчим\n- Фолдер бүр **өөрийгөө цэвэрлэдэг**: `Нэмэх` шинэ бичлэг үүсгэж id-г нь `{{new_*}}` хувьсагчид хадгална, `Засах`/`Устгах` нь ЗӨВХӨН тэр бичлэгийг онилно. Тиймээс цуглуулгыг хэдэн ч удаа ажиллуулсан seed өгөгдөл (аймаг, лавлахууд, admin дүр/хэрэглэгч) хэвээр үлдэнэ.\n- `GET` хүсэлтүүд seed мөрүүдийг (ж: `{{au1_code}}`=011) уншина.\n- Хүсэлт бүрд статусын шалгалт (`pm.test`) байгаа тул Runner-т ногоон/улаанаар харагдана.\n\n## Файлтай хүсэлтүүд\n`ҮЭ — Гишүүний файл`, `Портал 2 — Файл байршуулах`, `Судалгаа 4` дахь form-data хүсэлтүүд\nrepo доторх жишээ файлуудыг илгээнэ: `docs/fixtures/sample.png`, `docs/fixtures/sample.pdf`\n(зам нь repo-ийн үндсээс харьцангуй). **newman-ийг repo-ийн үндсээс** ажиллуулна; Postman\nапп дээр Settings → General → *Working directory*-г repo-ийн үндэс болгоно. Байршуулсан файлыг\nтокенгүй буцааж уншиж (`/uploads/content/...`, `/uploads/form/...`), гишүүний PDF-г татаж\nшалгана — production-д эдгээр нь S3-аас уншигдана.\n\n## Портал (цэс ба контент)\n`Портал 1..7` фолдерууд дараалан ажиллах бүтэн урсгал: цэс үүсгэх → файл байршуулах → контент засах → блок нэмэх/эрэмбэлэх → спекийн зураг/файл/видео маршрут → алдааны шалгалт → cascade устгал.\n\n## Судалгаа / Санал асуулга\n`Судалгаа 1..8` фолдерууд дараалан ажиллах бүтэн урсгал: маягт үүсгэх → асуулт барих → сонголт → PDF хавсаргах → **токенгүй** порталаас бөглөх → үр дүн/трэнд → алдааны шалгалт → бүрэн цэвэрлэгээ.\n\n`/api/portal/...` нь НЭЭЛТТЭЙ тул тэдгээр хүсэлт `noauth`-той явна — зочин хүн нэвтрэхгүйгээр судалгаа бөглөнө. Токен ирвэл бөглөлт хэрэглэгчийн нэр дээр бүртгэгдэж `one_response` үйлчилнэ.\n\n## Метод\nЗасварын БҮХ маршрут `PUT` ба `PATCH` хоёуланг хүлээж авдаг (хоёулаа хэсэгчилсэн\nзасвар — зөвхөн илгээсэн талбарыг сольдог). Цуглуулгад `Засах` хүсэлт бүрийн\nдэргэд `— PATCH-аар мөн` хувилбар байгаа нь үүнийг батална. Онцгой тохиолдол нь\n`PUT|PATCH /api/user/{id}/scope`: `PUT` бүхэлд нь дарж бичнэ, `PATCH` merge хийнэ.\nБуруу метод (ж: `PATCH /api/login`) нь HTML биш JSON 405 буцаана.\n\n## Огноо\nХүснэгт бүр `created_at` / `updated_at`-тай (DB-ийн trigger автоматаар бөглөнө) —\n`Огноо — created_at / updated_at (бүх жагсаалт)` фолдер үүнийг бүх жагсаалт дээр\nшалгана. Миграциас ӨМНӨ үүссэн мөрүүд NULL хэвээр байж болно.\n\n## Лавлахууд\n`position` / `profession` / `reward_type` / `structure` дөрвүүлээ `id` + `code` +\n`name` бүтэцтэй, код давхцвал 409. `structure` (Бүтцийн удирдлага) -г\n`organization` ба `user` хоёул `structure_id`-аар сонгоно.\n\n## Хэрэглэгч\nНэр нь `last_name` + `first_name` (`full_name` байхгүй). `Хэрэглэгч — Хамрах\nхүрээ (user_scope)` фолдер нь тухайн хэрэглэгч АЛЬ өгөгдлийг харахыг тодорхойлох\n`/api/user/{id}/scope`-ыг бүрэн шалгана.\n\n## Мэдээ ба порталын тохиргоо\n`Мэдээ 1..6` фолдерууд дараалан ажиллах бүтэн урсгал: мэдээ үүсгэх → блок нэмэх (текст/зураг/видео) → эрэмбэлэх → нийтлэх → **токенгүй** порталаас унших → порталын тохиргоо (толгой, баннер, холбоо барих) → алдааны шалгалт → cascade устгал.\n\n`Мэдээ 4` нь `portal_settings` singleton-ыг дарж бичээд, ТЭР ЖИШЭЭ ФОЛДЕРТ анхны утгуудыг нь буцааж сэргээдэг тул цуглуулгыг хэдэн ч удаа ажиллуулахад тохиргоо хэвээр үлдэнэ. Кирилл шүүлтүүр (`?category=Мэдээ`) нь URL-encoded хэлбэрээр явна.\n\n## Байгууллага\n`organization` нь хороонд ХАРЬЯАЛАГДАХГҮЙ (`horoo_id` хасагдсан) — жагсаалтыг\n`?school_category_id=` / `?structure_id=`-ээр шүүнэ. `ҮЭ — Алдааны шалгалт\n(сөрөг тест)` фолдер энэ бүх ирмэгийн тохиолдлыг гүйлгэнэ.",
   "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
  },
  "auth": {
@@ -2555,13 +2555,13 @@
         {
          "key": "file",
          "type": "file",
-         "src": [],
+         "src": "docs/fixtures/sample.pdf",
          "description": "1-р PDF (≤10 MB)"
         },
         {
          "key": "file",
          "type": "file",
-         "src": [],
+         "src": "docs/fixtures/sample.pdf",
          "description": "2-р PDF (≤10 MB) — 'file'-г давтана"
         },
         {
@@ -2579,14 +2579,11 @@
        "script": {
         "type": "text/javascript",
         "exec": [
-         "if (pm.response.code === 201) {",
-         "  var j = pm.response.json();",
-         "  pm.collectionVariables.set('new_member_file_id', j[0].id);",
-         "  pm.collectionVariables.set('new_member_file_id2', j.length > 1 ? j[1].id : j[0].id);",
-         "  pm.test('файл(ууд) хадгалагдсан', () => pm.expect(j.length).to.be.above(0));",
-         "} else {",
-         "  console.log('PDF сонгоогүй тул алгаслаа (статус ' + pm.response.code + ')');",
-         "}"
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "var j = pm.response.json();",
+         "pm.collectionVariables.set('new_member_file_id', j[0].id);",
+         "pm.collectionVariables.set('new_member_file_id2', j[1].id);",
+         "pm.test('2 файл хадгалагдсан', () => pm.expect(j.length).to.eql(2));"
         ]
        }
       }
@@ -2646,7 +2643,9 @@
        "script": {
         "type": "text/javascript",
         "exec": [
-         "pm.test('200 (PDF сонгосон) эсвэл 404 (алгассан)', () => pm.expect([200, 404]).to.include(pm.response.code));"
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('attachment', () => pm.expect(pm.response.headers.get('Content-Disposition')).to.include('attachment'));",
+         "pm.test('%PDF- толгой', () => pm.expect(pm.response.text().slice(0, 5)).to.eql('%PDF-'));"
         ]
        }
       }
@@ -9056,7 +9055,7 @@
         {
          "key": "file",
          "type": "file",
-         "src": [],
+         "src": "docs/fixtures/sample.png",
          "description": "jpg/jpeg/png/webp (≤5 MB) эсвэл pdf/doc/docx/xls/xlsx (≤20 MB)"
         }
        ]
@@ -9068,13 +9067,11 @@
        "script": {
         "type": "text/javascript",
         "exec": [
-         "if (pm.response.code === 201) {",
-         "  var j = pm.response.json();",
-         "  pm.collectionVariables.set('upload_url', j.url);",
-         "  pm.test('url буцсан', () => pm.expect(j.url).to.include('/uploads/content/'));",
-         "} else {",
-         "  console.log('Файл сонгоогүй байна — алгаслаа (статус ' + pm.response.code + ')');",
-         "}"
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "var j = pm.response.json();",
+         "pm.collectionVariables.set('upload_url', j.url);",
+         "pm.test('url /uploads/content/', () => pm.expect(j.url).to.include('/uploads/content/'));",
+         "pm.test('mime image/png', () => pm.expect(j.mime_type).to.eql('image/png'));"
         ]
        }
       }
@@ -9102,7 +9099,9 @@
        "script": {
         "type": "text/javascript",
         "exec": [
-         "pm.test('нээлттэй хандалт (200 эсвэл 404)', () => pm.expect([200, 404]).to.include(pm.response.code));"
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('Content-Type image/png', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('image/png'));",
+         "pm.test('агуулга хоосон биш', () => pm.expect(pm.response.stream.length).to.be.above(0));"
         ]
        }
       }
@@ -11673,7 +11672,7 @@
         {
          "key": "file",
          "type": "file",
-         "src": [],
+         "src": "docs/fixtures/sample.pdf",
          "description": "Хуулийн төслийн PDF (≤20 MB)"
         }
        ]
@@ -11686,16 +11685,11 @@
        "script": {
         "type": "text/javascript",
         "exec": [
-         "if (pm.response.code === 201) {",
-         "  var j = pm.response.json();",
-         "  pm.collectionVariables.set('form_document_id', j[0].id);",
-         "  pm.collectionVariables.set('form_doc_url', j[0].url);",
-         "  pm.test('PDF хадгалагдсан', () => pm.expect(j[0].mime_type).to.eql('application/pdf'));",
-         "} else {",
-         "  pm.collectionVariables.set('form_document_id', '0');",
-         "  pm.collectionVariables.set('form_doc_url', '/uploads/form/none.pdf');",
-         "  console.log('PDF сонгоогүй тул алгаслаа (статус ' + pm.response.code + ')');",
-         "}"
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "var j = pm.response.json();",
+         "pm.collectionVariables.set('form_document_id', j[0].id);",
+         "pm.collectionVariables.set('form_doc_url', j[0].url);",
+         "pm.test('PDF хадгалагдсан', () => pm.expect(j[0].mime_type).to.eql('application/pdf'));"
         ]
        }
       }
@@ -11755,7 +11749,9 @@
        "script": {
         "type": "text/javascript",
         "exec": [
-         "pm.test('нээлттэй хандалт (200 эсвэл 404)', () => pm.expect([200, 404]).to.include(pm.response.code));"
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('application/pdf', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/pdf'));",
+         "pm.test('%PDF- толгой', () => pm.expect(pm.response.text().slice(0, 5)).to.eql('%PDF-'));"
         ]
        }
       }
