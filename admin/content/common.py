@@ -3,37 +3,19 @@
 from datetime import datetime, timezone
 
 from flask import jsonify, abort
-from sqlalchemy import false, func, select
+from sqlalchemy import func, select
 
 from core.helpers import json_body
 from core.orm import session
 from core.orm.models import Page, PageBlock
+from core.content_core import BLOCK_FIELDS, public_block as _public_block
 
-from admin.content.storage import remove_upload
-
-
-# Блокийн төрөл -> тухайн төрөлд хамаарах талбарууд (бусад багана NULL үлдэнэ)
-BLOCK_FIELDS = {
-    "text":  ("text",),
-    "image": ("url", "caption"),
-    "video": ("url", "title"),
-    "file":  ("url", "name", "mime_type", "size"),
-    "link":  ("url", "title"),
-}
-BLOCK_TYPES = tuple(BLOCK_FIELDS)
-
-# ?tree= / ?is_visible= зэрэг query-д "үнэн" гэж тооцох утгууд
-_TRUE = ("1", "true", "True")
+from core.content_storage import remove_upload
 
 
 # ----------------------------- Туслахууд -----------------------------
 def _now():
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
-
-
-def _eq_arg(column, value):
-    """Query string-ийн утгаар тоон баганыг шүүх нөхцөл (тоо биш бол юу ч таарахгүй)."""
-    return column == int(value) if str(value).isdigit() else false()
 
 
 def _next_sort(column, value):
@@ -54,27 +36,6 @@ def _ensure_page(menu_id, title):
 
 
 # ----------------------------- Блокийн туслахууд -----------------------------
-def _public_block(block):
-    """Блокийг төрөлдөө хамаарах талбаруудаар нь цэвэрхэн буцаана."""
-    out = {"id": block.id, "page_id": block.page_id,
-           "type": block.type, "sort_order": block.sort_order,
-           "created_at": block.created_at, "updated_at": block.updated_at}
-    for f in BLOCK_FIELDS.get(block.type, ()):
-        out[f] = getattr(block, f)
-    if block.type == "video":
-        out["youtube_url"] = block.url      # спекийн нэршил
-    return out
-
-
-def _blocks_of(page_id, btype=None):
-    """Хуудасны блокуудыг эрэмбээр нь (сонголтоор нэг төрлөөр шүүж) буцаана."""
-    stmt = select(PageBlock).where(PageBlock.page_id == page_id)
-    if btype:
-        stmt = stmt.where(PageBlock.type == btype)
-    return [_public_block(b) for b in
-            session().scalars(stmt.order_by(PageBlock.sort_order, PageBlock.id))]
-
-
 def _check_page(page_id):
     """page_id байгаа эсэхийг шалгана (байхгүй бол 400)."""
     if not str(page_id).isdigit() or session().get(Page, int(page_id)) is None:

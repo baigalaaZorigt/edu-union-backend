@@ -1,41 +1,14 @@
 """upload (Файл байршуулах) — /api/upload ба /uploads/content/<нэр> (токенгүй)."""
 
 import os
-import uuid
 
 from flask import jsonify, request, abort
 
 from admin.content import bp
-from admin.content.storage import (DOC_TYPES, IMAGE_TYPES, MAX_DOC_SIZE, MAX_IMAGE_SIZE,
-                                   STORE, UPLOAD_URL_PREFIX)
+from core.content_storage import STORE, save_upload
 
 
 # ===================== upload (Файл байршуулах) =====================
-def _validate_upload(f):
-    """Өргөтгөл ба хэмжээг шалгаад (нэр, өргөтгөл, mime, хэмжээ)-г буцаана."""
-    name = (f.filename or "").strip()
-    if not name or "." not in name:
-        abort(400, description="Файлын нэр буруу байна")
-    ext = name.rsplit(".", 1)[1].lower()
-    if ext in IMAGE_TYPES:
-        mime, limit, label = IMAGE_TYPES[ext], MAX_IMAGE_SIZE, "Зураг 5 MB"
-    elif ext in DOC_TYPES:
-        mime, limit, label = DOC_TYPES[ext], MAX_DOC_SIZE, "Файл 20 MB"
-    else:
-        abort(400, description=(
-            "Зөвшөөрөгдөөгүй төрөл. Зураг: " + ", ".join(IMAGE_TYPES) +
-            " / Файл: " + ", ".join(DOC_TYPES)))
-    f.stream.seek(0, os.SEEK_END)
-    size = f.stream.tell()
-    f.stream.seek(0)
-    if size == 0:
-        abort(400, description=f"'{name}': файл хоосон байна")
-    if size > limit:
-        abort(400, description=(
-            f"'{name}': {label}-аас хэтэрсэн байна ({size / 1024 / 1024:.1f} MB)"))
-    return name, ext, mime, size
-
-
 @bp.route("/api/upload", methods=["POST"])
 def upload():
     """multipart/form-data, `file` талбар -> {url, name, mime_type, size}.
@@ -46,11 +19,7 @@ def upload():
          (request.files.getlist("file") or [None])[0])
     if not f:
         abort(400, description="Файл алга — 'file' талбараар илгээнэ")
-    name, ext, mime, size = _validate_upload(f)
-    stored = f"{uuid.uuid4().hex}.{ext}"
-    STORE.save(stored, f, mime)
-    return jsonify(url=UPLOAD_URL_PREFIX + stored,
-                   name=name, mime_type=mime, size=size), 201
+    return jsonify(save_upload(f)), 201
 
 
 @bp.route("/uploads/content/<path:stored_name>", methods=["GET"])

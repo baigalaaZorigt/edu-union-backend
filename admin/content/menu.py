@@ -8,10 +8,12 @@ from core.helpers import require, json_body, list_json
 from core.orm import session
 from core.orm.models import Menu, Page, PageBlock
 from core.orm.query import paginate
+from core.content_core import (MENU_SELECT, TRUE_ARGS as _TRUE, menu_dict as _menu_dict, menu_filters,
+                               tree as _tree)
 
 from admin.content import bp
-from admin.content.storage import remove_upload
-from admin.content.common import _TRUE, _ensure_page, _eq_arg, _next_sort, _now, _order_items
+from core.content_storage import remove_upload
+from admin.content.common import _ensure_page, _next_sort, _now, _order_items
 
 
 # Цэсний төрлүүд (спекийн хүснэгт). page-аас бусад нь кодод суусан функциональ хуудас.
@@ -100,29 +102,10 @@ def _validate_menu(data, current=None):
 
 
 # Цэсийг page_id-тай нь хамт унших select (админ UI шууд хуудсыг нь нээхэд)
-MENU_SELECT = select(Menu, Page.id.label("page_id")).outerjoin(Page, Page.menu_id == Menu.id)
-
-
-def _menu_dict(row):
-    """(Menu, page_id) мөрийг хуучин `m.*, page_id` dict болгоно."""
-    return dict(row["Menu"].to_dict(), page_id=row["page_id"])
-
-
 def _menu_row(mid):
     """Цэсийг page_id-тай нь хамт буцаана (байхгүй бол None)."""
     row = session().execute(MENU_SELECT.where(Menu.id == mid)).mappings().first()
     return _menu_dict(row) if row else None
-
-
-def _tree(flat):
-    """Хавтгай жагсаалтыг эцэг-хүүхдийн мод болгоно (children түлхүүртэйгээр)."""
-    by_id = {r["id"]: dict(r, children=[]) for r in flat}
-    roots = []
-    for r in flat:
-        node = by_id[r["id"]]
-        parent = by_id.get(r["parent_id"])
-        (parent["children"] if parent else roots).append(node)
-    return roots
 
 
 def _subtree_ids(mid):
@@ -141,18 +124,7 @@ def list_menu():
 
     Шүүлт: ?parent_id= (root бол 'null'), ?type=, ?is_visible=1
     """
-    stmt = MENU_SELECT
-    parent_id = request.args.get("parent_id")
-    if parent_id is not None:
-        if parent_id in ("", "null", "0"):
-            stmt = stmt.where(Menu.parent_id.is_(None))
-        else:
-            stmt = stmt.where(_eq_arg(Menu.parent_id, parent_id))
-    if request.args.get("type"):
-        stmt = stmt.where(Menu.type == request.args["type"])
-    if request.args.get("is_visible") is not None:
-        stmt = stmt.where(Menu.is_visible == (1 if request.args["is_visible"] in _TRUE else 0))
-    stmt = stmt.order_by(Menu.parent_id.is_not(None), Menu.parent_id, Menu.sort_order, Menu.id)
+    stmt = menu_filters(MENU_SELECT, request.args)
     if request.args.get("tree") in _TRUE:     # мод бүтэн байх ёстой — хуудаслахгүй
         rows = session().execute(stmt).mappings().all()
         return jsonify(_tree([_menu_dict(r) for r in rows]))

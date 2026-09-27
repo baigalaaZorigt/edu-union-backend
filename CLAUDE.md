@@ -73,6 +73,12 @@ portal's token-free API (`/api/portal/...`, `/api/public/...`). What both sides 
   `/api/portal/partners` → `{items: [...]}` (partner: id, name, url, icon, logo_url),
   `Cache-Control: public, max-age=300`),
   `legal.py` (`/api/portal/legal_documents[/<id>]` — visible rows; detail adds `blocks`),
+  `content.py` (`/api/portal/menu`, `/api/portal/page/<menu_id>`, `/api/portal/page_block`,
+  `POST /api/portal/upload` — the admin reads' exact responses, built by the same
+  `core/content_core.py` functions, but only visible menus (the whole parent chain
+  `is_visible`) and `published` pages on visible menus; hidden/draft → 404 or `[]`. The
+  token-free upload has the admin upload's type/size rules plus a per-IP limit of 10 per 10 min
+  per worker → 429),
   `stats.py` (`/api/portal/membership_structure` — «Гишүүнчлэлийн бүтэц» pie: members per
   school category, plus `rural` = members of schools a ХОН specialist is assigned (taken out of
   their category, never double-counted) and `other` = schools without a category; integer
@@ -131,6 +137,8 @@ alembic/            # migration-ууд: 0001_baseline (хуучин бүх сх�
   helpers.py        #   require, json_body, pick, client_ip, now_str, page_params, list_json
   forms_core/       #   survey/poll домэйний цөм (base, questions, results, documents)
   news_core.py  scope_core.py  feedback_core.py  settings_core.py  home_core.py  legal_core.py
+  content_core.py   #   цэс/хуудас/блокийн хариу хэлбэр (admin ба портал хуваалцана)
+  content_storage.py #  контент файл: UPLOAD_DIR, STORE, validate/save_upload, remove_upload
   search_core.py    #   порталын хайлтын индекс, тааруулалт, snippet
   xlsx.py           #   Excel экспорт (xlsxwriter constant_memory, bold+freeze толгой)
   storage.py        #   файлын сан: S3 (S3_BUCKET) эсвэл локал диск — Area(area, local_dir)
@@ -141,7 +149,7 @@ admin/              # ── ADMIN SITE (токен + эрх) ──
                     #   member_education, member_reward, member_file (+ common)
                     #   (holboo — зөвхөн хүснэгт + seed; API маршрут байхгүй)
   users/            #   "users": permissions, roles, accounts, scope, me (login/me/...) + common
-  content/          #   "content": menu, page, blocks, upload, storage (UPLOAD_DIR, remove_upload)
+  content/          #   "content": menu, page, blocks, upload (+ core/content_core, content_storage)
   forms/            #   "admin_forms": forms, questions, options, documents, results
   notifications/    #   "notifications": admin_routes (/api/admin/notifications), inbox
                     #   (/api/notifications), common (validation, fan-out, dispatch_due)
@@ -159,6 +167,7 @@ client/             # ── CLIENT SITE (портал, токенгүй) ──
   home.py           #   "portal_home": /api/portal/banners|partners
   search.py         #   "portal_search": /api/portal/search, /api/portal/search/suggest
   stats.py          #   "portal_stats": /api/portal/membership_structure
+  content.py        #   "portal_content": /api/portal/menu|page|page_block|upload
   legal.py          #   "portal_legal": /api/portal/legal_documents
 scripts/
   migrate_to_pg.py  # SQLite -> Postgres хуулах
@@ -232,8 +241,8 @@ python -m pytest tests -q      # the whole pytest suite (571 tests, ~13 s)
   The Postman collection (`docs/edu-union-backend.postman_collection.json`) is the second,
   black-box suite, run against a live server. It runs **top to bottom** (Postman Runner or
   `newman run docs/edu-union-backend.postman_collection.json --env-var base_url=...`, **from the
-  repo root** — the form-data requests upload `docs/fixtures/sample.png|pdf` by relative path): 586 requests,
-  1134 assertions, and repeatable — three consecutive runs leave every table's row count
+  repo root** — the form-data requests upload `docs/fixtures/sample.png|pdf` by relative path): 603 requests,
+  1160 assertions, and repeatable — three consecutive runs leave every table's row count
   unchanged. (One known red on a *fresh* DB: `ҮЭ — Гишүүний боловсрол / Нэгийг авах` reads
   `member_education_id`=1, but `seed_union()` creates no `member_education` row.) **Keep it that way when adding requests:** run "0. Нэвтрэлт" first (it stores
   `{{token}}`), have each folder's `Нэмэх` save the new id into a `{{new_*}}` variable, and point

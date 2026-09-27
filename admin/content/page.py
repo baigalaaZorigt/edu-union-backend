@@ -8,10 +8,11 @@ from core.helpers import require, json_body, pick, list_json
 from core.orm import session
 from core.orm.models import Menu, Page
 from core.orm.query import paginate
+from core.content_core import page_payload
 
 from admin.content import bp
-from admin.content.storage import remove_upload
-from admin.content.common import _blocks_of, _now
+from core.content_storage import remove_upload
+from admin.content.common import _now
 
 
 # Хуудасны засаж болох талбарууд
@@ -29,10 +30,7 @@ def get_page(menu_id):
     page = session().scalar(select(Page).where(Page.menu_id == menu_id))
     if page is None:
         abort(404, description="Энэ цэсэнд контент хуудас алга")
-    data = dict(page.to_dict(), blocks=_blocks_of(page.id))
-    for key, btype in (("images", "image"), ("files", "file"), ("videos", "video")):
-        data[key] = _blocks_of(page.id, btype)
-    return jsonify(data)
+    return jsonify(page_payload(page))
 
 
 @bp.route("/api/page", methods=["GET"])

@@ -27,7 +27,7 @@ bp = Blueprint("content", __name__)
 
 # admin/news.py, admin/settings.py, admin/feedback.py болон тестүүд эдгээрийг
 # `admin.content`-оос импортолдог тул энд дахин экспортлоно.
-from admin.content.storage import (  # noqa: E402,F401
+from core.content_storage import (  # noqa: E402,F401
     DOC_TYPES, IMAGE_TYPES, MAX_DOC_SIZE, MAX_IMAGE_SIZE, UPLOAD_DIR, UPLOAD_URL_PREFIX,
     remove_upload,
 )

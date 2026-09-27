@@ -7,13 +7,13 @@ from core.helpers import require, json_body, pick, list_json
 from core.orm import session
 from core.orm.models import PageBlock
 from core.orm.query import paginate
+from core.content_core import (BLOCK_FIELDS, BLOCK_ORDER, BLOCK_TYPES, eq_arg as _eq_arg,
+                               public_block as _public_block)
+from core.content_storage import remove_upload
 
 from admin.content import bp
-from admin.content.storage import remove_upload
-from admin.content.common import (BLOCK_FIELDS, BLOCK_TYPES, _create_block,
-                                  _delete_block, _eq_arg, _order_items, _public_block)
+from admin.content.common import _create_block, _delete_block, _order_items
 
-BLOCK_ORDER = (PageBlock.page_id, PageBlock.sort_order, PageBlock.id)
 
 
 # ==================== page_block (Хуудасны блокууд) ====================
