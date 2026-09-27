@@ -547,6 +547,20 @@
        "path": [
         "api",
         "au1"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
+        }
        ]
       }
      },
@@ -756,6 +770,18 @@
         {
          "key": "au1_code",
          "value": "{{au1_code}}"
+        },
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
         }
        ]
       }
@@ -966,6 +992,18 @@
         {
          "key": "au2_code",
          "value": "{{au2_code}}"
+        },
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
         }
        ]
       }
@@ -1176,6 +1214,18 @@
         {
          "key": "holboo_id",
          "value": "{{holboo_id}}"
+        },
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
         }
        ]
       }
@@ -1386,6 +1436,18 @@
         {
          "key": "school_category_id",
          "value": "{{school_category_id}}"
+        },
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
         }
        ]
       }
@@ -1674,6 +1736,18 @@
         {
          "key": "organization_id",
          "value": "{{organization_id}}"
+        },
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
         }
        ]
       }
@@ -1711,6 +1785,18 @@
         {
          "key": "is_active",
          "value": "1"
+        },
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
         }
        ]
       }
@@ -1953,6 +2039,18 @@
         {
          "key": "member_id",
          "value": "{{member_id}}"
+        },
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
         }
        ]
       }
@@ -2163,6 +2261,18 @@
         {
          "key": "member_id",
          "value": "{{member_id}}"
+        },
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
         }
        ]
       }
@@ -2264,6 +2374,18 @@
         {
          "key": "reward_type_id",
          "value": "7"
+        },
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
         }
        ]
       }
@@ -2513,6 +2635,18 @@
         {
          "key": "member_id",
          "value": "{{member_id}}"
+        },
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
         }
        ]
       }
@@ -2822,6 +2956,18 @@
         {
          "key": "owner_id",
          "value": "{{organization_id}}"
+        },
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
         }
        ]
       }
@@ -3211,6 +3357,18 @@
         {
          "key": "status",
          "value": "хүлээгдэж буй"
+        },
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
         }
        ]
       }
@@ -3983,6 +4141,20 @@
        "path": [
         "api",
         "reward_type"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
+        }
        ]
       },
       "auth": {
@@ -4024,6 +4196,18 @@
         {
          "key": "sector",
          "value": "Шинжлэх ухаан"
+        },
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
         }
        ]
       }
@@ -4229,6 +4413,20 @@
        "path": [
         "api",
         "education_degree"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
+        }
        ]
       }
      },
@@ -4433,6 +4631,20 @@
        "path": [
         "api",
         "position"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
+        }
        ]
       }
      },
@@ -4678,6 +4890,20 @@
        "path": [
         "api",
         "profession"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
+        }
        ]
       }
      },
@@ -4923,6 +5149,20 @@
        "path": [
         "api",
         "reward_type"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
+        }
        ]
       }
      },
@@ -5168,6 +5408,20 @@
        "path": [
         "api",
         "structure"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
+        }
        ]
       }
      },
@@ -5450,6 +5704,18 @@
         {
          "key": "structure_id",
          "value": "{{new_structure_id}}"
+        },
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
         }
        ]
       }
@@ -5530,6 +5796,18 @@
         {
          "key": "structure_id",
          "value": "{{new_structure_id}}"
+        },
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
         }
        ]
       }
@@ -5793,6 +6071,20 @@
        "path": [
         "api",
         "school_category"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
+        }
        ]
       }
      },
@@ -5998,6 +6290,20 @@
        "path": [
         "api",
         "permission"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
+        }
        ]
       }
      },
@@ -6030,6 +6336,18 @@
         {
          "key": "resource",
          "value": "member"
+        },
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
         }
        ]
       }
@@ -6235,6 +6553,20 @@
        "path": [
         "api",
         "role"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
+        }
        ]
       }
      },
@@ -6549,6 +6881,20 @@
        "path": [
         "api",
         "user"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
+        }
        ]
       }
      },
@@ -6581,6 +6927,18 @@
         {
          "key": "role_id",
          "value": "{{role_id}}"
+        },
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
         }
        ]
       }
@@ -7401,6 +7759,20 @@
        "path": [
         "api",
         "user"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
+        }
        ]
       }
      },
@@ -7672,6 +8044,20 @@
        "path": [
         "api",
         "member"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
+        }
        ]
       }
      },
@@ -7703,6 +8089,20 @@
        "path": [
         "api",
         "organization"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
+        }
        ]
       }
      },
@@ -7734,6 +8134,20 @@
        "path": [
         "api",
         "horoo"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
+        }
        ]
       }
      },
@@ -7765,6 +8179,20 @@
        "path": [
         "api",
         "contact"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
+        }
        ]
       }
      },
@@ -7796,6 +8224,20 @@
        "path": [
         "api",
         "member_education"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
+        }
        ]
       }
      },
@@ -7827,6 +8269,20 @@
        "path": [
         "api",
         "member_reward"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
+        }
        ]
       }
      },
@@ -7858,6 +8314,20 @@
        "path": [
         "api",
         "salary_request"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
+        }
        ]
       }
      },
@@ -7889,6 +8359,20 @@
        "path": [
         "api",
         "salary_scale"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
+        }
        ]
       }
      },
@@ -7920,6 +8404,20 @@
        "path": [
         "api",
         "education_degree"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
+        }
        ]
       }
      },
@@ -7951,6 +8449,20 @@
        "path": [
         "api",
         "position"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
+        }
        ]
       }
      },
@@ -7982,6 +8494,20 @@
        "path": [
         "api",
         "profession"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
+        }
        ]
       }
      },
@@ -8013,6 +8539,20 @@
        "path": [
         "api",
         "reward_type"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
+        }
        ]
       }
      },
@@ -8044,6 +8584,20 @@
        "path": [
         "api",
         "structure"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
+        }
        ]
       }
      },
@@ -8075,6 +8629,20 @@
        "path": [
         "api",
         "school_category"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
+        }
        ]
       }
      },
@@ -8106,6 +8674,20 @@
        "path": [
         "api",
         "au1"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
+        }
        ]
       }
      },
@@ -8137,6 +8719,20 @@
        "path": [
         "api",
         "au2"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
+        }
        ]
       }
      },
@@ -8168,6 +8764,20 @@
        "path": [
         "api",
         "au3"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
+        }
        ]
       }
      },
@@ -8199,6 +8809,20 @@
        "path": [
         "api",
         "permission"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
+        }
        ]
       }
      },
@@ -8230,6 +8854,20 @@
        "path": [
         "api",
         "role"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
+        }
        ]
       }
      },
@@ -8261,6 +8899,20 @@
        "path": [
         "api",
         "user"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
+        }
        ]
       }
      },
@@ -8292,6 +8944,20 @@
        "path": [
         "api",
         "menu"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
+        }
        ]
       }
      },
@@ -8486,6 +9152,20 @@
        "path": [
         "api",
         "menu"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
+        }
        ]
       }
      },
@@ -8519,6 +9199,18 @@
         {
          "key": "is_visible",
          "value": "1"
+        },
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
         }
        ]
       }
@@ -8720,6 +9412,18 @@
         {
          "key": "parent_id",
          "value": "{{menu_id}}"
+        },
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
         }
        ]
       }
@@ -9160,6 +9864,20 @@
        "path": [
         "api",
         "page"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
+        }
        ]
       }
      },
@@ -9554,6 +10272,18 @@
         {
          "key": "page_id",
          "value": "{{page_id}}"
+        },
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
         }
        ]
       }
@@ -9597,6 +10327,18 @@
         {
          "key": "type",
          "value": "image"
+        },
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
         }
        ]
       }
@@ -9834,6 +10576,18 @@
         {
          "key": "page_id",
          "value": "{{page_id}}"
+        },
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
         }
        ]
       }
@@ -9949,6 +10703,18 @@
         {
          "key": "page_id",
          "value": "{{page_id}}"
+        },
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
         }
        ]
       }
@@ -10029,6 +10795,18 @@
         {
          "key": "page_id",
          "value": "{{page_id}}"
+        },
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
         }
        ]
       }
@@ -10108,6 +10886,18 @@
         {
          "key": "page_id",
          "value": "{{page_id}}"
+        },
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
         }
        ]
       }
@@ -10598,6 +11388,20 @@
        "path": [
         "api",
         "menu"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
+        }
        ]
       },
       "auth": {
@@ -10728,6 +11532,18 @@
         {
          "key": "page_id",
          "value": "{{page_id}}"
+        },
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
         }
        ]
       }
@@ -11818,6 +12634,18 @@
         {
          "key": "active",
          "value": "1"
+        },
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
         }
        ]
       },
@@ -11860,6 +12688,18 @@
         {
          "key": "type",
          "value": "poll"
+        },
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
         }
        ]
       },
@@ -13000,6 +13840,20 @@
         "api",
         "portal",
         "forms"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
+        }
        ]
       },
       "auth": {
@@ -13235,6 +14089,20 @@
         "api",
         "portal",
         "forms"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
+        }
        ]
       },
       "auth": {
@@ -15124,6 +15992,20 @@
        "path": [
         "api",
         "permission"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
+        }
        ]
       }
      },
@@ -15891,6 +16773,20 @@
         "api",
         "me",
         "organizations"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
+        }
        ]
       }
      },
@@ -15935,6 +16831,20 @@
        "path": [
         "api",
         "organization"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
+        }
        ]
       }
      },
@@ -15983,6 +16893,20 @@
        "path": [
         "api",
         "member"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
+        }
        ]
       }
      },
@@ -16258,6 +17182,20 @@
        "path": [
         "api",
         "user"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
+        }
        ]
       }
      },
@@ -18753,6 +19691,20 @@
        "path": [
         "api",
         "organization"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
+        }
        ]
       }
      },
@@ -18783,6 +19735,20 @@
        "path": [
         "api",
         "member"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
+        }
        ]
       }
      },
@@ -18851,6 +19817,20 @@
        "path": [
         "api",
         "banner"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
+        }
        ]
       }
      },
@@ -19332,6 +20312,20 @@
        "path": [
         "api",
         "banner"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
+        }
        ]
       },
       "auth": {
@@ -19428,6 +20422,20 @@
        "path": [
         "api",
         "partner"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1",
+         "disabled": true,
+         "description": "Хуудаслалт (сонголтоор): асаавал {items,total,page,per_page,pages} буцна"
+        },
+        {
+         "key": "per_page",
+         "value": "20",
+         "disabled": true,
+         "description": "Хуудас бүрийн мөр (анхдагч 20, дээд 100)"
+        }
        ]
       }
      },
@@ -20299,6 +21307,1344 @@
         "exec": [
          "pm.test('статус 400', () => pm.response.to.have.status(400));",
          "pm.test('{error}', () => pm.expect(pm.response.json().error).to.be.a('string'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "au1 — 1-р хуудас (per_page=2)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/au1?page=1&per_page=2",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "au1"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1"
+        },
+        {
+         "key": "per_page",
+         "value": "2"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('{items,total,page,per_page,pages}', () => pm.expect(Object.keys(j).sort()).to.eql(['items','page','pages','per_page','total']));",
+         "pm.test('≤ 2 мөр', () => pm.expect(j.items.length).to.be.at.most(2));",
+         "pm.test('pages = ceil(total/2)', () => pm.expect(j.pages).to.eql(Math.ceil(j.total / 2)));",
+         "pm.test('page = 1, per_page = 2', () => { pm.expect(j.page).to.eql(1); pm.expect(j.per_page).to.eql(2); });"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "au2 — 1-р хуудас (per_page=2)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/au2?page=1&per_page=2",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "au2"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1"
+        },
+        {
+         "key": "per_page",
+         "value": "2"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('{items,total,page,per_page,pages}', () => pm.expect(Object.keys(j).sort()).to.eql(['items','page','pages','per_page','total']));",
+         "pm.test('≤ 2 мөр', () => pm.expect(j.items.length).to.be.at.most(2));",
+         "pm.test('pages = ceil(total/2)', () => pm.expect(j.pages).to.eql(Math.ceil(j.total / 2)));",
+         "pm.test('page = 1, per_page = 2', () => { pm.expect(j.page).to.eql(1); pm.expect(j.per_page).to.eql(2); });"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "au3 — 1-р хуудас (per_page=2)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/au3?page=1&per_page=2",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "au3"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1"
+        },
+        {
+         "key": "per_page",
+         "value": "2"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('{items,total,page,per_page,pages}', () => pm.expect(Object.keys(j).sort()).to.eql(['items','page','pages','per_page','total']));",
+         "pm.test('≤ 2 мөр', () => pm.expect(j.items.length).to.be.at.most(2));",
+         "pm.test('pages = ceil(total/2)', () => pm.expect(j.pages).to.eql(Math.ceil(j.total / 2)));",
+         "pm.test('page = 1, per_page = 2', () => { pm.expect(j.page).to.eql(1); pm.expect(j.per_page).to.eql(2); });"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "school_category — 1-р хуудас (per_page=2)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/school_category?page=1&per_page=2",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "school_category"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1"
+        },
+        {
+         "key": "per_page",
+         "value": "2"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('{items,total,page,per_page,pages}', () => pm.expect(Object.keys(j).sort()).to.eql(['items','page','pages','per_page','total']));",
+         "pm.test('≤ 2 мөр', () => pm.expect(j.items.length).to.be.at.most(2));",
+         "pm.test('pages = ceil(total/2)', () => pm.expect(j.pages).to.eql(Math.ceil(j.total / 2)));",
+         "pm.test('page = 1, per_page = 2', () => { pm.expect(j.page).to.eql(1); pm.expect(j.per_page).to.eql(2); });"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "horoo — 1-р хуудас (per_page=2)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/horoo?page=1&per_page=2",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "horoo"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1"
+        },
+        {
+         "key": "per_page",
+         "value": "2"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('{items,total,page,per_page,pages}', () => pm.expect(Object.keys(j).sort()).to.eql(['items','page','pages','per_page','total']));",
+         "pm.test('≤ 2 мөр', () => pm.expect(j.items.length).to.be.at.most(2));",
+         "pm.test('pages = ceil(total/2)', () => pm.expect(j.pages).to.eql(Math.ceil(j.total / 2)));",
+         "pm.test('page = 1, per_page = 2', () => { pm.expect(j.page).to.eql(1); pm.expect(j.per_page).to.eql(2); });"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "organization — 1-р хуудас (per_page=2)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/organization?page=1&per_page=2",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "organization"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1"
+        },
+        {
+         "key": "per_page",
+         "value": "2"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('{items,total,page,per_page,pages}', () => pm.expect(Object.keys(j).sort()).to.eql(['items','page','pages','per_page','total']));",
+         "pm.test('≤ 2 мөр', () => pm.expect(j.items.length).to.be.at.most(2));",
+         "pm.test('pages = ceil(total/2)', () => pm.expect(j.pages).to.eql(Math.ceil(j.total / 2)));",
+         "pm.test('page = 1, per_page = 2', () => { pm.expect(j.page).to.eql(1); pm.expect(j.per_page).to.eql(2); });"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "member — 1-р хуудас (per_page=2)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/member?page=1&per_page=2",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1"
+        },
+        {
+         "key": "per_page",
+         "value": "2"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('{items,total,page,per_page,pages}', () => pm.expect(Object.keys(j).sort()).to.eql(['items','page','pages','per_page','total']));",
+         "pm.test('≤ 2 мөр', () => pm.expect(j.items.length).to.be.at.most(2));",
+         "pm.test('pages = ceil(total/2)', () => pm.expect(j.pages).to.eql(Math.ceil(j.total / 2)));",
+         "pm.test('page = 1, per_page = 2', () => { pm.expect(j.page).to.eql(1); pm.expect(j.per_page).to.eql(2); });"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "contact — 1-р хуудас (per_page=2)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/contact?page=1&per_page=2",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "contact"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1"
+        },
+        {
+         "key": "per_page",
+         "value": "2"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('{items,total,page,per_page,pages}', () => pm.expect(Object.keys(j).sort()).to.eql(['items','page','pages','per_page','total']));",
+         "pm.test('≤ 2 мөр', () => pm.expect(j.items.length).to.be.at.most(2));",
+         "pm.test('pages = ceil(total/2)', () => pm.expect(j.pages).to.eql(Math.ceil(j.total / 2)));",
+         "pm.test('page = 1, per_page = 2', () => { pm.expect(j.page).to.eql(1); pm.expect(j.per_page).to.eql(2); });"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "salary_request — 1-р хуудас (per_page=2)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/salary_request?page=1&per_page=2",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "salary_request"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1"
+        },
+        {
+         "key": "per_page",
+         "value": "2"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('{items,total,page,per_page,pages}', () => pm.expect(Object.keys(j).sort()).to.eql(['items','page','pages','per_page','total']));",
+         "pm.test('≤ 2 мөр', () => pm.expect(j.items.length).to.be.at.most(2));",
+         "pm.test('pages = ceil(total/2)', () => pm.expect(j.pages).to.eql(Math.ceil(j.total / 2)));",
+         "pm.test('page = 1, per_page = 2', () => { pm.expect(j.page).to.eql(1); pm.expect(j.per_page).to.eql(2); });"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "salary_scale — 1-р хуудас (per_page=2)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/salary_scale?page=1&per_page=2",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "salary_scale"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1"
+        },
+        {
+         "key": "per_page",
+         "value": "2"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('{items,total,page,per_page,pages}', () => pm.expect(Object.keys(j).sort()).to.eql(['items','page','pages','per_page','total']));",
+         "pm.test('≤ 2 мөр', () => pm.expect(j.items.length).to.be.at.most(2));",
+         "pm.test('pages = ceil(total/2)', () => pm.expect(j.pages).to.eql(Math.ceil(j.total / 2)));",
+         "pm.test('page = 1, per_page = 2', () => { pm.expect(j.page).to.eql(1); pm.expect(j.per_page).to.eql(2); });"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "education_degree — 1-р хуудас (per_page=2)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/education_degree?page=1&per_page=2",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "education_degree"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1"
+        },
+        {
+         "key": "per_page",
+         "value": "2"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('{items,total,page,per_page,pages}', () => pm.expect(Object.keys(j).sort()).to.eql(['items','page','pages','per_page','total']));",
+         "pm.test('≤ 2 мөр', () => pm.expect(j.items.length).to.be.at.most(2));",
+         "pm.test('pages = ceil(total/2)', () => pm.expect(j.pages).to.eql(Math.ceil(j.total / 2)));",
+         "pm.test('page = 1, per_page = 2', () => { pm.expect(j.page).to.eql(1); pm.expect(j.per_page).to.eql(2); });"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "position — 1-р хуудас (per_page=2)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/position?page=1&per_page=2",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "position"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1"
+        },
+        {
+         "key": "per_page",
+         "value": "2"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('{items,total,page,per_page,pages}', () => pm.expect(Object.keys(j).sort()).to.eql(['items','page','pages','per_page','total']));",
+         "pm.test('≤ 2 мөр', () => pm.expect(j.items.length).to.be.at.most(2));",
+         "pm.test('pages = ceil(total/2)', () => pm.expect(j.pages).to.eql(Math.ceil(j.total / 2)));",
+         "pm.test('page = 1, per_page = 2', () => { pm.expect(j.page).to.eql(1); pm.expect(j.per_page).to.eql(2); });"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "profession — 1-р хуудас (per_page=2)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/profession?page=1&per_page=2",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "profession"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1"
+        },
+        {
+         "key": "per_page",
+         "value": "2"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('{items,total,page,per_page,pages}', () => pm.expect(Object.keys(j).sort()).to.eql(['items','page','pages','per_page','total']));",
+         "pm.test('≤ 2 мөр', () => pm.expect(j.items.length).to.be.at.most(2));",
+         "pm.test('pages = ceil(total/2)', () => pm.expect(j.pages).to.eql(Math.ceil(j.total / 2)));",
+         "pm.test('page = 1, per_page = 2', () => { pm.expect(j.page).to.eql(1); pm.expect(j.per_page).to.eql(2); });"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "reward_type — 1-р хуудас (per_page=2)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/reward_type?page=1&per_page=2",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "reward_type"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1"
+        },
+        {
+         "key": "per_page",
+         "value": "2"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('{items,total,page,per_page,pages}', () => pm.expect(Object.keys(j).sort()).to.eql(['items','page','pages','per_page','total']));",
+         "pm.test('≤ 2 мөр', () => pm.expect(j.items.length).to.be.at.most(2));",
+         "pm.test('pages = ceil(total/2)', () => pm.expect(j.pages).to.eql(Math.ceil(j.total / 2)));",
+         "pm.test('page = 1, per_page = 2', () => { pm.expect(j.page).to.eql(1); pm.expect(j.per_page).to.eql(2); });"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "structure — 1-р хуудас (per_page=2)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/structure?page=1&per_page=2",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "structure"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1"
+        },
+        {
+         "key": "per_page",
+         "value": "2"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('{items,total,page,per_page,pages}', () => pm.expect(Object.keys(j).sort()).to.eql(['items','page','pages','per_page','total']));",
+         "pm.test('≤ 2 мөр', () => pm.expect(j.items.length).to.be.at.most(2));",
+         "pm.test('pages = ceil(total/2)', () => pm.expect(j.pages).to.eql(Math.ceil(j.total / 2)));",
+         "pm.test('page = 1, per_page = 2', () => { pm.expect(j.page).to.eql(1); pm.expect(j.per_page).to.eql(2); });"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "member_education — 1-р хуудас (per_page=2)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/member_education?page=1&per_page=2",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member_education"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1"
+        },
+        {
+         "key": "per_page",
+         "value": "2"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('{items,total,page,per_page,pages}', () => pm.expect(Object.keys(j).sort()).to.eql(['items','page','pages','per_page','total']));",
+         "pm.test('≤ 2 мөр', () => pm.expect(j.items.length).to.be.at.most(2));",
+         "pm.test('pages = ceil(total/2)', () => pm.expect(j.pages).to.eql(Math.ceil(j.total / 2)));",
+         "pm.test('page = 1, per_page = 2', () => { pm.expect(j.page).to.eql(1); pm.expect(j.per_page).to.eql(2); });"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "member_reward — 1-р хуудас (per_page=2)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/member_reward?page=1&per_page=2",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member_reward"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1"
+        },
+        {
+         "key": "per_page",
+         "value": "2"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('{items,total,page,per_page,pages}', () => pm.expect(Object.keys(j).sort()).to.eql(['items','page','pages','per_page','total']));",
+         "pm.test('≤ 2 мөр', () => pm.expect(j.items.length).to.be.at.most(2));",
+         "pm.test('pages = ceil(total/2)', () => pm.expect(j.pages).to.eql(Math.ceil(j.total / 2)));",
+         "pm.test('page = 1, per_page = 2', () => { pm.expect(j.page).to.eql(1); pm.expect(j.per_page).to.eql(2); });"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "member_file — 1-р хуудас (per_page=2)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/member_file?page=1&per_page=2",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member_file"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1"
+        },
+        {
+         "key": "per_page",
+         "value": "2"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('{items,total,page,per_page,pages}', () => pm.expect(Object.keys(j).sort()).to.eql(['items','page','pages','per_page','total']));",
+         "pm.test('≤ 2 мөр', () => pm.expect(j.items.length).to.be.at.most(2));",
+         "pm.test('pages = ceil(total/2)', () => pm.expect(j.pages).to.eql(Math.ceil(j.total / 2)));",
+         "pm.test('page = 1, per_page = 2', () => { pm.expect(j.page).to.eql(1); pm.expect(j.per_page).to.eql(2); });"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "permission — 1-р хуудас (per_page=2)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/permission?page=1&per_page=2",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "permission"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1"
+        },
+        {
+         "key": "per_page",
+         "value": "2"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('{items,total,page,per_page,pages}', () => pm.expect(Object.keys(j).sort()).to.eql(['items','page','pages','per_page','total']));",
+         "pm.test('≤ 2 мөр', () => pm.expect(j.items.length).to.be.at.most(2));",
+         "pm.test('pages = ceil(total/2)', () => pm.expect(j.pages).to.eql(Math.ceil(j.total / 2)));",
+         "pm.test('page = 1, per_page = 2', () => { pm.expect(j.page).to.eql(1); pm.expect(j.per_page).to.eql(2); });"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "role — 1-р хуудас (per_page=2)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/role?page=1&per_page=2",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "role"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1"
+        },
+        {
+         "key": "per_page",
+         "value": "2"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('{items,total,page,per_page,pages}', () => pm.expect(Object.keys(j).sort()).to.eql(['items','page','pages','per_page','total']));",
+         "pm.test('≤ 2 мөр', () => pm.expect(j.items.length).to.be.at.most(2));",
+         "pm.test('pages = ceil(total/2)', () => pm.expect(j.pages).to.eql(Math.ceil(j.total / 2)));",
+         "pm.test('page = 1, per_page = 2', () => { pm.expect(j.page).to.eql(1); pm.expect(j.per_page).to.eql(2); });"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "user — 1-р хуудас (per_page=2)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/user?page=1&per_page=2",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "user"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1"
+        },
+        {
+         "key": "per_page",
+         "value": "2"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('{items,total,page,per_page,pages}', () => pm.expect(Object.keys(j).sort()).to.eql(['items','page','pages','per_page','total']));",
+         "pm.test('≤ 2 мөр', () => pm.expect(j.items.length).to.be.at.most(2));",
+         "pm.test('pages = ceil(total/2)', () => pm.expect(j.pages).to.eql(Math.ceil(j.total / 2)));",
+         "pm.test('page = 1, per_page = 2', () => { pm.expect(j.page).to.eql(1); pm.expect(j.per_page).to.eql(2); });"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "menu — 1-р хуудас (per_page=2)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/menu?page=1&per_page=2",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "menu"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1"
+        },
+        {
+         "key": "per_page",
+         "value": "2"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('{items,total,page,per_page,pages}', () => pm.expect(Object.keys(j).sort()).to.eql(['items','page','pages','per_page','total']));",
+         "pm.test('≤ 2 мөр', () => pm.expect(j.items.length).to.be.at.most(2));",
+         "pm.test('pages = ceil(total/2)', () => pm.expect(j.pages).to.eql(Math.ceil(j.total / 2)));",
+         "pm.test('page = 1, per_page = 2', () => { pm.expect(j.page).to.eql(1); pm.expect(j.per_page).to.eql(2); });"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "page — 1-р хуудас (per_page=2)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/page?page=1&per_page=2",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "page"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1"
+        },
+        {
+         "key": "per_page",
+         "value": "2"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('{items,total,page,per_page,pages}', () => pm.expect(Object.keys(j).sort()).to.eql(['items','page','pages','per_page','total']));",
+         "pm.test('≤ 2 мөр', () => pm.expect(j.items.length).to.be.at.most(2));",
+         "pm.test('pages = ceil(total/2)', () => pm.expect(j.pages).to.eql(Math.ceil(j.total / 2)));",
+         "pm.test('page = 1, per_page = 2', () => { pm.expect(j.page).to.eql(1); pm.expect(j.per_page).to.eql(2); });"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "page_block — 1-р хуудас (per_page=2)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/page_block?page=1&per_page=2",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "page_block"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1"
+        },
+        {
+         "key": "per_page",
+         "value": "2"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('{items,total,page,per_page,pages}', () => pm.expect(Object.keys(j).sort()).to.eql(['items','page','pages','per_page','total']));",
+         "pm.test('≤ 2 мөр', () => pm.expect(j.items.length).to.be.at.most(2));",
+         "pm.test('pages = ceil(total/2)', () => pm.expect(j.pages).to.eql(Math.ceil(j.total / 2)));",
+         "pm.test('page = 1, per_page = 2', () => { pm.expect(j.page).to.eql(1); pm.expect(j.per_page).to.eql(2); });"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "page_image — 1-р хуудас (per_page=2)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/page_image?page=1&per_page=2",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "page_image"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1"
+        },
+        {
+         "key": "per_page",
+         "value": "2"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('{items,total,page,per_page,pages}', () => pm.expect(Object.keys(j).sort()).to.eql(['items','page','pages','per_page','total']));",
+         "pm.test('≤ 2 мөр', () => pm.expect(j.items.length).to.be.at.most(2));",
+         "pm.test('pages = ceil(total/2)', () => pm.expect(j.pages).to.eql(Math.ceil(j.total / 2)));",
+         "pm.test('page = 1, per_page = 2', () => { pm.expect(j.page).to.eql(1); pm.expect(j.per_page).to.eql(2); });"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "page_file — 1-р хуудас (per_page=2)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/page_file?page=1&per_page=2",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "page_file"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1"
+        },
+        {
+         "key": "per_page",
+         "value": "2"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('{items,total,page,per_page,pages}', () => pm.expect(Object.keys(j).sort()).to.eql(['items','page','pages','per_page','total']));",
+         "pm.test('≤ 2 мөр', () => pm.expect(j.items.length).to.be.at.most(2));",
+         "pm.test('pages = ceil(total/2)', () => pm.expect(j.pages).to.eql(Math.ceil(j.total / 2)));",
+         "pm.test('page = 1, per_page = 2', () => { pm.expect(j.page).to.eql(1); pm.expect(j.per_page).to.eql(2); });"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "page_video — 1-р хуудас (per_page=2)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/page_video?page=1&per_page=2",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "page_video"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1"
+        },
+        {
+         "key": "per_page",
+         "value": "2"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('{items,total,page,per_page,pages}', () => pm.expect(Object.keys(j).sort()).to.eql(['items','page','pages','per_page','total']));",
+         "pm.test('≤ 2 мөр', () => pm.expect(j.items.length).to.be.at.most(2));",
+         "pm.test('pages = ceil(total/2)', () => pm.expect(j.pages).to.eql(Math.ceil(j.total / 2)));",
+         "pm.test('page = 1, per_page = 2', () => { pm.expect(j.page).to.eql(1); pm.expect(j.per_page).to.eql(2); });"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "banner — 1-р хуудас (per_page=2)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/banner?page=1&per_page=2",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "banner"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1"
+        },
+        {
+         "key": "per_page",
+         "value": "2"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('{items,total,page,per_page,pages}', () => pm.expect(Object.keys(j).sort()).to.eql(['items','page','pages','per_page','total']));",
+         "pm.test('≤ 2 мөр', () => pm.expect(j.items.length).to.be.at.most(2));",
+         "pm.test('pages = ceil(total/2)', () => pm.expect(j.pages).to.eql(Math.ceil(j.total / 2)));",
+         "pm.test('page = 1, per_page = 2', () => { pm.expect(j.page).to.eql(1); pm.expect(j.per_page).to.eql(2); });"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "partner — 1-р хуудас (per_page=2)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/partner?page=1&per_page=2",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "partner"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1"
+        },
+        {
+         "key": "per_page",
+         "value": "2"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('{items,total,page,per_page,pages}', () => pm.expect(Object.keys(j).sort()).to.eql(['items','page','pages','per_page','total']));",
+         "pm.test('≤ 2 мөр', () => pm.expect(j.items.length).to.be.at.most(2));",
+         "pm.test('pages = ceil(total/2)', () => pm.expect(j.pages).to.eql(Math.ceil(j.total / 2)));",
+         "pm.test('page = 1, per_page = 2', () => { pm.expect(j.page).to.eql(1); pm.expect(j.per_page).to.eql(2); });"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "me/organizations — 1-р хуудас (per_page=2)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/me/organizations?page=1&per_page=2",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "me",
+        "organizations"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1"
+        },
+        {
+         "key": "per_page",
+         "value": "2"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('{items,total,page,per_page,pages}', () => pm.expect(Object.keys(j).sort()).to.eql(['items','page','pages','per_page','total']));",
+         "pm.test('≤ 2 мөр', () => pm.expect(j.items.length).to.be.at.most(2));",
+         "pm.test('pages = ceil(total/2)', () => pm.expect(j.pages).to.eql(Math.ceil(j.total / 2)));",
+         "pm.test('page = 1, per_page = 2', () => { pm.expect(j.page).to.eql(1); pm.expect(j.per_page).to.eql(2); });"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "portal/forms — 1-р хуудас (per_page=2)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/portal/forms?page=1&per_page=2",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "portal",
+        "forms"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "1"
+        },
+        {
+         "key": "per_page",
+         "value": "2"
+        }
+       ]
+      },
+      "auth": {
+       "type": "noauth"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('{items,total,page,per_page,pages}', () => pm.expect(Object.keys(j).sort()).to.eql(['items','page','pages','per_page','total']));",
+         "pm.test('≤ 2 мөр', () => pm.expect(j.items.length).to.be.at.most(2));",
+         "pm.test('pages = ceil(total/2)', () => pm.expect(j.pages).to.eql(Math.ceil(j.total / 2)));",
+         "pm.test('page = 1, per_page = 2', () => { pm.expect(j.page).to.eql(1); pm.expect(j.per_page).to.eql(2); });"
         ]
        }
       }
