@@ -18,10 +18,11 @@
     accounts     — /api/user
     scope        — /api/user/<id>/scope
     me           — /api/login, /api/change_password, /api/me/...
+    specialist   — /api/me/specialist (менежерийн сургуулийг хариуцсан мэргэжилтэн)
 """
 from flask import Blueprint
 
 bp = Blueprint("users", __name__)
 
 # Маршрутын модулиудыг bp үүссэний ДАРАА импортлоно — тэд `bp`-г эндээс авна.
-from admin.users import permissions, roles, accounts, scope, me  # noqa: E402,F401
+from admin.users import permissions, roles, accounts, scope, me, specialist  # noqa: E402,F401

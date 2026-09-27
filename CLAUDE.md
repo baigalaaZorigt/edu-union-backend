@@ -36,7 +36,14 @@ portal's token-free API (`/api/portal/...`, `/api/public/...`). What both sides 
     and `user_scope` (Хамрах хүрээ — which *data* a user may see, 1:1 with `app_user`), plus the
     **self-service** routes a Зөвлөх мэргэжилтэн needs on first login: `/api/change_password`,
     `/api/me`, `/api/me/scope`, `/api/me/organizations`, `/api/me/onboarding/complete`
-    (`specialist_onboarding_api_spec.md`). `/api/login` is guarded by `login_guard.py`: failed
+    (`specialist_onboarding_api_spec.md`). `GET /api/me/specialist` (`specialist.py`) is the
+    manager's side: from the caller's scope (`organization_id`, else the first
+    `organization_ids`) it returns the active Зөвлөх мэргэжилтэн covering that school — first
+    a `rural` specialist listing the school in `organization_ids` (ХОН is an explicit
+    assignment, not a category), else one whose `school_type` is the school's category
+    (`SCHOOL_TYPE_CATEGORY` reversed) and whose `district_au2_code` equals the school's
+    `au2_code`; lowest id wins. 403 without a school in scope (admin, specialists), 404 when
+    nobody covers it. Returns name/email/structure only (+ `matched_by`). `/api/login` is guarded by `login_guard.py`: failed
     attempts go to the `login_attempt` table (shared by all workers); 5 per (username + IP) or 20
     per IP within 15 min → 429, so nobody can lock `admin` out from another IP. IP = `X-Real-IP`
     (`core.helpers.client_ip()`). Passwords hash with `pbkdf2:sha256:600000` (OWASP; werkzeug's
@@ -218,8 +225,8 @@ python -m pytest tests -q      # the whole pytest suite (571 tests, ~13 s)
   The Postman collection (`docs/edu-union-backend.postman_collection.json`) is the second,
   black-box suite, run against a live server. It runs **top to bottom** (Postman Runner or
   `newman run docs/edu-union-backend.postman_collection.json --env-var base_url=...`, **from the
-  repo root** — the form-data requests upload `docs/fixtures/sample.png|pdf` by relative path): 578 requests,
-  1116 assertions, and repeatable — three consecutive runs leave every table's row count
+  repo root** — the form-data requests upload `docs/fixtures/sample.png|pdf` by relative path): 584 requests,
+  1126 assertions, and repeatable — three consecutive runs leave every table's row count
   unchanged. (One known red on a *fresh* DB: `ҮЭ — Гишүүний боловсрол / Нэгийг авах` reads
   `member_education_id`=1, but `seed_union()` creates no `member_education` row.) **Keep it that way when adding requests:** run "0. Нэвтрэлт" first (it stores
   `{{token}}`), have each folder's `Нэмэх` save the new id into a `{{new_*}}` variable, and point

@@ -494,6 +494,14 @@
   {
    "key": "new_legal_block2_id",
    "value": ""
+  },
+  {
+   "key": "new_mgr_user_id",
+   "value": ""
+  },
+  {
+   "key": "mgr_token",
+   "value": ""
   }
  ],
  "item": [
@@ -17522,6 +17530,236 @@
          "pm.test('статус 200', () => pm.response.to.have.status(200));",
          "pm.test('onboarding дууссан', () => pm.expect(",
          "  pm.response.json().onboarding_completed).to.be.true);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Менежер: хэрэглэгч (дүргүй) → {{new_mgr_user_id}}",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/user",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "user"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"username\": \"mgr_postman_99\",\n  \"password\": \"Mgr_nuuts123\",\n  \"last_name\": \"Тест\",\n  \"first_name\": \"Менежер\"\n}"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "pm.collectionVariables.set('new_mgr_user_id', pm.response.json().id);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Менежер: хамрах хүрээ = хүрээнд байх сургууль",
+     "request": {
+      "method": "PUT",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/user/{{new_mgr_user_id}}/scope",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "user",
+        "{{new_mgr_user_id}}",
+        "scope"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"organization_id\": \"{{new_spec_org_in}}\"\n}"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Менежер: нэвтрэх → {{mgr_token}}",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/login",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "login"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"username\": \"mgr_postman_99\",\n  \"password\": \"Mgr_nuuts123\"\n}"
+      },
+      "auth": {
+       "type": "noauth"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.collectionVariables.set('mgr_token', pm.response.json().token);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Менежер: хариуцсан мэргэжилтэн (/api/me/specialist)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/me/specialist",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "me",
+        "specialist"
+       ]
+      },
+      "auth": {
+       "type": "bearer",
+       "bearer": [
+        {
+         "key": "token",
+         "value": "{{mgr_token}}",
+         "type": "string"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('тэр мэргэжилтэн', () => pm.expect(j.id).to.eql(Number(pm.collectionVariables.get('new_spec_user_id'))));",
+         "pm.test('дүүрэг + ангиллаар таарсан', () => pm.expect(j.matched_by).to.eql('district'));",
+         "pm.test('нууц талбаргүй', () => pm.expect(j).to.not.have.any.keys('password_hash', 'username'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Мэргэжилтэн өөрөө /api/me/specialist → 403",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/me/specialist",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "me",
+        "specialist"
+       ]
+      },
+      "auth": {
+       "type": "bearer",
+       "bearer": [
+        {
+         "key": "token",
+         "value": "{{spec_token}}",
+         "type": "string"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 403', () => pm.response.to.have.status(403));",
+         "pm.test('{error}', () => pm.expect(pm.response.json().error).to.be.a('string'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Цэвэрлэх: менежер хэрэглэгч",
+     "request": {
+      "method": "DELETE",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/user/{{new_mgr_user_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "user",
+        "{{new_mgr_user_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
         ]
        }
       }
