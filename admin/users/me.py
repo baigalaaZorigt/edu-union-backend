@@ -9,7 +9,7 @@ from werkzeug.security import check_password_hash
 
 from core import audit
 from core.db import get_db
-from core.helpers import rows, require, json_body, fail, update_row
+from core.helpers import rows, require, json_body, fail, update_row, fetch_page
 from core.auth import make_token
 from core.scope_core import org_condition
 
@@ -114,9 +114,9 @@ def list_my_organizations():
            "FROM organization o")
     if cond:
         sql += " WHERE " + cond
-    data = rows(conn.execute(sql + " ORDER BY o.id", params).fetchall())
+    data, meta = fetch_page(conn, sql + " ORDER BY o.id", params)
     conn.close()
-    return jsonify(items=data)
+    return jsonify(items=rows(data), **(meta or {}))
 
 
 @bp.route("/api/me/onboarding/complete", methods=["POST"])

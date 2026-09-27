@@ -3,7 +3,7 @@
 from flask import jsonify, request, abort
 
 from core.db import get_db
-from core.helpers import fail, json_body, pick, require, rows
+from core.helpers import fail, json_body, pick, require, rows, fetch_page, list_json
 from core.scope_core import member_condition, require_org_in_scope, require_member_in_scope
 
 from admin.union import bp
@@ -115,10 +115,9 @@ def list_member():
     if scope_cond:
         cond.append(scope_cond)
         params += scope_params
-    data = rows(conn.execute(
-        MEMBER_SELECT + _where(cond) + " ORDER BY m.id", params).fetchall())
+    data, meta = fetch_page(conn, MEMBER_SELECT + _where(cond) + " ORDER BY m.id", params)
     conn.close()
-    return jsonify(data)
+    return list_json(rows(data), meta)
 
 
 @bp.route("/api/member/<int:mid>", methods=["GET"])

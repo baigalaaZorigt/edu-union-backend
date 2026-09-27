@@ -9,7 +9,7 @@ import os
 from flask import abort, jsonify, request
 
 from core.db import get_db
-from core.helpers import fail, insert_row, rows, update_row
+from core.helpers import fail, fetch_page, insert_row, list_json, rows, update_row
 from core.storage import Area
 
 
@@ -57,11 +57,11 @@ def _where(cond):
 
 
 def _list_rows(sql, params=()):
-    """SELECT-ийн бүх мөрийг JSON жагсаалтаар буцаана."""
+    """SELECT-ийн мөрүүдийг JSON-оор (?page=/?per_page= өгвөл хуудаслаж) буцаана."""
     conn = get_db()
-    data = rows(conn.execute(sql, params).fetchall())
+    data, meta = fetch_page(conn, sql, params)
     conn.close()
-    return jsonify(data)
+    return list_json(rows(data), meta)
 
 
 def _get_one(sql, params, not_found):

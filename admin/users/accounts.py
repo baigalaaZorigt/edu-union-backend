@@ -2,7 +2,7 @@
 from flask import jsonify, request
 
 from core.db import get_db
-from core.helpers import require, json_body, fail, insert_row, update_row
+from core.helpers import require, json_body, fail, insert_row, update_row, fetch_page, list_json
 from core.scope_core import public_scope
 
 from admin.users import bp
@@ -39,14 +39,15 @@ def list_user():
             cond.append(f"u.{f}=?")
             params.append(request.args[f])
     sql = USER_SELECT + (" WHERE " + " AND ".join(cond) if cond else "") + " ORDER BY u.id"
-    data = [public_user(x) for x in conn.execute(sql, params).fetchall()]
+    page_rows, meta = fetch_page(conn, sql, params)
+    data = [public_user(x) for x in page_rows]
     # Хамрах хүрээг шууд хамт өгнө — хэрэглэгч бүрээр /scope дуудах шаардлагагүй
     scopes = {r["user_id"]: public_scope(r)
               for r in conn.execute("SELECT * FROM user_scope").fetchall()}
     for u in data:
         u["scope"] = scopes.get(u["id"])
     conn.close()
-    return jsonify(data)
+    return list_json(data, meta)
 
 
 @bp.route("/api/user/<int:uid>", methods=["GET"])

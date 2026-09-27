@@ -3,7 +3,7 @@
 from flask import jsonify, request, abort
 
 from core.db import get_db
-from core.helpers import fail, json_body, pick, require, rows, update_row
+from core.helpers import fail, json_body, pick, require, rows, update_row, fetch_page, list_json
 from core.scope_core import org_condition, require_org_in_scope
 
 from admin.union import bp
@@ -74,12 +74,12 @@ def list_org():
     if scope_cond:
         cond.append(scope_cond)
         params += scope_params
-    data = rows(conn.execute(
-        ORG_SELECT + _where(cond) + " ORDER BY o.id", params).fetchall())
-    for o in data:
+    page_rows, meta = fetch_page(conn, ORG_SELECT + _where(cond) + " ORDER BY o.id", params)
+    data = rows(page_rows)
+    for o in data:                      # тооцоо нь зөвхөн тухайн хуудасны мөрүүдэд
         o.update(org_stats(conn, o["id"]))
     conn.close()
-    return jsonify(data)
+    return list_json(data, meta)
 
 
 @bp.route("/api/organization/<int:oid>", methods=["GET"])

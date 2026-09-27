@@ -81,6 +81,62 @@ def update_row(conn, table, key_value, values, key="id"):
     return cur.rowcount
 
 
+# --- Жагсаалтын хуудаслалт (сонголтоор) ---
+# ?page= эсвэл ?per_page= өгвөл {items, total, page, per_page, pages}; аль нь ч өгөөгүй бол
+# ХУУЧИН шигээ массив — одоо ажиллаж буй frontend эвдрэхгүй. forms/feedback/notifications/
+# search-ийн хуудаслалттай ижил хэлбэр ба дүрэм (per_page ≤ 100, тоо биш бол 400).
+DEFAULT_PER_PAGE = 20
+MAX_PER_PAGE = 100
+
+
+def page_params():
+    """(page, per_page) эсвэл None (хуудаслалт хүсээгүй)."""
+    args = request.args
+    if args.get("page") in (None, "") and args.get("per_page") in (None, ""):
+        return None
+    try:
+        page = max(1, int(args.get("page") or 1))
+        per_page = min(MAX_PER_PAGE, max(1, int(args.get("per_page") or DEFAULT_PER_PAGE)))
+    except ValueError:
+        abort(400, description="page / per_page нь тоо байх ёстой")
+    return page, per_page
+
+
+def fetch_page(conn, sql, params=()):
+    """SELECT-ийг (хүссэн бол) хуудаслана -> (мөрүүд, meta | None).
+
+    COUNT + LIMIT/OFFSET-ийг SQL түвшинд хийнэ — мөр тус бүрийн нэмэлт тооцоо (ж: org_stats)
+    зөвхөн тухайн хуудасны мөрүүдэд ажиллана. `sql` нь ORDER BY-тай байх ёстой.
+    """
+    pp = page_params()
+    if pp is None:
+        return conn.execute(sql, params).fetchall(), None
+    page, per_page = pp
+    params = list(params)
+    total = conn.execute(f"SELECT COUNT(*) FROM ({sql}) AS _page", params).fetchone()[0]
+    data = conn.execute(f"{sql} LIMIT ? OFFSET ?",
+                        params + [per_page, (page - 1) * per_page]).fetchall()
+    return data, {"total": total, "page": page, "per_page": per_page,
+                  "pages": (total + per_page - 1) // per_page}
+
+
+def slice_page(items):
+    """Python-д аль хэдийн шүүсэн жагсаалтыг хуудаслана -> (хэсэг, meta | None)."""
+    pp = page_params()
+    if pp is None:
+        return items, None
+    page, per_page = pp
+    total = len(items)
+    return items[(page - 1) * per_page:page * per_page], {
+        "total": total, "page": page, "per_page": per_page,
+        "pages": (total + per_page - 1) // per_page}
+
+
+def list_json(items, meta):
+    """meta байхгүй бол массив, байвал {items, total, page, per_page, pages}."""
+    return jsonify(items) if meta is None else jsonify(items=items, **meta)
+
+
 def register_error_handlers(target):
     """app эсвэл Blueprint дээр алдааг {"error": ...} JSON болгон буцаах нэгдсэн
     боловсруулагчийг бүртгэнэ.

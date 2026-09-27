@@ -3,7 +3,7 @@
 from flask import jsonify, request
 
 from core.db import get_db
-from core.helpers import rows, require, json_body, fail, pick, insert_row, update_row
+from core.helpers import rows, require, json_body, fail, pick, insert_row, update_row, fetch_page, list_json
 
 from admin.content import bp
 from admin.content.storage import remove_upload
@@ -37,12 +37,10 @@ def get_page(menu_id):
 def list_page():
     """Бүх контент хуудас (цэсний нэртэй нь). Админ жагсаалтад зориулав."""
     conn = get_db()
-    data = rows(conn.execute(
-        "SELECT p.*, m.title AS menu_title, m.slug AS menu_slug "
-        "FROM page p JOIN menu m ON m.id = p.menu_id "
-        "ORDER BY p.id").fetchall())
+    data, meta = fetch_page(conn, "SELECT p.*, m.title AS menu_title, m.slug AS menu_slug "
+                                  "FROM page p JOIN menu m ON m.id = p.menu_id ORDER BY p.id")
     conn.close()
-    return jsonify(data)
+    return list_json(rows(data), meta)
 
 
 def _validate_page(conn, data):

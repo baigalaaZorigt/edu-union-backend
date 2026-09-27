@@ -14,7 +14,7 @@
 from flask import Blueprint, jsonify
 
 from core.db import get_db
-from core.helpers import fail, insert_row, json_body, update_row
+from core.helpers import fail, insert_row, json_body, update_row, fetch_page, list_json
 from core.home_core import admin_row, validate_banner, validate_partner
 from admin.content import remove_upload
 
@@ -30,10 +30,9 @@ def _row(conn, table, rid):
 
 def _list(table):
     conn = get_db()
-    data = [admin_row(r) for r in
-            conn.execute(f"SELECT * FROM {table} ORDER BY sort_order, id").fetchall()]
+    data, meta = fetch_page(conn, f"SELECT * FROM {table} ORDER BY sort_order, id")
     conn.close()
-    return jsonify(data)
+    return list_json([admin_row(r) for r in data], meta)
 
 
 def _get(table, rid):

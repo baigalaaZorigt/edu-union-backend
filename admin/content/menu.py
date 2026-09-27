@@ -3,7 +3,7 @@
 from flask import jsonify, request, abort
 
 from core.db import get_db
-from core.helpers import rows, require, json_body, fail, insert_row, update_row
+from core.helpers import rows, require, json_body, fail, insert_row, update_row, fetch_page, list_json
 
 from admin.content import bp
 from admin.content.storage import remove_upload
@@ -141,9 +141,13 @@ def list_menu():
         sql += " WHERE " + " AND ".join(where)
     sql += " ORDER BY m.parent_id IS NOT NULL, m.parent_id, m.sort_order, m.id"
     conn = get_db()
-    data = rows(conn.execute(sql, args).fetchall())
+    if request.args.get("tree") in _TRUE:     # мод бүтэн байх ёстой — хуудаслахгүй
+        data = rows(conn.execute(sql, args).fetchall())
+        conn.close()
+        return jsonify(_tree(data))
+    data, meta = fetch_page(conn, sql, args)
     conn.close()
-    return jsonify(_tree(data) if request.args.get("tree") in _TRUE else data)
+    return list_json(rows(data), meta)
 
 
 @bp.route("/api/menu/<int:mid>", methods=["GET"])

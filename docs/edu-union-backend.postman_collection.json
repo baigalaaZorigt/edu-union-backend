@@ -20147,6 +20147,164 @@
      ]
     }
    ]
+  },
+  {
+   "name": "Хуудаслалт 1 — Жагсаалтууд (?page=&per_page=)",
+   "item": [
+    {
+     "name": "Баг/хороо — 2-р хуудас, 5 мөр",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/au3?page=2&per_page=5",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "au3"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "2"
+        },
+        {
+         "key": "per_page",
+         "value": "5"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('{items,total,page,per_page,pages}', () => pm.expect(Object.keys(j).sort()).to.eql(['items','page','pages','per_page','total']));",
+         "pm.test('5 мөр, 2-р хуудас', () => { pm.expect(j.items.length).to.eql(5); pm.expect(j.page).to.eql(2); });",
+         "pm.test('pages = ceil(total/5)', () => pm.expect(j.pages).to.eql(Math.ceil(j.total / 5)));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Шүүлт + хуудаслалт (permission?resource=user)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/permission?resource=user&per_page=3",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "permission"
+       ],
+       "query": [
+        {
+         "key": "resource",
+         "value": "user"
+        },
+        {
+         "key": "per_page",
+         "value": "3"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('total = 4 (CRUD)', () => pm.expect(j.total).to.eql(4));",
+         "pm.test('бүгд user', () => j.items.forEach(p => pm.expect(p.resource).to.eql('user')));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "per_page 100-аар хязгаарлагдана",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/au3?per_page=500",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "au3"
+       ],
+       "query": [
+        {
+         "key": "per_page",
+         "value": "500"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('per_page = 100', () => pm.expect(pm.response.json().per_page).to.eql(100));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Алдаа: page тоо биш → 400",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/member?page=x",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member"
+       ],
+       "query": [
+        {
+         "key": "page",
+         "value": "x"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));",
+         "pm.test('{error}', () => pm.expect(pm.response.json().error).to.be.a('string'));"
+        ]
+       }
+      }
+     ]
+    }
+   ]
   }
  ]
 }

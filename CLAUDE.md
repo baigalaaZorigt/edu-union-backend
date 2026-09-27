@@ -203,8 +203,8 @@ python -m pytest tests -q      # the whole pytest suite (~460 tests, ~15 s)
   The Postman collection (`docs/edu-union-backend.postman_collection.json`) is the second,
   black-box suite, run against a live server. It runs **top to bottom** (Postman Runner or
   `newman run docs/edu-union-backend.postman_collection.json --env-var base_url=...`, **from the
-  repo root** — the form-data requests upload `docs/fixtures/sample.png|pdf` by relative path): 516 requests,
-  902 assertions, and repeatable — three consecutive runs leave every table's row count
+  repo root** — the form-data requests upload `docs/fixtures/sample.png|pdf` by relative path): 520 requests,
+  913 assertions, and repeatable — three consecutive runs leave every table's row count
   unchanged. (One known red on a *fresh* DB: `ҮЭ — Гишүүний боловсрол / Нэгийг авах` reads
   `member_education_id`=1, but `seed_union()` creates no `member_education` row.) **Keep it that way when adding requests:** run "0. Нэвтрэлт" first (it stores
   `{{token}}`), have each folder's `Нэмэх` save the new id into a `{{new_*}}` variable, and point
@@ -651,6 +651,14 @@ python -m pytest tests -q      # the whole pytest suite (~460 tests, ~15 s)
 - Union / user ids are INTEGER autoincrement; routes use `<int:...>` converters.
 - List endpoints support optional filter query params (`?au1_code=`, `?holboo_id=`,
   `?horoo_id=` (horoo only), `?school_category_id=` (organization), `?organization_id=`, `?owner_type=&owner_id=`, `?resource=`, `?role_id=`, `?status=`).
+  **Every other list endpoint is paginated on request**: send `?page=` and/or `?per_page=` and
+  it answers `{items, total, page, per_page, pages}`; send neither and it still answers the plain
+  array (the deployed frontend depends on that). `core/helpers.fetch_page()` does COUNT +
+  `LIMIT/OFFSET` in SQL (so per-row extras like `org_stats` run only for the page) and
+  `slice_page()` handles lists filtered in Python (`/api/portal/forms?active=1`); `list_json()`
+  picks the shape. Defaults 20 per page, capped at 100, `page<1` → 1, non-numeric → 400.
+  `/api/menu?tree=1` is never paged, and `/api/me/organizations` keeps its `{items}` wrapper
+  (meta is added when paged).
   The paginated list endpoints (`/api/admin/forms`, `/api/admin/news`, `/api/portal/news`,
   `/api/admin/suggestions`, `/api/admin/complaints`, `/api/admin/notifications`) also
   take `?search=&page=&per_page=`; **news answers in the news spec's shape**

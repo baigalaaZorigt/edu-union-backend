@@ -13,7 +13,7 @@
 from flask import Blueprint, jsonify, request, abort
 
 from core.db import get_db
-from core.helpers import rows, require, json_body, fail, pick, insert_row, update_row
+from core.helpers import rows, require, json_body, fail, pick, insert_row, update_row, fetch_page, list_json
 
 bp = Blueprint("admin_units", __name__)
 
@@ -56,9 +56,9 @@ def _register_unit(u):
                 sql, params = sql + f" WHERE {f}=?", (value,)
                 break
         conn = get_db()
-        data = rows(conn.execute(sql + f" ORDER BY {key}", params).fetchall())
+        data, meta = fetch_page(conn, sql + f" ORDER BY {key}", params)
         conn.close()
-        return jsonify(data)
+        return list_json(rows(data), meta)
 
     def get_unit(code):
         conn = get_db()
@@ -133,9 +133,9 @@ MAX_SCHOOL_CATEGORY_ID = 99
 @bp.route("/api/school_category", methods=["GET"])
 def list_school_category():
     conn = get_db()
-    data = rows(conn.execute(SCHOOL_CATEGORY_SELECT + " ORDER BY sc.id").fetchall())
+    data, meta = fetch_page(conn, SCHOOL_CATEGORY_SELECT + " ORDER BY sc.id")
     conn.close()
-    return jsonify(data)
+    return list_json(rows(data), meta)
 
 
 @bp.route("/api/school_category/<int:cid>", methods=["GET"])

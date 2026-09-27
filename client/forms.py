@@ -18,7 +18,7 @@
 from flask import Blueprint, jsonify, request, abort
 
 from core.db import get_db
-from core.helpers import json_body, insert_row
+from core.helpers import json_body, insert_row, list_json, slice_page
 from core.forms_core import (
     CHOICE_TYPES, bad, current_user_id, document_list, form_results, has_submitted,
     is_open, load_settings, now_str, public_form, question_list, require_form,
@@ -55,7 +55,7 @@ def list_forms():
                        documents=docs.get(r["id"], [])) for r in data]
     if request.args.get("active") in ("1", "true", "True"):
         out = [f for f in out if f["is_open"]]
-    return jsonify(out)
+    return list_json(*slice_page(out))
 
 
 @bp.route("/api/portal/forms/<int:fid>", methods=["GET"])

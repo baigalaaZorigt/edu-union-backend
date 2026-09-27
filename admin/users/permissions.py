@@ -2,7 +2,7 @@
 from flask import jsonify, request, abort
 
 from core.db import get_db
-from core.helpers import rows, require, json_body, fail, insert_row, update_row
+from core.helpers import rows, require, json_body, fail, insert_row, update_row, fetch_page, list_json
 
 from admin.users import bp
 from admin.users.common import _delete_by_id
@@ -21,12 +21,12 @@ def list_permission():
     resource = request.args.get("resource")
     conn = get_db()
     if resource:
-        data = rows(conn.execute(
-            "SELECT * FROM permission WHERE resource=? ORDER BY id", (resource,)).fetchall())
+        data, meta = fetch_page(conn, "SELECT * FROM permission WHERE resource=? ORDER BY id",
+                                (resource,))
     else:
-        data = rows(conn.execute("SELECT * FROM permission ORDER BY id").fetchall())
+        data, meta = fetch_page(conn, "SELECT * FROM permission ORDER BY id")
     conn.close()
-    return jsonify(data)
+    return list_json(rows(data), meta)
 
 
 @bp.route("/api/permission/<int:pid>", methods=["GET"])

@@ -2,7 +2,7 @@
 from flask import jsonify, request, abort
 
 from core.db import get_db
-from core.helpers import rows, require, json_body, fail, insert_row, update_row
+from core.helpers import rows, require, json_body, fail, insert_row, update_row, fetch_page, list_json
 
 from admin.users import bp
 from admin.users.common import _delete_by_id, _exists, _role_perms
@@ -60,11 +60,12 @@ def _role_values(conn, data, rid=None):
 @bp.route("/api/role", methods=["GET"])
 def list_role():
     conn = get_db()
-    data = rows(conn.execute("SELECT * FROM role ORDER BY id").fetchall())
+    page_rows, meta = fetch_page(conn, "SELECT * FROM role ORDER BY id")
+    data = rows(page_rows)
     for r in data:
         r["permissions"] = _role_perms(conn, r["id"])
     conn.close()
-    return jsonify(data)
+    return list_json(data, meta)
 
 
 @bp.route("/api/role/<int:rid>", methods=["GET"])

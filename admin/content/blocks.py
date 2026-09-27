@@ -3,11 +3,11 @@
 from flask import jsonify, request, abort
 
 from core.db import get_db
-from core.helpers import require, json_body, fail, pick, update_row
+from core.helpers import require, json_body, fail, pick, update_row, fetch_page, list_json
 
 from admin.content import bp
 from admin.content.storage import remove_upload
-from admin.content.common import (BLOCK_FIELDS, BLOCK_TYPES, _blocks_of, _create_block,
+from admin.content.common import (BLOCK_FIELDS, BLOCK_TYPES, _create_block,
                                   _delete_block, _order_items, _public_block)
 
 
@@ -22,10 +22,9 @@ def list_page_block():
         sql += " WHERE " + " AND ".join(f"{col}=?" for col, _ in filters)
     sql += " ORDER BY page_id, sort_order, id"
     conn = get_db()
-    data = [_public_block(r)
-            for r in conn.execute(sql, [v for _, v in filters]).fetchall()]
+    page_rows, meta = fetch_page(conn, sql, [v for _, v in filters])
     conn.close()
-    return jsonify(data)
+    return list_json([_public_block(r) for r in page_rows], meta)
 
 
 @bp.route("/api/page_block/<int:bid>", methods=["GET"])
@@ -91,16 +90,14 @@ def delete_page_block(bid):
 # ======== page_image / page_file / page_video (спекийн төрөлжсөн харагдац) ========
 # Эдгээр нь page_block дээрх нимгэн бүрхүүл — өгөгдөл нэг хүснэгтэд хадгалагдана.
 def _list_typed(btype):
+    sql, args = "SELECT * FROM page_block WHERE type=?", [btype]
+    if request.args.get("page_id"):
+        sql += " AND page_id=?"
+        args.append(request.args["page_id"])
     conn = get_db()
-    page_id = request.args.get("page_id")
-    if page_id:
-        data = _blocks_of(conn, page_id, btype)
-    else:
-        data = [_public_block(r) for r in conn.execute(
-            "SELECT * FROM page_block WHERE type=? ORDER BY page_id, sort_order, id",
-            (btype,)).fetchall()]
+    page_rows, meta = fetch_page(conn, sql + " ORDER BY page_id, sort_order, id", args)
     conn.close()
-    return jsonify(data)
+    return list_json([_public_block(r) for r in page_rows], meta)
 
 
 @bp.route("/api/page_image", methods=["GET"])
