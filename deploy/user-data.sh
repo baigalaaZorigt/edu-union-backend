@@ -48,8 +48,10 @@ install -m 644 deploy/nginx.conf /etc/nginx/conf.d/edu-union.conf
 if [ -n "$DOMAIN" ] && [ "$DOMAIN" != "none" ]; then
   sed -i "s/server_name  _;/server_name  ${DOMAIN};/" /etc/nginx/conf.d/edu-union.conf
 fi
-# AL2023-ийн анхдагч server блок 80 портыг эзэлдэг тул унтраана
-sed -i 's/^\( *\)listen       80;/\1listen       8080;/; s/^\( *\)listen       \[::\]:80;/\1listen       [::]:8080;/' /etc/nginx/nginx.conf || true
+# AL2023-ийн анхдагч server блок 80 портыг эзэлдэг тул БҮХЭЛД НЬ коммент болгоно
+# (өмнө нь 8080 руу шилжүүлдэг байсан — хэрэггүй порт нээлттэй үлддэг байв).
+awk '/^    server \{$/ && !done {d=1} {print (d ? "#" : "") $0} d && /^    \}$/ {d=0; done=1}' \
+    /etc/nginx/nginx.conf > /tmp/nginx.conf && cat /tmp/nginx.conf > /etc/nginx/nginx.conf
 nginx -t && systemctl enable --now nginx && systemctl reload nginx
 
 # ---- certbot (HTTPS) ----
