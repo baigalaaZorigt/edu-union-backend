@@ -268,11 +268,15 @@ def test_school_category_validation(api):
     assert api.delete("/api/school_category/9999").status_code == 404
 
 
-@pytest.mark.xfail(reason="BUG: create_au3 уншсан эцэг сумын au1_code-г au1_code-той "
-                          "тулгадаггүй — өөр аймгийн au1_code-той баг бүртгэгдэнэ",
-                   strict=True)
 def test_au3_au1_code_must_match_parent(api, au2):
-    _, a2 = au2
-    r = api.post("/api/au3", json={"au3_code": _code("C"), "au3_name": "x",
+    """Өөр аймгийн сумд баг бүртгэхгүй — au1_code эцэг сумынхтай таарах ёстой."""
+    a1, a2 = au2
+    code = _code("C")
+    r = api.post("/api/au3", json={"au3_code": code, "au3_name": "x",
                                    "au1_code": "011", "au2_code": a2})
     assert r.status_code == 400
+    assert r.get_json()["error"] == "au1_code нь эцэг сумын аймагтай таарахгүй байна"
+    assert api.get(f"/api/au3/{code}").status_code == 404        # юу ч бичигдээгүй
+    r = api.post("/api/au3", json={"au3_code": code, "au3_name": "x",
+                                   "au1_code": a1, "au2_code": a2})
+    assert r.status_code == 201                                   # таарвал зөв

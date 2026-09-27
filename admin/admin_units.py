@@ -23,6 +23,8 @@ bp = Blueprint("admin_units", __name__)
 # key      — TEXT анхдагч түлхүүр, name — засаж болох цорын ганц талбар
 # create   — POST-д заавал талбарууд (INSERT-ийн баганууд мөн эдгээр)
 # parent   — (эцэг хүснэгт, түлхүүр багана, хүсэлтийн талбар, алдааны мессеж)
+# same     — эцэг мөрийн ИЖИЛ байх ёстой талбар: (талбар, алдааны мессеж) — ж: багийн au1_code
+#            нь эцэг сумынхтай таарах ёстой (өөр аймгийн сумд баг бүртгэгдэхгүй)
 # filters  — жагсаалтын шүүлтүүрүүд; эхнийх нь өгөгдсөн бол түүгээр л шүүнэ
 ADMIN_UNITS = (
     {"prefix": "au1", "table": "admin_unit1", "key": "code", "name": "name",
@@ -38,6 +40,7 @@ ADMIN_UNITS = (
     {"prefix": "au3", "table": "admin_unit3", "key": "au3_code", "name": "au3_name",
      "create": ("au3_code", "au3_name", "au1_code", "au2_code"),
      "parent": ("admin_unit2", "au2_code", "au2_code", "au2_code (эцэг сум) олдсонгүй"),
+     "same": ("au1_code", "au1_code нь эцэг сумын аймагтай таарахгүй байна"),
      "filters": ("au2_code", "au1_code"),
      "not_found": "Баг олдсонгүй",
      "conflict": "Энэ багийн код аль хэдийн бүртгэгдсэн байна"},
@@ -74,9 +77,13 @@ def _register_unit(u):
         conn = get_db()
         if u["parent"]:
             p_table, p_key, field, message = u["parent"]
-            if not conn.execute(f"SELECT 1 FROM {p_table} WHERE {p_key}=?",
-                                (data[field],)).fetchone():
+            parent = conn.execute(f"SELECT * FROM {p_table} WHERE {p_key}=?",
+                                  (data[field],)).fetchone()
+            if not parent:
                 fail(conn, 400, message)
+            same = u.get("same")
+            if same and str(parent[same[0]]) != str(data[same[0]]):
+                fail(conn, 400, same[1])
         try:
             insert_row(conn, table, {f: data[f] for f in u["create"]})
             conn.commit()
