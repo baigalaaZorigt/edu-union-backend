@@ -72,7 +72,11 @@ portal's token-free API (`/api/portal/...`, `/api/public/...`). What both sides 
   `/api/portal/portal_settings`, read-only), `home.py` (`/api/portal/banners`,
   `/api/portal/partners` → `{items: [...]}` (partner: id, name, url, icon, logo_url),
   `Cache-Control: public, max-age=300`),
-  `legal.py` (`/api/portal/legal_documents[/<id>]` — visible rows; detail adds `blocks`).
+  `legal.py` (`/api/portal/legal_documents[/<id>]` — visible rows; detail adds `blocks`),
+  `stats.py` (`/api/portal/membership_structure` — «Гишүүнчлэлийн бүтэц» pie: members per
+  school category, plus `rural` = members of schools a ХОН specialist is assigned (taken out of
+  their category, never double-counted) and `other` = schools without a category; integer
+  percents that sum to exactly 100 (largest remainder); only aggregates, 5-min cache).
 - **`core/`** — shared by both sites: `db.py`, `auth.py`, `helpers.py` and the domain cores
   below. **`client/` never imports from `admin/`**; anything both need goes into `core/`.
 
@@ -154,6 +158,7 @@ client/             # ── CLIENT SITE (портал, токенгүй) ──
   settings.py       #   "public_settings": /api/public|portal/portal_settings
   home.py           #   "portal_home": /api/portal/banners|partners
   search.py         #   "portal_search": /api/portal/search, /api/portal/search/suggest
+  stats.py          #   "portal_stats": /api/portal/membership_structure
   legal.py          #   "portal_legal": /api/portal/legal_documents
 scripts/
   migrate_to_pg.py  # SQLite -> Postgres хуулах
@@ -227,8 +232,8 @@ python -m pytest tests -q      # the whole pytest suite (571 tests, ~13 s)
   The Postman collection (`docs/edu-union-backend.postman_collection.json`) is the second,
   black-box suite, run against a live server. It runs **top to bottom** (Postman Runner or
   `newman run docs/edu-union-backend.postman_collection.json --env-var base_url=...`, **from the
-  repo root** — the form-data requests upload `docs/fixtures/sample.png|pdf` by relative path): 585 requests,
-  1129 assertions, and repeatable — three consecutive runs leave every table's row count
+  repo root** — the form-data requests upload `docs/fixtures/sample.png|pdf` by relative path): 586 requests,
+  1134 assertions, and repeatable — three consecutive runs leave every table's row count
   unchanged. (One known red on a *fresh* DB: `ҮЭ — Гишүүний боловсрол / Нэгийг авах` reads
   `member_education_id`=1, but `seed_union()` creates no `member_education` row.) **Keep it that way when adding requests:** run "0. Нэвтрэлт" first (it stores
   `{{token}}`), have each folder's `Нэмэх` save the new id into a `{{new_*}}` variable, and point

@@ -23907,6 +23907,48 @@
      ]
     }
    ]
+  },
+  {
+   "name": "Статистик 1 — Гишүүнчлэлийн бүтэц (ТОКЕНГҮЙ)",
+   "item": [
+    {
+     "name": "Гишүүнчлэлийн бүтэц (дугуй диаграм)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "auth": {
+       "type": "noauth"
+      },
+      "url": {
+       "raw": "{{base_url}}/api/portal/membership_structure",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "portal",
+        "membership_structure"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('Cache-Control 5 минут', () => pm.expect(pm.response.headers.get('Cache-Control')).to.eql('public, max-age=300'));",
+         "pm.test('total = бүлгүүдийн нийлбэр', () => pm.expect(j.total_members).to.eql(j.items.reduce((a, x) => a + x.members, 0)));",
+         "pm.test('хувийн нийлбэр 100', () => { if (j.items.length) pm.expect(j.items.reduce((a, x) => a + x.percent, 0)).to.eql(100); });",
+         "pm.test('талбарууд', () => j.items.forEach(x => pm.expect(Object.keys(x).sort()).to.eql(['key','members','name','percent','school_category_id','short_name'])));"
+        ]
+       }
+      }
+     ]
+    }
+   ]
   }
  ]
 }
