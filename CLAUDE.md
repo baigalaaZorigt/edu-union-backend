@@ -107,6 +107,7 @@ core/               # ── SHARED (хоёр site хуваалцана) ──
   helpers.py        #   rows, require, json_body, fail, pick, insert_row, update_row, now_str
   forms_core/       #   survey/poll домэйний цөм (base, questions, results, documents)
   news_core.py  scope_core.py  feedback_core.py  settings_core.py  home_core.py
+  search_core.py    #   порталын хайлтын индекс, тааруулалт, snippet
   storage.py        #   файлын сан: S3 (S3_BUCKET) эсвэл локал диск — Area(area, local_dir)
   audit.py          #   хүсэлт бүрийн JSON лог -> stdout -> (awslogs) CloudWatch
 admin/              # ── ADMIN SITE (токен + эрх) ──
@@ -130,6 +131,7 @@ client/             # ── CLIENT SITE (портал, токенгүй) ──
   feedback.py       #   "portal_feedback": /api/portal/suggestions|complaints
   settings.py       #   "public_settings": /api/public|portal/portal_settings
   home.py           #   "portal_home": /api/portal/banners|partners
+  search.py         #   "portal_search": /api/portal/search, /api/portal/search/suggest
 scripts/
   migrate_to_pg.py  # SQLite -> Postgres хуулах
   migrate_uploads_to_s3.py  # хуучин локал файлуудыг S3 руу (нэг удаа, идемпотент)
@@ -200,8 +202,8 @@ python -m pytest tests -q      # the whole pytest suite (~460 tests, ~15 s)
   documents a known bug is `xfail(strict=True)` — fixing the bug means removing the mark.
   The Postman collection (`docs/edu-union-backend.postman_collection.json`) is the second,
   black-box suite, run against a live server. It runs **top to bottom** (Postman Runner or
-  `newman run docs/edu-union-backend.postman_collection.json --env-var base_url=...`): 510 requests,
-  874 assertions, and repeatable — three consecutive runs leave every table's row count
+  `newman run docs/edu-union-backend.postman_collection.json --env-var base_url=...`): 516 requests,
+  889 assertions, and repeatable — three consecutive runs leave every table's row count
   unchanged. (One known red on a *fresh* DB: `ҮЭ — Гишүүний боловсрол / Нэгийг авах` reads
   `member_education_id`=1, but `seed_union()` creates no `member_education` row.) **Keep it that way when adding requests:** run "0. Нэвтрэлт" first (it stores
   `{{token}}`), have each folder's `Нэмэх` save the new id into a `{{new_*}}` variable, and point
@@ -445,6 +447,22 @@ python -m pytest tests -q      # the whole pytest suite (~460 tests, ~15 s)
   fresh deploy needs no manual step. The portal reads it token-free at
   `/api/public/portal_settings` (and `/api/portal/portal_settings`, the same handler) —
   `/api/public/` is the read-only public namespace added to `PUBLIC_PREFIXES`.
+- **Portal search is Python-side, not SQL `LIKE`** (`core/search_core.py` + `client/search.py`).
+  SQLite's `LIKE`/`lower()` only fold ASCII and Postgres `LIKE` is case-sensitive, so neither
+  matches Cyrillic case-insensitively; instead `build_corpus()` loads everything the portal shows
+  (published news + text blocks, visible `type='page'` menus whose chain is visible and whose
+  `page.status='published'`, their blocks — `file` blocks become `type='document'` —, non-draft
+  forms, visible partners) and matches with `str.lower()`. No `LIKE` means no wildcard injection.
+  The corpus is rebuilt only when `_signature()` (COUNT + MAX(updated_at) of the 7 source tables,
+  one query) changes, so a publish/delete shows up immediately — or when it is older than
+  `CORPUS_MAX_AGE` (10 s), because `updated_at` has 1-second resolution and two edits in the
+  same second leave the signature unchanged; identical requests are cached
+  60 s per worker (`Cache-Control: max-age=60`). Page items get `path` from the menu slug chain
+  (`/parent/child`) and block items `anchor = "block-<id>"` (the portal must render that id);
+  a text block's title is its first `<h1-4>`. Snippets are HTML-escaped and only `<mark>` is
+  added. Rate limit: 30 req/min per IP from **`X-Real-IP`** (nginx overwrites it; the first
+  `X-Forwarded-For` hop is client-controlled) → 429 JSON; limits and caches are per gunicorn
+  worker. `organization` results (optional in the spec) are not indexed.
 - **Banner / partner (portal home page) share `core/home_core.py`.** Both tables carry
   `sort_order` + `is_visible` (0/1, returned as bool to the admin). `banner.image_url` is required
   and, like `link_url`, must be `http(s)://` or a relative path (`/uploads/...`) — any other scheme

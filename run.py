@@ -41,6 +41,7 @@ from client.news import bp as portal_news_bp
 from client.feedback import bp as portal_feedback_bp
 from client.settings import bp as public_settings_bp
 from client.home import bp as portal_home_bp
+from client.search import bp as portal_search_bp
 
 # Бүртгэх blueprint-ууд. ШИНЭ blueprint-ийг энд нэмэхгүй бол түүний маршрут харагдахгүй.
 BLUEPRINTS = (
@@ -62,6 +63,7 @@ BLUEPRINTS = (
     portal_feedback_bp,   # /api/portal/suggestions|complaints
     public_settings_bp,   # /api/public|portal/portal_settings
     portal_home_bp,       # /api/portal/banners|partners
+    portal_search_bp,     # /api/portal/search, /api/portal/search/suggest
 )
 
 

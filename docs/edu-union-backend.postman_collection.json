@@ -470,6 +470,18 @@
   {
    "key": "new_partner_id",
    "value": ""
+  },
+  {
+   "key": "new_search_news_id",
+   "value": ""
+  },
+  {
+   "key": "search_title",
+   "value": ""
+  },
+  {
+   "key": "search_token",
+   "value": ""
   }
  ],
  "item": [
@@ -19868,6 +19880,271 @@
         "exec": [
          "pm.test('статус 404', () => pm.response.to.have.status(404));",
          "pm.test('{error} ирнэ', () => pm.expect(pm.response.json().error).to.be.a('string'));"
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Хайлт 1 — Портал хайлт (ТОКЕНГҮЙ)",
+   "item": [
+    {
+     "name": "Нийтлэгдсэн мэдээ нэмэх → new_search_news_id",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/admin/news",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "news"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"title\": \"Хайлттест {{$timestamp}}\",\n  \"category\": \"Мэдээ\",\n  \"status\": \"published\",\n  \"summary\": \"Энэ бол хайлтын туршилт{{$timestamp}} мэдээ\"\n}"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "var j = pm.response.json();",
+         "pm.collectionVariables.set('new_search_news_id', j.id);",
+         "// ажиллагаа бүрт давтагдашгүй хайх үг — 60 сек үр дүнгийн кэшэд өмнөх ажиллагааны хариу таарахгүй",
+         "pm.collectionVariables.set('search_title', j.title.toLowerCase());",
+         "pm.collectionVariables.set('search_token', j.summary.match(/туршилт\\d+/)[0]);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Suggest — гарчгаар (жижиг үсгээр)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/portal/search/suggest?q={{search_title}}&limit=8",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "portal",
+        "search",
+        "suggest"
+       ],
+       "query": [
+        {
+         "key": "q",
+         "value": "{{search_title}}"
+        },
+        {
+         "key": "limit",
+         "value": "8"
+        }
+       ]
+      },
+      "auth": {
+       "type": "noauth"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('Cache-Control 60', () => pm.expect(pm.response.headers.get('Cache-Control')).to.eql('public, max-age=60'));",
+         "var items = pm.response.json().items;",
+         "var mine = items.filter(x => x.type === 'news' && x.id === Number(pm.collectionVariables.get('new_search_news_id')));",
+         "pm.test('шинэ мэдээ олдсон', () => pm.expect(mine.length).to.eql(1));",
+         "pm.test('path /news/<id>', () => pm.expect(mine[0].path).to.eql('/news/' + mine[0].id));",
+         "pm.test('талбарууд', () => pm.expect(Object.keys(mine[0]).sort()).to.eql(['anchor','id','path','title','type']));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Search — их биеэр (snippet + <mark>)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/portal/search?q={{search_token}}&type=news&page=1&per_page=10",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "portal",
+        "search"
+       ],
+       "query": [
+        {
+         "key": "q",
+         "value": "{{search_token}}"
+        },
+        {
+         "key": "type",
+         "value": "news"
+        },
+        {
+         "key": "page",
+         "value": "1"
+        },
+        {
+         "key": "per_page",
+         "value": "10"
+        }
+       ]
+      },
+      "auth": {
+       "type": "noauth"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('хуудаслалтын талбарууд', () => pm.expect(j).to.include.keys('items','page','pages','per_page','total'));",
+         "var mine = j.items.filter(x => x.id === Number(pm.collectionVariables.get('new_search_news_id')));",
+         "pm.test('олдсон', () => pm.expect(mine.length).to.eql(1));",
+         "pm.test('snippet <mark>', () => pm.expect(mine[0].snippet).to.include('<mark>' + pm.collectionVariables.get('search_token') + '</mark>'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "q хэт богино → хоосон",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/portal/search/suggest?q=а",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "portal",
+        "search",
+        "suggest"
+       ],
+       "query": [
+        {
+         "key": "q",
+         "value": "а"
+        }
+       ]
+      },
+      "auth": {
+       "type": "noauth"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('items хоосон', () => pm.expect(pm.response.json().items).to.eql([]));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Алдаа: type буруу → 400",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/portal/search?q=хайлт&type=bad",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "portal",
+        "search"
+       ],
+       "query": [
+        {
+         "key": "q",
+         "value": "хайлт"
+        },
+        {
+         "key": "type",
+         "value": "bad"
+        }
+       ]
+      },
+      "auth": {
+       "type": "noauth"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));",
+         "pm.test('{error}', () => pm.expect(pm.response.json().error).to.be.a('string'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Мэдээг устгах (цэвэрлэгээ)",
+     "request": {
+      "method": "DELETE",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/admin/news/{{new_search_news_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "admin",
+        "news",
+        "{{new_search_news_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
         ]
        }
       }

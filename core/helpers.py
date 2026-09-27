@@ -87,7 +87,8 @@ def register_error_handlers(target):
 
     400 буруу хүсэлт / 401 нэвтрээгүй / 403 эрх хүрэлцэхгүй / 404 олдсонгүй /
     405 буруу метод / 409 давхцал / 413 хэт том хүсэлт (файл оруулах) /
-    422 агуулга нь зөв боловч бизнес дүрэмд зөрчсөн (ж: одоогийн нууц үг буруу).
+    422 агуулга нь зөв боловч бизнес дүрэмд зөрчсөн (ж: одоогийн нууц үг буруу) /
+    429 хэт олон хүсэлт (порталын хайлт).
     """
     @target.errorhandler(400)
     @target.errorhandler(401)
@@ -95,6 +96,7 @@ def register_error_handlers(target):
     @target.errorhandler(404)
     @target.errorhandler(409)
     @target.errorhandler(422)
+    @target.errorhandler(429)
     def _handle(err):
         return jsonify(error=err.description), err.code
 
