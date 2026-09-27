@@ -251,8 +251,8 @@ bash scripts/check.sh --pg     # + Postgres in docker: alembic, model drift, Pos
   The Postman collection (`docs/edu-union-backend.postman_collection.json`) is the second,
   black-box suite, run against a live server. It runs **top to bottom** (Postman Runner or
   `newman run docs/edu-union-backend.postman_collection.json --env-var base_url=...`, **from the
-  repo root** — the form-data requests upload `docs/fixtures/sample.png|pdf` by relative path): 664 requests,
-  ~1273 assertions (a few are conditional), and repeatable — three consecutive runs leave every table's **visible**
+  repo root** — the form-data requests upload `docs/fixtures/sample.png|pdf` by relative path): 686 requests,
+  ~1303 assertions (a few are conditional), and repeatable — three consecutive runs leave every table's **visible**
   row count (`deleted_at IS NULL`) unchanged; since every delete is soft, hidden rows do pile up. Every request is green, on a fresh database too (`Нэгийг авах` in
   the member_education folder reads the row its own `Нэмэх` created, not a seed id). **Keep it that way when adding requests:** run "0. Нэвтрэлт" first (it stores
   `{{token}}`), have each folder's `Нэмэх` save the new id into a `{{new_*}}` variable, and point
@@ -287,7 +287,10 @@ bash scripts/check.sh --pg     # + Postgres in docker: alembic, model drift, Pos
   every `RESTRICT` relation at once: it builds one of each lookup + a school category (id 97) +
   aimag 981 / sum 98101 + a role, an organization and a member / user that use them, proves each
   delete is a 409 naming the right table (and changes nothing), then unlinks (deletes the member
-  and the user) and deletes everything with 200. The
+  and the user) and deletes everything with 200. `Холбоос 2` logs in as a user whose scope covers
+  no school (`{{h2_token}}`): their 409 on a position still counts the 1 member but shows **no
+  name** while admin's shows it, and after that user is deleted the form they created still
+  carries their `created_by`. The
   `Мэргэжилтэн 1` folder covers the specialist flow
   end to end: it builds its own role + two organizations (one in scope, one out) + user, logs
   in with the initial password, changes it, fills the scope through `/api/me/scope`, then
