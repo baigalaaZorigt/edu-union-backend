@@ -44,6 +44,8 @@ PATH_RESOURCE = {
     "suggestions": "suggestion", "complaints": "complaint",
     # Мэдэгдэл — /api/admin/notifications -> notification
     "notifications": "notification",
+    # Хууль тогтоомж — блок нь эх баримтынхаа эрхээр (legal_document.*)
+    "legal_document_block": "legal_document",
 }
 
 # /api/<site>/... хэлбэрийн site угтварууд — эрхийг ДАРААГИЙН хэсгээс гаргана
@@ -58,7 +60,8 @@ SUB_RESOURCE = {
     "document": "form_document", "documents": "form_document",
     "results": "form_result", "answers": "form_result",
     "submit": "form_submission", "submissions": "form_submission",
-    "blocks": "news_block",              # /api/admin/news/41/blocks -> news_block
+    # /api/admin/news/41/blocks -> news_block; бусад эх (legal_document) өөрийн эрхээрээ
+    "blocks": {"news": "news_block"},
 }
 
 # HTTP методоос гарах үйлдлийг дарж бичих дэд замууд
@@ -148,7 +151,8 @@ def _required_permission():
     resource = PATH_RESOURCE.get(parts[0], parts[0])
     for seg in parts[1:]:                # дэд зам resource/action-г дарж бичнэ
         if seg in SUB_RESOURCE:
-            resource = SUB_RESOURCE[seg]
+            sub = SUB_RESOURCE[seg]
+            resource = sub.get(resource, resource) if isinstance(sub, dict) else sub
         if seg in SUB_ACTION:
             action = SUB_ACTION[seg]
     return f"{resource}.{action}"

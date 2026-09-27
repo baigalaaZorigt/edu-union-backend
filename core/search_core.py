@@ -8,6 +8,9 @@ path, anchor, body, date):
   document  — хуудасны file блок (Хууль, журам г.м.) — хуудасны зам + anchor
   survey / poll — status <> 'draft', deleted_at IS NULL (порталын жагсаалттай ижил)
   partner   — is_visible=1; path нь байгууллагын URL
+  document  — мөн хууль тогтоомж (legal_document, is_visible=1): path нь горимоор —
+              detail -> /legal/<id>, link -> external_url, file -> pdf_url;
+              их бие = ангилал + эх сурвалж + detail-ийн текст блокууд
 
 Тааруулалт SQL LIKE БИШ, Python-ийн `str.lower()` — SQLite-ийн LIKE/lower() кирилл
 үсгийн том/жижгийг ялгадаг, Postgres-ийн LIKE бүр ялгадаг. Хэдэн мянган мөрөнд хангалттай
@@ -24,13 +27,14 @@ import time
 from sqlalchemy import func, select
 
 from core.orm import session
-from core.orm.models import Form, Menu, News, NewsBlock, Page, PageBlock, Partner
+from core.orm.models import (Form, LegalDocument, LegalDocumentBlock, Menu, News, NewsBlock,
+                              Page, PageBlock, Partner)
 
 MIN_Q, MAX_Q = 2, 60
 SNIPPET = 160
 # Индекс барих эх хүснэгтүүд — эдгээрийн аль нэг өөрчлөгдвөл индекс дахин баригдана
 CORPUS_MAX_AGE = 10                  # хээ ижил байсан ч үүнээс хуучин индексийг дахин барина
-SOURCES = (News, NewsBlock, Menu, Page, PageBlock, Form, Partner)
+SOURCES = (News, NewsBlock, Menu, Page, PageBlock, Form, Partner, LegalDocument, LegalDocumentBlock)
 TYPES = ("news", "page", "document", "survey", "poll", "partner")
 
 _TAG = re.compile(r"<[^>]+>")
@@ -125,6 +129,17 @@ def build_corpus(s):
         docs.append({"type": f.type, "id": f.id, "title": f.title,
                      "path": f"/{f.type}/{f.id}", "anchor": None,
                      "date": _date(f.created_at), "body": plain(f.description)})
+    legal_text = {}
+    for b in s.execute(select(LegalDocumentBlock.legal_document_id, LegalDocumentBlock.text)
+                       .where(LegalDocumentBlock.type == "text")
+                       .order_by(LegalDocumentBlock.sort_order, LegalDocumentBlock.id)):
+        legal_text.setdefault(b.legal_document_id, []).append(plain(b.text))
+    for d in s.scalars(select(LegalDocument).where(LegalDocument.is_visible == 1)):
+        path = {"link": d.external_url, "file": d.pdf_url}.get(d.display_mode, f"/legal/{d.id}")
+        docs.append({"type": "document", "id": d.id, "title": d.title, "path": path,
+                     "anchor": None, "date": _date(d.published_date or d.created_at),
+                     "body": " ".join([d.category or "", d.source_name or ""]
+                                      + legal_text.get(d.id, [])).strip()})
     for p in s.execute(select(Partner.id, Partner.name, Partner.url, Partner.created_at)
                        .where(Partner.is_visible == 1)):
         docs.append({"type": "partner", "id": p.id, "title": p.name, "path": p.url,

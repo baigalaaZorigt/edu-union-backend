@@ -55,13 +55,16 @@ portal's token-free API (`/api/portal/...`, `/api/public/...`). What both sides 
     dashboard's cards, bar chart and gender donut.
   - `settings.py` — `portal_settings`, the portal's **singleton** settings row
     (header, hero banner, contacts, map) — `GET|PUT|PATCH /api/portal_settings`.
+  - `legal.py` — Хууль тогтоомж: `legal_document` (+ `legal_document_block`) CRUD, block
+    reorder (`/api/legal_document...`, `/api/legal_document_block/<id>`).
   - `home.py` — the portal home page's `banner` (slider) and `partner` (Хамтрагч байгууллага)
     lists: `GET|POST /api/banner`, `GET|PUT|PATCH|DELETE /api/banner/<id>`, same for `/api/partner`.
 - **`client/`** — the portal site, **token-free** (`PUBLIC_PREFIXES` in `core/auth.py`):
   `forms.py` (list, open, submit surveys), `news.py` (read news), `feedback.py` (send
   suggestions/complaints), `settings.py` (`/api/public/portal_settings` and
   `/api/portal/portal_settings`, read-only), `home.py` (`/api/portal/banners`,
-  `/api/portal/partners` → `{items: [...]}`, `Cache-Control: public, max-age=300`).
+  `/api/portal/partners` → `{items: [...]}`, `Cache-Control: public, max-age=300`),
+  `legal.py` (`/api/portal/legal_documents[/<id>]` — visible rows; detail adds `blocks`).
 - **`core/`** — shared by both sites: `db.py`, `auth.py`, `helpers.py` and the domain cores
   below. **`client/` never imports from `admin/`**; anything both need goes into `core/`.
 
@@ -110,11 +113,11 @@ core/               # ── SHARED (хоёр site хуваалцана) ──
     seed_ref|seed_data|seed_portal.py, reference_data.py
     bootstrap.py    #     migrate() (Alembic), seed_all(), ensure_seeded()
     __main__.py     #     python -m core.db
-alembic/            # migration-ууд (versions/0001_baseline.py = одоогийн бүх схем)
+alembic/            # migration-ууд: 0001_baseline (хуучин бүх схем), 0002_legal_document
   auth.py           #   JWT + global permission check (before_request)
   helpers.py        #   require, json_body, pick, client_ip, now_str, page_params, list_json
   forms_core/       #   survey/poll домэйний цөм (base, questions, results, documents)
-  news_core.py  scope_core.py  feedback_core.py  settings_core.py  home_core.py
+  news_core.py  scope_core.py  feedback_core.py  settings_core.py  home_core.py  legal_core.py
   search_core.py    #   порталын хайлтын индекс, тааруулалт, snippet
   xlsx.py           #   Excel экспорт (xlsxwriter constant_memory, bold+freeze толгой)
   storage.py        #   файлын сан: S3 (S3_BUCKET) эсвэл локал диск — Area(area, local_dir)
@@ -134,6 +137,7 @@ admin/              # ── ADMIN SITE (токен + эрх) ──
   dashboard.py      #   "admin_dashboard": /api/admin/dashboard/summary
   settings.py       #   "portal_settings": /api/portal_settings (GET/PUT/PATCH)
   home.py           #   "home_content": /api/banner, /api/partner (нүүр хуудас)
+  legal.py          #   "legal": /api/legal_document(_block) (хууль тогтоомж)
 client/             # ── CLIENT SITE (портал, токенгүй) ──
   forms.py          #   "portal_forms": /api/portal/forms...
   news.py           #   "portal_news": /api/portal/news...
@@ -141,6 +145,7 @@ client/             # ── CLIENT SITE (портал, токенгүй) ──
   settings.py       #   "public_settings": /api/public|portal/portal_settings
   home.py           #   "portal_home": /api/portal/banners|partners
   search.py         #   "portal_search": /api/portal/search, /api/portal/search/suggest
+  legal.py          #   "portal_legal": /api/portal/legal_documents
 scripts/
   migrate_to_pg.py  # SQLite -> Postgres хуулах
   migrate_uploads_to_s3.py  # хуучин локал файлуудыг S3 руу (нэг удаа, идемпотент)
@@ -213,8 +218,8 @@ python -m pytest tests -q      # the whole pytest suite (571 tests, ~13 s)
   The Postman collection (`docs/edu-union-backend.postman_collection.json`) is the second,
   black-box suite, run against a live server. It runs **top to bottom** (Postman Runner or
   `newman run docs/edu-union-backend.postman_collection.json --env-var base_url=...`, **from the
-  repo root** — the form-data requests upload `docs/fixtures/sample.png|pdf` by relative path): 555 requests,
-  1079 assertions, and repeatable — three consecutive runs leave every table's row count
+  repo root** — the form-data requests upload `docs/fixtures/sample.png|pdf` by relative path): 576 requests,
+  1114 assertions, and repeatable — three consecutive runs leave every table's row count
   unchanged. (One known red on a *fresh* DB: `ҮЭ — Гишүүний боловсрол / Нэгийг авах` reads
   `member_education_id`=1, but `seed_union()` creates no `member_education` row.) **Keep it that way when adding requests:** run "0. Нэвтрэлт" first (it stores
   `{{token}}`), have each folder's `Нэмэх` save the new id into a `{{new_*}}` variable, and point
@@ -471,6 +476,21 @@ python -m pytest tests -q      # the whole pytest suite (571 tests, ~13 s)
   `constant_memory` to a temp file that is **unlinked right after it is opened** (the open handle
   streams it; nothing is left on disk even if a close hook never fires). Dates are real date
   cells, `None` is an empty cell, errors stay `{error}` JSON.
+- **Хууль тогтоомж = the news pattern, not the page pattern.** One menu of type `legal`
+  (added to `MENU_TYPES`) auto-lists `legal_document`; each row has its own id, no menu row per
+  law. `display_mode`: `link` (`external_url` required, `http(s)://`), `file` (`pdf_url` required)
+  or `detail` (portal page from `legal_document_block` — `text`/`file`/`link`, the page_block
+  shapes; `pdf_url`, if set, is the primary PDF on top). Checks run on the merged row after a
+  partial `PUT`/`PATCH`; `published_date` is stored `YYYY-MM-DD` (`YYYY.MM.DD` accepted). Order:
+  `sort_order`, then `published_date DESC NULLS LAST`, then id. Replaced/deleted PDFs (row and
+  file blocks) leave storage via `remove_upload()`. Permissions are `legal_document.*` for the
+  blocks too: `PATH_RESOURCE["legal_document_block"]`, and `SUB_RESOURCE["blocks"]` is now a
+  per-parent map (`{"news": "news_block"}`) — before, every `/blocks` path demanded
+  `news_block.*`. These are the first tables created by an Alembic revision (0002) rather than
+  the legacy DDL, so they have **no timestamp triggers**; their models set `created_at` /
+  `updated_at` themselves (`default` / `onupdate`, same ISO format as the triggers). Portal search
+  indexes them as `type="document"` (path: detail → `/legal/<id>`, link → `external_url`,
+  file → `pdf_url`).
 - **Portal search is Python-side, not SQL `LIKE`** (`core/search_core.py` + `client/search.py`).
   SQLite's `LIKE`/`lower()` only fold ASCII and Postgres `LIKE` is case-sensitive, so neither
   matches Cyrillic case-insensitively; instead `build_corpus()` loads everything the portal shows

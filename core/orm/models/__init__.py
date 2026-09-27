@@ -20,3 +20,6 @@ from core.orm.models.news import (  # noqa: F401
 from core.orm.models.forms import (  # noqa: F401
     Form, FormAnswer, FormAnswerOption, FormDocument, FormOption, FormQuestion, FormSubmission,
 )
+from core.orm.models.legal import (  # noqa: F401
+    LegalDocument, LegalDocumentBlock,
+)

@@ -15,7 +15,7 @@ from admin.content.common import _TRUE, _ensure_page, _eq_arg, _next_sort, _now,
 
 
 # Цэсний төрлүүд (спекийн хүснэгт). page-аас бусад нь кодод суусан функциональ хуудас.
-MENU_TYPES = ("page", "news", "survey", "poll", "contact", "home", "external")
+MENU_TYPES = ("page", "news", "survey", "poll", "legal", "contact", "home", "external")
 
 # Цэсний засаж/оруулж болох талбарууд (slug тусад нь боловсруулагдана)
 MENU_FIELDS = ("parent_id", "title", "type", "sort_order", "is_visible", "external_url",
