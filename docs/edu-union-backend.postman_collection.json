@@ -23032,6 +23032,86 @@
      ]
     },
     {
+     "name": "Блокийн эрэмбэ (reorder) — PUT-аар мөн",
+     "request": {
+      "method": "PUT",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/legal_document/{{new_legal_id}}/blocks/reorder",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "legal_document",
+        "{{new_legal_id}}",
+        "blocks",
+        "reorder"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"blocks\": [\n    {\n      \"id\": \"{{new_legal_block2_id}}\",\n      \"sort_order\": 1\n    },\n    {\n      \"id\": \"{{new_legal_block_id}}\",\n      \"sort_order\": 2\n    }\n  ]\n}"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Блокийн эрэмбэ (reorder) — PATCH-аар мөн",
+     "request": {
+      "method": "PATCH",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/legal_document/{{new_legal_id}}/blocks/reorder",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "legal_document",
+        "{{new_legal_id}}",
+        "blocks",
+        "reorder"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"blocks\": [\n    {\n      \"id\": \"{{new_legal_block2_id}}\",\n      \"sort_order\": 1\n    },\n    {\n      \"id\": \"{{new_legal_block_id}}\",\n      \"sort_order\": 2\n    }\n  ]\n}"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
      "name": "Блок засах",
      "request": {
       "method": "PUT",
