@@ -327,7 +327,9 @@ bash scripts/check.sh --pg     # + Postgres in docker: alembic, model drift, Pos
   үүнтэй холбоотой 3 гишүүн (…) бүртгэлтэй байна. Эхлээд тэдгээрийн холбоосыг салгаж …",
   "references": [{table, label, count, examples}]}` (`Referenced` is a `Conflict` with `extra`,
   which `register_error_handlers` merges into the JSON). Hidden (soft-deleted) children do not
-  count. **Ownership cascades are untouched** — news → blocks, form → questions, member →
+  count. `count` is always the full number, but `examples` (names) are filtered by the caller's
+  `user_scope` (`_scope_filter()`): a scoped user sees only names they could read anyway, and no
+  names at all for users/admin units — the 409 must not leak members outside their scope. **Ownership cascades are untouched** — news → blocks, form → questions, member →
   education/rewards/files/contacts, menu → sub-menus/page, role → `role_permission`, and the
   admin-unit hierarchy (aimag → sum → bag) still go with their parent; but every row a cascade
   would hide is checked too, so an aimag whose sum has an organization is a 409 naming the sum.
@@ -343,7 +345,8 @@ bash scripts/check.sh --pg     # + Postgres in docker: alembic, model drift, Pos
   does not reach subqueries (e.g. `paginate()`'s `COUNT`), so **a new select over `__table__.c`
   must add `.select_from(Model)`** — see `MEMBER_QUERY` / `ORG_QUERY`. **Deletes** — the FK
   rules are replayed from model metadata (`ON DELETE CASCADE` → the children are soft-deleted
-  too, `SET NULL` → the column is nulled) plus the polymorphic `contact` rows of a
+  too; `SET NULL` is deliberately **not** replayed — the parent row stays in the table, so e.g.
+  `news.created_by` keeps pointing at a deleted user) plus the polymorphic `contact` rows of a
   horoo/organization/member, all with one timestamp. Single-column UNIQUE text values
   (`username`, `role.name`, `permission.code`, `menu.slug`, `salary_scale.code`,
   `member_file.stored_name`) get `~deleted~<id>` appended so the name is free to reuse; a new row

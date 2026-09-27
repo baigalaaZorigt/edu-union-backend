@@ -107,3 +107,28 @@ def test_seed_keeps_deleted_rows_hidden_and_revives_admin_grants(api):
     finally:
         _set_deleted("position", "id = 20", None)
         _set_deleted("role_permission", "role_id = 1", None)
+
+
+def test_user_delete_keeps_audit_columns(api, make_user):
+    ed_api, ed = make_user(["news.create", "news.read"])
+    n = ed_api.post("/api/admin/news", json={"title": uniq("Аудит "), "category": "Мэдээ"}).get_json()
+    api.delete(f"/api/user/{ed['id']}")
+    with engine().connect() as c:                        # SET NULL давтагдахгүй — эх мөр үлддэг
+        assert c.execute(text("SELECT created_by FROM news WHERE id = :i"),
+                         {"i": n["id"]}).scalar() == ed["id"]
+    api.delete(f"/api/admin/news/{n['id']}")
+
+
+def test_referenced_examples_respect_scope(api, make_user):
+    o = make_org(api)
+    pos = api.post("/api/position", json={"code": uniq("p"), "name": uniq("Т ")}).get_json()
+    make_member(api, o["id"], position_id=pos["id"], last_name="Нууц", first_name="Хүн")
+    spec, su = make_user(["position.delete"], role_name=uniq("Зөвлөх мэргэжилтэн "))
+    api.put(f"/api/user/{su['id']}/scope", json={"school_type": "rural", "organization_ids": []})
+    r = spec.delete(f"/api/position/{pos['id']}")           # хүрээнд гишүүн алга
+    assert r.status_code == 409
+    d = r.get_json()
+    assert "Нууц" not in d["error"] and "холбоотой 1 гишүүн бүртгэлтэй" in d["error"]
+    assert d["references"] == [{"table": "member", "label": "гишүүн", "count": 1, "examples": []}]
+    admin = api.delete(f"/api/position/{pos['id']}").get_json()     # admin бүгдийг харна
+    assert admin["references"][0]["examples"] == ["Нууц Хүн"]

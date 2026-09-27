@@ -8,8 +8,8 @@
   (seed, migration) `execution_options(include_deleted=True)` эсвэл
   `session.info["include_deleted"] = True`.
 * УСТГАЛ: мөрийг устгахын оронд `deleted_at`-ийг бөглөнө, мөн:
-    - DB-ийн FK дүрмийг model metadata-аас уншиж давтана: ON DELETE CASCADE -> хүүхэд
-      мөрүүдийг мөн soft delete; SET NULL -> хүүхдийн баганыг NULL;
+    - DB-ийн ON DELETE CASCADE-ийг model metadata-аас уншиж давтана (хүүхэд мөрүүдийг мөн
+      soft delete); SET NULL-ийг ДАВТАХГҮЙ — эх мөр үлддэг тул created_by зэрэг хэвээр;
     - полиморф `contact` (owner_type/owner_id, FK-гүй) — эзэн нь устахад хамт;
     - UNIQUE текст утгыг (username, slug, code, name ...) `~deleted~<id>` залгаж чөлөөлнө —
       ижил нэр/кодоор дахин үүсгэж болно.
@@ -95,9 +95,9 @@ def soft_delete(s, obj, ts=None):
         if ondelete == "CASCADE":
             for c in s.scalars(select(child).where(getattr(child, fk_col) == value)):
                 soft_delete(s, c, ts)
-        elif ondelete == "SET NULL":
-            s.execute(update(child).where(getattr(child, fk_col) == value)
-                      .values({fk_col: None}))
+        # SET NULL-ийг давтахгүй: эх мөр DB-д (нуугдаад) үлддэг тул лавлагаа хүчинтэй —
+        # ж: хэрэглэгч устсан ч news.created_by хэвээр (аудит). Лавлах/бүртгэлийн SET NULL
+        # холбоосыг core/orm/restrict.py өмнө нь 409-өөр хаадаг тул NULL болох мөр үлддэггүй.
     if model.__table__.name in POLYMORPHIC_OWNERS:
         contact = _model_of("contact")
         for c in s.scalars(select(contact).where(contact.owner_type == model.__table__.name,

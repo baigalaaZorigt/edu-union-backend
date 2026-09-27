@@ -21,7 +21,7 @@
 `delete(Model)` хоёуланд, handler бүрт автоматаар үйлчилнэ. Нуугдсан (soft delete) хүүхэд
 тоологдохгүй.
 """
-from sqlalchemy import func, select
+from sqlalchemy import false, func, select
 from werkzeug.exceptions import Conflict
 
 from core.orm.models import (AdminUnit1, AdminUnit2, AdminUnit3, AppUser, EducationDegree,
@@ -84,6 +84,29 @@ def _display(obj):
     return f"#{obj.id}"
 
 
+def _scope_filter(child):
+    """Дуудагчийн хамрах хүрээ (scope_core) — ЖИШЭЭ нэрийг зөвхөн харж болох мөрөөс авна.
+
+    None = шүүлтгүй (admin, хүсэлтээс гадуур). Хамрах хүрээтэй хэрэглэгчид гишүүн/байгууллага
+    (ба гишүүний дэд мөр) хүрээгээр шүүгдэнэ, бусад хүснэгтийн нэр огт харагдахгүй. Тоо
+    (`count`) нийтээрээ хэвээр — хувь хүний мэдээлэл биш, устгах боломжгүйн шалтгаан.
+    """
+    from flask import has_request_context
+    if not has_request_context():
+        return None
+    from core.scope_core import member_clause, org_clause
+    org = org_clause()
+    if org is None:
+        return None
+    if child is Organization:
+        return org
+    if child is Member:
+        return member_clause()
+    if hasattr(child, "member_id"):                  # боловсрол, шагнал, цалингийн хүсэлт
+        return child.member_id.in_(select(Member.id).where(member_clause()))
+    return false()
+
+
 def check_references(s, obj):
     """`obj`-г харагдах (устгаагүй) мөр заасан бол Referenced (409) шиднэ."""
     rule = RESTRICT.get(type(obj))
@@ -98,14 +121,20 @@ def check_references(s, obj):
         child = col.class_
         n = s.scalar(select(func.count()).select_from(child).where(col == value))
         if n:
-            rows = s.scalars(select(child).where(col == value)
-                             .order_by(*child.__table__.primary_key.columns).limit(EXAMPLES))
+            visible = _scope_filter(child)
+            q = select(child).where(col == value)
+            if visible is not None:
+                q = q.where(visible)
+            rows = s.scalars(q.order_by(*child.__table__.primary_key.columns).limit(EXAMPLES))
             found.append({"table": child.__table__.name, "label": label, "count": n,
                           "examples": [_display(r) for r in rows]})
     if not found:
         return
     parts = []
     for f in found:
+        if not f["examples"]:                        # хамрах хүрээнээс гадуур — нэргүй
+            parts.append(f"{f['count']} {f['label']}")
+            continue
         more = "…" if f["count"] > len(f["examples"]) else ""
         parts.append(f"{f['count']} {f['label']} ({', '.join(f['examples'])}{more})")
     raise Referenced(
