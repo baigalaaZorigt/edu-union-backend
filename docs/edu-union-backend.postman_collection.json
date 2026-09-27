@@ -550,6 +550,50 @@
   {
    "key": "sd_banner_id",
    "value": ""
+  },
+  {
+   "key": "rs_pos_id",
+   "value": ""
+  },
+  {
+   "key": "rs_prof_id",
+   "value": ""
+  },
+  {
+   "key": "rs_scale_id",
+   "value": ""
+  },
+  {
+   "key": "rs_deg_id",
+   "value": ""
+  },
+  {
+   "key": "rs_rt_id",
+   "value": ""
+  },
+  {
+   "key": "rs_role_id",
+   "value": ""
+  },
+  {
+   "key": "rs_org_id",
+   "value": ""
+  },
+  {
+   "key": "rs_member_id",
+   "value": ""
+  },
+  {
+   "key": "rs_edu_id",
+   "value": ""
+  },
+  {
+   "key": "rs_reward_id",
+   "value": ""
+  },
+  {
+   "key": "rs_user_id",
+   "value": ""
   }
  ],
  "item": [
@@ -25462,6 +25506,1331 @@
       },
       "auth": {
        "type": "noauth"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Холбоос 1 — Холбоостой мөрийг устгах → 409 (юу холбоотойг хэлнэ)",
+   "description": "core/orm/restrict.py — лавлах/бүртгэлийн мөрийг өөр мөр заасан байхад устгавал 409 `{error, references: [{table, label, count, examples}]}`, юу ч өөрчлөгдөхгүй. Хавтас бүх төрлийн холбоосыг нэг дор барина: албан тушаал, мэргэжил, цалингийн шатлал → гишүүн; боловсролын зэрэг → гишүүний боловсрол; шагналын төрөл → гишүүний шагнал; сургуулийн ангилал, аймаг, сум → байгууллага; дүр → хэрэглэгч; байгууллага → гишүүн. Дараа нь холбоосыг салгаж (гишүүн, хэрэглэгчийг устгаж) бүгдийг 200-оор устгана. Эзэмшлийн каскад (гишүүн → боловсрол/шагнал, аймаг → сум) хэвээр.\n\nАнгилал id=97, аймаг 981, сум 98101, байгууллагын код 803 — давтан ажиллуулахад нуугдсан хуучин мөр сольж бичигдэнэ.",
+   "item": [
+    {
+     "name": "Бэлтгэл: албан тушаал → rs_pos_id",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/position",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "position"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"code\": \"RS-POS\",\n  \"name\": \"Холбоос тест албан тушаал\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "pm.collectionVariables.set('rs_pos_id', pm.response.json().id);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Бэлтгэл: мэргэжил → rs_prof_id",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/profession",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "profession"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"code\": \"RS-PRF\",\n  \"name\": \"Холбоос тест мэргэжил\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "pm.collectionVariables.set('rs_prof_id', pm.response.json().id);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Бэлтгэл: цалингийн шатлал → rs_scale_id",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/salary_scale",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "salary_scale"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"sector\": \"СӨБ ба ЕБС\",\n  \"code\": \"RS-SC\",\n  \"position\": \"Багш\",\n  \"salary\": 1500000\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "pm.collectionVariables.set('rs_scale_id', pm.response.json().id);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Бэлтгэл: боловсролын зэрэг → rs_deg_id",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/education_degree",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "education_degree"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"name\": \"Холбоос тест зэрэг\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "pm.collectionVariables.set('rs_deg_id', pm.response.json().id);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Бэлтгэл: шагналын төрөл → rs_rt_id",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/reward_type",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "reward_type"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"code\": \"RS-RW\",\n  \"name\": \"Холбоос тест шагнал\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "pm.collectionVariables.set('rs_rt_id', pm.response.json().id);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Бэлтгэл: сургуулийн ангилал (id 97)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/school_category",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "school_category"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"id\": 97,\n  \"full_name\": \"Холбоос тест ангилал\",\n  \"short_name\": \"ХТА\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Бэлтгэл: аймаг 981",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/au1",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "au1"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"code\": \"981\",\n  \"name\": \"Холбоос тест аймаг\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Бэлтгэл: сум 98101",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/au2",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "au2"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"au2_code\": \"98101\",\n  \"au2_name\": \"Холбоос тест сум\",\n  \"au1_code\": \"981\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Бэлтгэл: дүр → rs_role_id",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/role",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "role"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"name\": \"Холбоос тест дүр\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "pm.collectionVariables.set('rs_role_id', pm.response.json().id);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Бэлтгэл: байгууллага (ангилал 97, сум 98101) → rs_org_id",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/organization",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "organization"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"name\": \"Холбоос тест сургууль\",\n  \"school_category_id\": 97,\n  \"org_code\": \"803\",\n  \"au1_code\": \"981\",\n  \"au2_code\": \"98101\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "pm.collectionVariables.set('rs_org_id', pm.response.json().id);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Бэлтгэл: гишүүн (албан тушаал, мэргэжил, шатлалтай) → rs_member_id",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/member",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"organization_id\": \"{{rs_org_id}}\",\n  \"last_name\": \"Холбоос\",\n  \"first_name\": \"Гишүүн\",\n  \"position_id\": \"{{rs_pos_id}}\",\n  \"profession_id\": \"{{rs_prof_id}}\",\n  \"salary_scale_id\": \"{{rs_scale_id}}\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "pm.collectionVariables.set('rs_member_id', pm.response.json().id);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Бэлтгэл: гишүүний боловсрол → rs_edu_id",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/member_education",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member_education"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"member_id\": \"{{rs_member_id}}\",\n  \"education_degree_id\": \"{{rs_deg_id}}\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "pm.collectionVariables.set('rs_edu_id', pm.response.json().id);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Бэлтгэл: гишүүний шагнал → rs_reward_id",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/member_reward",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member_reward"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"member_id\": \"{{rs_member_id}}\",\n  \"reward_type_id\": \"{{rs_rt_id}}\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "pm.collectionVariables.set('rs_reward_id', pm.response.json().id);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Бэлтгэл: хэрэглэгч (тэр дүртэй) → rs_user_id",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/user",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "user"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"username\": \"postman_ref_user\",\n  \"password\": \"Pass1234\",\n  \"last_name\": \"Холбоос\",\n  \"first_name\": \"Хэрэглэгч\",\n  \"role_id\": \"{{rs_role_id}}\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "pm.collectionVariables.set('rs_user_id', pm.response.json().id);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Албан тушаал устгах (холбоотой) → 409",
+     "request": {
+      "method": "DELETE",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/position/{{rs_pos_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "position",
+        "{{rs_pos_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 409', () => pm.response.to.have.status(409));",
+         "var rs = pm.response.json();",
+         "pm.test('«(албан тушаал) устгах боломжгүй»', () => pm.expect(rs.error).to.include('(албан тушаал) устгах боломжгүй'));",
+         "pm.test('холбоос салгахыг зөвлөнө', () => pm.expect(rs.error).to.include('холбоосыг салгаж'));",
+         "pm.test('references: member', () => pm.expect(rs.references.map(x => x.table)).to.include('member'));",
+         "pm.test('тоо 1', () => pm.expect(rs.references.find(x => x.table === 'member').count).to.eql(1));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Мэргэжил устгах (холбоотой) → 409",
+     "request": {
+      "method": "DELETE",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/profession/{{rs_prof_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "profession",
+        "{{rs_prof_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 409', () => pm.response.to.have.status(409));",
+         "var rs = pm.response.json();",
+         "pm.test('«(мэргэжил) устгах боломжгүй»', () => pm.expect(rs.error).to.include('(мэргэжил) устгах боломжгүй'));",
+         "pm.test('холбоос салгахыг зөвлөнө', () => pm.expect(rs.error).to.include('холбоосыг салгаж'));",
+         "pm.test('references: member', () => pm.expect(rs.references.map(x => x.table)).to.include('member'));",
+         "pm.test('тоо 1', () => pm.expect(rs.references.find(x => x.table === 'member').count).to.eql(1));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Цалингийн шатлал устгах (холбоотой) → 409",
+     "request": {
+      "method": "DELETE",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/salary_scale/{{rs_scale_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "salary_scale",
+        "{{rs_scale_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 409', () => pm.response.to.have.status(409));",
+         "var rs = pm.response.json();",
+         "pm.test('«(цалингийн шатлал) устгах боломжгүй»', () => pm.expect(rs.error).to.include('(цалингийн шатлал) устгах боломжгүй'));",
+         "pm.test('холбоос салгахыг зөвлөнө', () => pm.expect(rs.error).to.include('холбоосыг салгаж'));",
+         "pm.test('references: member', () => pm.expect(rs.references.map(x => x.table)).to.include('member'));",
+         "pm.test('тоо 1', () => pm.expect(rs.references.find(x => x.table === 'member').count).to.eql(1));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Боловсролын зэрэг устгах (холбоотой) → 409",
+     "request": {
+      "method": "DELETE",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/education_degree/{{rs_deg_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "education_degree",
+        "{{rs_deg_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 409', () => pm.response.to.have.status(409));",
+         "var rs = pm.response.json();",
+         "pm.test('«(боловсролын зэрэг) устгах боломжгүй»', () => pm.expect(rs.error).to.include('(боловсролын зэрэг) устгах боломжгүй'));",
+         "pm.test('холбоос салгахыг зөвлөнө', () => pm.expect(rs.error).to.include('холбоосыг салгаж'));",
+         "pm.test('references: member_education', () => pm.expect(rs.references.map(x => x.table)).to.include('member_education'));",
+         "pm.test('тоо 1', () => pm.expect(rs.references.find(x => x.table === 'member_education').count).to.eql(1));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Шагналын төрөл устгах (холбоотой) → 409",
+     "request": {
+      "method": "DELETE",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/reward_type/{{rs_rt_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "reward_type",
+        "{{rs_rt_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 409', () => pm.response.to.have.status(409));",
+         "var rs = pm.response.json();",
+         "pm.test('«(шагналын төрөл) устгах боломжгүй»', () => pm.expect(rs.error).to.include('(шагналын төрөл) устгах боломжгүй'));",
+         "pm.test('холбоос салгахыг зөвлөнө', () => pm.expect(rs.error).to.include('холбоосыг салгаж'));",
+         "pm.test('references: member_reward', () => pm.expect(rs.references.map(x => x.table)).to.include('member_reward'));",
+         "pm.test('тоо 1', () => pm.expect(rs.references.find(x => x.table === 'member_reward').count).to.eql(1));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Сургуулийн ангилал устгах (холбоотой) → 409",
+     "request": {
+      "method": "DELETE",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/school_category/97",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "school_category",
+        "97"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 409', () => pm.response.to.have.status(409));",
+         "var rs = pm.response.json();",
+         "pm.test('«(сургуулийн ангилал) устгах боломжгүй»', () => pm.expect(rs.error).to.include('(сургуулийн ангилал) устгах боломжгүй'));",
+         "pm.test('холбоос салгахыг зөвлөнө', () => pm.expect(rs.error).to.include('холбоосыг салгаж'));",
+         "pm.test('references: organization', () => pm.expect(rs.references.map(x => x.table)).to.include('organization'));",
+         "pm.test('тоо 1', () => pm.expect(rs.references.find(x => x.table === 'organization').count).to.eql(1));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Аймаг устгах (холбоотой) → 409",
+     "request": {
+      "method": "DELETE",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/au1/981",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "au1",
+        "981"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 409', () => pm.response.to.have.status(409));",
+         "var rs = pm.response.json();",
+         "pm.test('«(аймаг/нийслэл) устгах боломжгүй»', () => pm.expect(rs.error).to.include('(аймаг/нийслэл) устгах боломжгүй'));",
+         "pm.test('холбоос салгахыг зөвлөнө', () => pm.expect(rs.error).to.include('холбоосыг салгаж'));",
+         "pm.test('references: organization', () => pm.expect(rs.references.map(x => x.table)).to.include('organization'));",
+         "pm.test('тоо 1', () => pm.expect(rs.references.find(x => x.table === 'organization').count).to.eql(1));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Сум устгах (холбоотой) → 409",
+     "request": {
+      "method": "DELETE",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/au2/98101",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "au2",
+        "98101"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 409', () => pm.response.to.have.status(409));",
+         "var rs = pm.response.json();",
+         "pm.test('«(сум/дүүрэг) устгах боломжгүй»', () => pm.expect(rs.error).to.include('(сум/дүүрэг) устгах боломжгүй'));",
+         "pm.test('холбоос салгахыг зөвлөнө', () => pm.expect(rs.error).to.include('холбоосыг салгаж'));",
+         "pm.test('references: organization', () => pm.expect(rs.references.map(x => x.table)).to.include('organization'));",
+         "pm.test('тоо 1', () => pm.expect(rs.references.find(x => x.table === 'organization').count).to.eql(1));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Дүр устгах (холбоотой) → 409",
+     "request": {
+      "method": "DELETE",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/role/{{rs_role_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "role",
+        "{{rs_role_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 409', () => pm.response.to.have.status(409));",
+         "var rs = pm.response.json();",
+         "pm.test('«(дүр) устгах боломжгүй»', () => pm.expect(rs.error).to.include('(дүр) устгах боломжгүй'));",
+         "pm.test('холбоос салгахыг зөвлөнө', () => pm.expect(rs.error).to.include('холбоосыг салгаж'));",
+         "pm.test('references: app_user', () => pm.expect(rs.references.map(x => x.table)).to.include('app_user'));",
+         "pm.test('тоо 1', () => pm.expect(rs.references.find(x => x.table === 'app_user').count).to.eql(1));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Байгууллага устгах (холбоотой) → 409",
+     "request": {
+      "method": "DELETE",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/organization/{{rs_org_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "organization",
+        "{{rs_org_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 409', () => pm.response.to.have.status(409));",
+         "var rs = pm.response.json();",
+         "pm.test('«(байгууллага) устгах боломжгүй»', () => pm.expect(rs.error).to.include('(байгууллага) устгах боломжгүй'));",
+         "pm.test('холбоос салгахыг зөвлөнө', () => pm.expect(rs.error).to.include('холбоосыг салгаж'));",
+         "pm.test('references: member', () => pm.expect(rs.references.map(x => x.table)).to.include('member'));",
+         "pm.test('тоо 1', () => pm.expect(rs.references.find(x => x.table === 'member').count).to.eql(1));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Шалгах: гишүүний холбоос хөндөгдөөгүй",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/member/{{rs_member_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member",
+        "{{rs_member_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var rm = pm.response.json();",
+         "pm.test('position_id хэвээр', () => pm.expect(rm.position_id).to.eql(Number(pm.collectionVariables.get('rs_pos_id'))));",
+         "pm.test('боловсрол, шагнал хэвээр', () => { pm.expect(rm.educations.length).to.eql(1); pm.expect(rm.rewards.length).to.eql(1); });"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Холбоос салгах: гишүүн устгах (боловсрол, шагнал каскадаар)",
+     "request": {
+      "method": "DELETE",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/member/{{rs_member_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member",
+        "{{rs_member_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Холбоос салгах: хэрэглэгч устгах",
+     "request": {
+      "method": "DELETE",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/user/{{rs_user_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "user",
+        "{{rs_user_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Байгууллага устгах → 200",
+     "request": {
+      "method": "DELETE",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/organization/{{rs_org_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "organization",
+        "{{rs_org_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Албан тушаал устгах → 200",
+     "request": {
+      "method": "DELETE",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/position/{{rs_pos_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "position",
+        "{{rs_pos_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Мэргэжил устгах → 200",
+     "request": {
+      "method": "DELETE",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/profession/{{rs_prof_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "profession",
+        "{{rs_prof_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Цалингийн шатлал устгах → 200",
+     "request": {
+      "method": "DELETE",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/salary_scale/{{rs_scale_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "salary_scale",
+        "{{rs_scale_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Боловсролын зэрэг устгах → 200",
+     "request": {
+      "method": "DELETE",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/education_degree/{{rs_deg_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "education_degree",
+        "{{rs_deg_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Шагналын төрөл устгах → 200",
+     "request": {
+      "method": "DELETE",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/reward_type/{{rs_rt_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "reward_type",
+        "{{rs_rt_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Сургуулийн ангилал устгах → 200",
+     "request": {
+      "method": "DELETE",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/school_category/97",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "school_category",
+        "97"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Аймаг устгах → 200 (сум каскадаар)",
+     "request": {
+      "method": "DELETE",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/au1/981",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "au1",
+        "981"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Шалгах: сум ч устсан → 404",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/au2/98101",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "au2",
+        "98101"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 404', () => pm.response.to.have.status(404));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Дүр устгах → 200",
+     "request": {
+      "method": "DELETE",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/role/{{rs_role_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "role",
+        "{{rs_role_id}}"
+       ]
       }
      },
      "event": [

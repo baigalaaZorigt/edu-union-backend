@@ -242,8 +242,8 @@ python -m pytest tests -q      # the whole pytest suite (571 tests, ~13 s)
   The Postman collection (`docs/edu-union-backend.postman_collection.json`) is the second,
   black-box suite, run against a live server. It runs **top to bottom** (Postman Runner or
   `newman run docs/edu-union-backend.postman_collection.json --env-var base_url=...`, **from the
-  repo root** — the form-data requests upload `docs/fixtures/sample.png|pdf` by relative path): 627 requests,
-  ~1194 assertions (a few are conditional), and repeatable — three consecutive runs leave every table's **visible**
+  repo root** — the form-data requests upload `docs/fixtures/sample.png|pdf` by relative path): 664 requests,
+  ~1273 assertions (a few are conditional), and repeatable — three consecutive runs leave every table's **visible**
   row count (`deleted_at IS NULL`) unchanged; since every delete is soft, hidden rows do pile up. Every request is green, on a fresh database too (`Нэгийг авах` in
   the member_education folder reads the row its own `Нэмэх` created, not a seed id). **Keep it that way when adding requests:** run "0. Нэвтрэлт" first (it stores
   `{{token}}`), have each folder's `Нэмэх` save the new id into a `{{new_*}}` variable, and point
@@ -273,7 +273,12 @@ python -m pytest tests -q      # the whole pytest suite (571 tests, ~13 s)
   The `Soft delete 1` folder proves the soft-delete contract end to end: a deleted user is 404 on
   read and on a second delete and gone from the list, the same `username` can be created again;
   deleting an organization that still has a member is a 409 naming that member, deleting the
-  member hides its contacts, then the organization goes and its `org_code` is free again; a deleted banner's uploaded image is still served token-free (200). The
+  member hides its contacts, then the organization goes and its `org_code` is free again; a
+  deleted banner's uploaded image is still served token-free (200). The `Холбоос 1` folder walks
+  every `RESTRICT` relation at once: it builds one of each lookup + a school category (id 97) +
+  aimag 981 / sum 98101 + a role, an organization and a member / user that use them, proves each
+  delete is a 409 naming the right table (and changes nothing), then unlinks (deletes the member
+  and the user) and deletes everything with 200. The
   `Мэргэжилтэн 1` folder covers the specialist flow
   end to end: it builds its own role + two organizations (one in scope, one out) + user, logs
   in with the initial password, changes it, fills the scope through `/api/me/scope`, then
