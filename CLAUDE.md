@@ -243,9 +243,9 @@ python -m pytest tests -q      # the whole pytest suite (571 tests, ~13 s)
   black-box suite, run against a live server. It runs **top to bottom** (Postman Runner or
   `newman run docs/edu-union-backend.postman_collection.json --env-var base_url=...`, **from the
   repo root** — the form-data requests upload `docs/fixtures/sample.png|pdf` by relative path): 623 requests,
-  1190 assertions, and repeatable — three consecutive runs leave every table's **visible**
-  row count (`deleted_at IS NULL`) unchanged; since every delete is soft, hidden rows do pile up. (One known red on a *fresh* DB: `ҮЭ — Гишүүний боловсрол / Нэгийг авах` reads
-  `member_education_id`=1, but `seed_union()` creates no `member_education` row.) **Keep it that way when adding requests:** run "0. Нэвтрэлт" first (it stores
+  ~1190 assertions (a few are conditional), and repeatable — three consecutive runs leave every table's **visible**
+  row count (`deleted_at IS NULL`) unchanged; since every delete is soft, hidden rows do pile up. Every request is green, on a fresh database too (`Нэгийг авах` in
+  the member_education folder reads the row its own `Нэмэх` created, not a seed id). **Keep it that way when adding requests:** run "0. Нэвтрэлт" first (it stores
   `{{token}}`), have each folder's `Нэмэх` save the new id into a `{{new_*}}` variable, and point
   that folder's `Засах`/`Устгах` at `{{new_*}}` only — never at a seeded row. Every `Засах` is
   followed by a `— PATCH-аар мөн` twin (same body, status-only assertion) so that **every route,

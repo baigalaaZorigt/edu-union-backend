@@ -52,10 +52,6 @@
    "value": "1"
   },
   {
-   "key": "member_education_id",
-   "value": "1"
-  },
-  {
    "key": "member_reward_id",
    "value": "1"
   },
@@ -2140,34 +2136,6 @@
      ]
     },
     {
-     "name": "Нэгийг авах",
-     "request": {
-      "method": "GET",
-      "url": {
-       "raw": "{{base_url}}/api/member_education/{{member_education_id}}",
-       "host": [
-        "{{base_url}}"
-       ],
-       "path": [
-        "api",
-        "member_education",
-        "{{member_education_id}}"
-       ]
-      }
-     },
-     "event": [
-      {
-       "listen": "test",
-       "script": {
-        "type": "text/javascript",
-        "exec": [
-         "pm.test('статус 200', () => pm.response.to.have.status(200));"
-        ]
-       }
-      }
-     ]
-    },
-    {
      "name": "Нэмэх (зэрэг лавлахаас) → new_member_education_id",
      "request": {
       "method": "POST",
@@ -2202,6 +2170,36 @@
          "var j = pm.response.json();",
          "pm.collectionVariables.set('new_member_education_id', j.id);",
          "pm.test('new_member_education_id хадгалагдсан', () => pm.expect(j.id).to.exist);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Нэгийг авах",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/member_education/{{new_member_education_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member_education",
+        "{{new_member_education_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var me = pm.response.json();",
+         "pm.test('Нэмэхээр үүссэн мөр', () => pm.expect(me.id).to.eql(Number(pm.collectionVariables.get('new_member_education_id'))));"
         ]
        }
       }
