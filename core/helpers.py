@@ -42,6 +42,14 @@ def json_body():
     return data
 
 
+def client_ip():
+    """Клиентийн IP: nginx-ийн X-Real-IP (nginx өөрөө дарж бичдэг), эс бөгөөс remote_addr.
+
+    X-Forwarded-For-ийн эхний утгыг клиент хуурамчаар тавьж чадах тул хязгаарлалтад бүү ашигла.
+    """
+    return request.headers.get("X-Real-IP") or request.remote_addr or "?"
+
+
 def fail(conn, code, message):
     """Холболтыг хаагаад `abort(code)` хийнэ — "close-before-abort" дүрмийг нэг мөрөнд.
 

@@ -132,3 +132,13 @@ def make_user(api, client):
         assert lr.status_code == 200, lr.get_json()
         return Api(client, lr.get_json()["token"]), user
     return _make
+
+
+@pytest.fixture(autouse=True)
+def _clear_login_attempts():
+    """Нэвтрэлтийн brute-force тоолуурыг тест бүрийн өмнө тэглэнэ — тестүүд бие биедээ
+    (нэг IP-ээс буруу оролдлого хуримтлуулж) нөлөөлөхгүй."""
+    conn = db.get_db()
+    conn.execute("DELETE FROM login_attempt")
+    conn.commit()
+    conn.close()

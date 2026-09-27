@@ -20,6 +20,7 @@ from collections import deque
 from flask import Blueprint, abort, jsonify, request
 
 from core import search_core
+from core.helpers import client_ip
 
 bp = Blueprint("portal_search", __name__)
 
@@ -41,7 +42,7 @@ def reset_state():
 
 
 def _rate_limit():
-    ip = request.headers.get("X-Real-IP") or request.remote_addr or "?"
+    ip = client_ip()
     now = time.monotonic()
     q = _hits.setdefault(ip, deque())
     while q and now - q[0] >= RATE_WINDOW:

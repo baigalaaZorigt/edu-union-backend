@@ -17,7 +17,7 @@ import os
 
 from flask import Flask, request
 
-from core.db import ensure_seeded
+from core.db import close_pool, ensure_seeded, release_request_connections
 from core.helpers import register_error_handlers
 from core.auth import require_auth, SECRET_KEY
 from core import audit
@@ -107,6 +107,7 @@ def create_app():
 
     # Нэвтрэлт + эрхийн хяналт: /api/login болон /api/portal/, /uploads/-аас бусад
     # бүх хүсэлтэд токен + эрх шаардана (core/auth.py-ийн PUBLIC_* -ыг үзнэ үү).
+    app.teardown_appcontext(release_request_connections)  # мартагдсан холболтыг pool руу
     audit.init_app(app)   # хүсэлт бүрийн JSON лог -> stdout -> (awslogs) CloudWatch
     app.before_request(require_auth)
     app.after_request(add_cors_headers)   # браузерын client өөр домэйнээс хандана
@@ -115,7 +116,8 @@ def create_app():
         app.register_blueprint(blueprint)
 
     register_error_handlers(app)  # 400/401/403/404/405/409/413/422 -> {"error": ...} JSON
-    ensure_seeded()               # схем + хоосон хүснэгтийг автоматаар seed хийнэ
+    ensure_seeded()   # схем + хоосон хүснэгтийг автоматаар seed хийнэ
+    close_pool()      # --preload: мастерын PG холболтыг fork хийгдэх ажилтнуудад өвлүүлэхгүй
     return app
 
 

@@ -55,6 +55,17 @@ CREATE TABLE IF NOT EXISTS app_user (
 --   Зөвлөх/Мэргэжилтэн: school_type + (rural бол organization_ids, эс бөгөөс
 --                       district_au2_code)
 --   Сургуулийн менежер: organization_id (яг нэг сургууль)
+-- login_attempt — БУРУУ нэвтрэх оролдлого, brute-force хязгаарт (admin/users/login_guard.py).
+-- gunicorn-ийн ажилтнууд хуваалцаж, дахин асахад ч хадгалагдах тул санах ойд биш DB-д.
+CREATE TABLE IF NOT EXISTS login_attempt (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    username   TEXT NOT NULL,                -- оролдсон нэр (байхгүй хэрэглэгч ч байж болно)
+    ip         TEXT NOT NULL,
+    created_at TEXT NOT NULL                 -- UTC "YYYY-MM-DD HH:MM:SS"
+);
+CREATE INDEX IF NOT EXISTS idx_login_attempt_ip ON login_attempt(ip, created_at);
+CREATE INDEX IF NOT EXISTS idx_login_attempt_time ON login_attempt(created_at);
+
 CREATE TABLE IF NOT EXISTS user_scope (
     user_id           INTEGER PRIMARY KEY,   -- Аль хэрэглэгч (1:1)
     school_type       TEXT,                  -- general/preschool/higher/vocational/science/rural

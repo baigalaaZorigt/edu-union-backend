@@ -5,7 +5,7 @@ from core.db import get_db
 from core.helpers import rows, require, json_body, fail, insert_row, update_row, fetch_page, list_json
 
 from admin.users import bp
-from admin.users.common import _delete_by_id, _exists, _role_perms
+from admin.users.common import _delete_by_id, _exists, _role_perms, _role_perms_many
 
 
 def _role_out(conn, rid):
@@ -62,8 +62,9 @@ def list_role():
     conn = get_db()
     page_rows, meta = fetch_page(conn, "SELECT * FROM role ORDER BY id")
     data = rows(page_rows)
+    perms = _role_perms_many(conn, [r["id"] for r in data])   # N+1 биш — нэг query
     for r in data:
-        r["permissions"] = _role_perms(conn, r["id"])
+        r["permissions"] = perms[r["id"]]
     conn.close()
     return list_json(data, meta)
 

@@ -43,23 +43,36 @@ SELECT o.*,
 NOT_FOUND = "Байгууллага олдсонгүй"
 
 
-def org_stats(conn, org_id):
-    """Гишүүдээс автоматаар: нийт / эмэгтэй / 35-аас доош тоо."""
-    row = conn.execute(
-        """SELECT
+def org_stats_many(conn, org_ids):
+    """Олон байгууллагын гишүүдийн нийт / эмэгтэй / 35-аас доош тоог НЭГ query-ээр.
+
+    Өмнө нь байгууллага бүрд тусдаа query (N+1) — PG дээр бүр нь сүлжээгээр явдаг байв.
+    Гишүүнгүй байгууллага 0-ээр гарна.
+    """
+    zero = {"total_members": 0, "female_members": 0, "under35_members": 0}
+    if not org_ids:
+        return {}
+    out = {oid: dict(zero) for oid in org_ids}
+    ph = ", ".join("?" * len(org_ids))
+    for r in conn.execute(
+        f"""SELECT organization_id,
              COUNT(*) AS total,
              SUM(CASE WHEN gender='эм' THEN 1 ELSE 0 END) AS female,
              SUM(CASE WHEN birth_date IS NOT NULL
                        AND (julianday('now') - julianday(birth_date))/365.25 < 35
                       THEN 1 ELSE 0 END) AS under35
-           FROM member WHERE organization_id=?""",
-        (org_id,),
-    ).fetchone()
-    return {
-        "total_members": row["total"] or 0,
-        "female_members": row["female"] or 0,
-        "under35_members": row["under35"] or 0,
-    }
+           FROM member WHERE organization_id IN ({ph}) GROUP BY organization_id""",
+        list(org_ids),
+    ).fetchall():
+        out[r["organization_id"]] = {"total_members": r["total"] or 0,
+                                     "female_members": r["female"] or 0,
+                                     "under35_members": r["under35"] or 0}
+    return out
+
+
+def org_stats(conn, org_id):
+    """Нэг байгууллагын гишүүдийн тоо (org_stats_many-ийн нэг элементтэй хувилбар)."""
+    return org_stats_many(conn, [org_id])[org_id]
 
 
 # =================== organization (Гишүүн байгууллага) ===================
@@ -76,8 +89,9 @@ def list_org():
         params += scope_params
     page_rows, meta = fetch_page(conn, ORG_SELECT + _where(cond) + " ORDER BY o.id", params)
     data = rows(page_rows)
-    for o in data:                      # тооцоо нь зөвхөн тухайн хуудасны мөрүүдэд
-        o.update(org_stats(conn, o["id"]))
+    stats = org_stats_many(conn, [o["id"] for o in data])   # хуудасны мөрүүдэд, нэг query
+    for o in data:
+        o.update(stats[o["id"]])
     conn.close()
     return list_json(data, meta)
 

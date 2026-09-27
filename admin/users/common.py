@@ -5,7 +5,6 @@ from flask import jsonify, abort
 from werkzeug.security import generate_password_hash
 
 from core.db import get_db
-from core.helpers import rows
 from core.scope_core import RURAL, SCHOOL_TYPE_CATEGORY, is_specialist, load_scope
 
 
@@ -31,9 +30,18 @@ def _now():
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
+# pbkdf2 (scrypt энэ Python build-д алга). OWASP-ийн PBKDF2-SHA256 зөвлөмж 600k давталт —
+# werkzeug-ийн анхдагч 1M нь t3.micro дээр нэвтрэлт бүрт ~0.7 сек CPU иддэг байв.
+# Хуучин (өөр тохиргоотой) hash-ийг амжилттай нэвтрэх үед шинэчилнэ (needs_rehash).
+HASH_METHOD = "pbkdf2:sha256:600000"
+
+
 def _hash(password):
-    # scrypt энэ Python build-д байхгүй тул pbkdf2
-    return generate_password_hash(password, method="pbkdf2")
+    return generate_password_hash(password, method=HASH_METHOD)
+
+
+def needs_rehash(password_hash):
+    return (password_hash or "").split("$", 1)[0] != HASH_METHOD
 
 
 def _exists(conn, table, rid):
@@ -72,12 +80,24 @@ def _user_profile(conn, row):
     return out
 
 
+def _role_perms_many(conn, role_ids):
+    """Олон дүрийн эрхийг НЭГ query-ээр: {role_id: [permission, ...]} (эрхгүй бол [])."""
+    out = {rid: [] for rid in role_ids}
+    if not role_ids:
+        return out
+    ph = ", ".join("?" * len(role_ids))
+    for r in conn.execute(
+            f"SELECT rp.role_id AS _role_id, p.* FROM role_permission rp "
+            f"JOIN permission p ON p.id = rp.permission_id "
+            f"WHERE rp.role_id IN ({ph}) ORDER BY rp.role_id, p.id", list(role_ids)).fetchall():
+        perm = dict(r)
+        out[perm.pop("_role_id")].append(perm)
+    return out
+
+
 def _role_perms(conn, rid):
     """Тухайн дүрийн бүх эрхийг буцаана."""
-    return rows(conn.execute(
-        "SELECT p.* FROM role_permission rp "
-        "JOIN permission p ON p.id = rp.permission_id "
-        "WHERE rp.role_id=? ORDER BY p.id", (rid,)).fetchall())
+    return _role_perms_many(conn, [rid])[rid]
 
 
 def _delete_by_id(table, rid, not_found):

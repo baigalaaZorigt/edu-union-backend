@@ -1,5 +1,6 @@
 """Postgres-ийн нимгэн бүрхүүл: SQLite бичиглэлийг гүйцэтгэх агшинд хөрвүүлнэ."""
 
+import os
 import re
 
 
@@ -102,21 +103,32 @@ class _PgCursor:
         return self._lastrowid
 
 
-class _PgConn:
-    """sqlite3.Connection-ийн ашигладаг хэсгийг дуурайсан бүрхүүл."""
+# `id` баганатай хүснэгтүүд — процесс (pid) тутамд нэг удаа уншиж кэшилнэ (өмнө нь холболт
+# бүрд information_schema руу хандаж байв). DDL (executescript) ажиллавал хүчингүй болно.
+_ID_TABLES = {}
 
-    def __init__(self, raw):
+
+class _PgConn:
+    """sqlite3.Connection-ийн ашигладаг хэсгийг дуурайсан бүрхүүл.
+
+    pool өгөгдсөн бол `close()` холболтыг хаахгүй — pool руу буцаана (core/db/__init__.py).
+    """
+
+    def __init__(self, raw, pool=None):
         self.raw = raw
-        self._id_tables = None
+        self.pool = pool
+        self._closed = False
 
     def id_tables(self):
         """`id` баганатай хүснэгтүүд (RETURNING id хийж болох эсэхийг мэдэхэд)."""
-        if self._id_tables is None:
+        pid = os.getpid()
+        if pid not in _ID_TABLES:
             cur = self.raw.cursor()
             cur.execute("SELECT table_name FROM information_schema.columns "
                         "WHERE table_schema='public' AND column_name='id'")
-            self._id_tables = {r[0] for r in cur.fetchall()}
-        return self._id_tables
+            _ID_TABLES.clear()
+            _ID_TABLES[pid] = {r[0] for r in cur.fetchall()}
+        return _ID_TABLES[pid]
 
     def execute(self, sql, params=()):
         cur = self.raw.cursor(row_factory=_pg_row_factory)
@@ -150,6 +162,7 @@ class _PgConn:
         cur = self.raw.cursor()
         cur.execute(_to_pg(sql, False))
         self.raw.commit()
+        _ID_TABLES.clear()          # шинэ хүснэгт үүссэн байж болно
         return _PgCursor(cur, self)
 
     def cursor(self):
@@ -162,4 +175,16 @@ class _PgConn:
         self.raw.rollback()
 
     def close(self):
-        self.raw.close()
+        """Идемпотент: pool руу буцаана (дуусаагүй гүйлгээг rollback хийнэ), pool-гүй бол хаана."""
+        if self._closed:
+            return
+        self._closed = True
+        if self.pool is None:
+            self.raw.close()
+            return
+        if self.raw.info.transaction_status != 0:    # IDLE биш — commit хийгээгүй үлдэгдэл
+            try:
+                self.raw.rollback()
+            except Exception:
+                pass
+        self.pool.putconn(self.raw)

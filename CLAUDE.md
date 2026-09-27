@@ -36,7 +36,11 @@ portal's token-free API (`/api/portal/...`, `/api/public/...`). What both sides 
     and `user_scope` (Хамрах хүрээ — which *data* a user may see, 1:1 with `app_user`), plus the
     **self-service** routes a Зөвлөх мэргэжилтэн needs on first login: `/api/change_password`,
     `/api/me`, `/api/me/scope`, `/api/me/organizations`, `/api/me/onboarding/complete`
-    (`specialist_onboarding_api_spec.md`).
+    (`specialist_onboarding_api_spec.md`). `/api/login` is guarded by `login_guard.py`: failed
+    attempts go to the `login_attempt` table (shared by all workers); 5 per (username + IP) or 20
+    per IP within 15 min → 429, so nobody can lock `admin` out from another IP. IP = `X-Real-IP`
+    (`core.helpers.client_ip()`). Passwords hash with `pbkdf2:sha256:600000` (OWASP; werkzeug's
+    1M default cost ~0.7 s CPU per login on t3.micro) and older hashes are upgraded on login.
   - `content/` — the portal's dynamic menu & content: `menu` (Цэс, 2 levels deep, typed) →
     `page` (Контент хуудас, one per `type='page'` menu) → `page_block` (ordered content blocks:
     text / image / video / file / link), plus `/api/upload` for images and documents.
@@ -315,6 +319,15 @@ python -m pytest tests -q      # the whole pytest suite (~460 tests, ~15 s)
   (add/rename columns → `_migrate_data()` moves the old values → drop columns) since
   `CREATE TABLE IF NOT EXISTS` won't alter existing tables. When a column is retired, move its data
   in `_migrate_data()` **before** listing it in `_DROP_COLUMNS`.
+- **Postgres uses a per-process connection pool** (`psycopg_pool`, `DB_POOL_MIN`/`DB_POOL_MAX`,
+  default 1/5 → ≤ 15 RDS connections for 3 workers). `get_db()` checks a connection out and
+  `_PgConn.close()` **returns it** (rolling back an unfinished transaction; idempotent). The pool
+  is keyed by pid: `create_app()` calls `close_pool()` after `ensure_seeded()` so the gunicorn
+  `--preload` master hands no sockets to its forks, and each worker builds its own on first use.
+  `release_request_connections` (teardown) returns anything a handler forgot, so a leak can't
+  exhaust the pool. `id_tables()` (which tables get `RETURNING id`) is cached per process and
+  cleared by any `executescript`. Before this every request opened a fresh TLS connection to RDS
+  — two for token requests — which was most of each request's time.
 - **Per-request connection lifecycle.** Every handler opens `get_db()`, does its work, and
   `conn.close()`s before returning — including on every error path. When editing handlers, keep
   the close-before-abort pattern; an early `abort()` without closing leaks the connection.
@@ -322,7 +335,9 @@ python -m pytest tests -q      # the whole pytest suite (~460 tests, ~15 s)
   then rely on a `try/except` around the INSERT to map PK/UNIQUE collisions to 409. There are no
   DB-level unique constraints beyond primary keys and a few `UNIQUE` columns (`permission.code`,
   `role.name`, `app_user.username`, `salary_scale.code`).
-- **`org_stats()` (admin/union/organization.py) computes derived member counts** (total / female / under-35)
+- **`org_stats_many()` computes derived member counts for a whole page in ONE `GROUP BY` query**
+  (`org_stats()` is its single-id wrapper); `_role_perms_many()` does the same for role lists — no N+1.
+  Before: **`org_stats()` (admin/union/organization.py) computed derived member counts** (total / female / under-35)
   via SQL on every `GET /api/organization`. Under-35 is computed live from `birth_date` using `julianday`.
 - **Validated enums / field allowlists** live as module constants in the `admin/union/` module that uses them:
   `OWNER_TYPES`, `CONTACT_TYPES`, `SALARY_STATUSES`, `SALARY_SECTORS`, and the

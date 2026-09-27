@@ -14,7 +14,8 @@ from core.auth import make_token
 from core.scope_core import org_condition
 
 from admin.users import bp
-from admin.users.common import USER_SELECT, _hash, _now, _user_profile, _user_row
+from admin.users import login_guard
+from admin.users.common import USER_SELECT, _hash, _now, _user_profile, _user_row, needs_rehash
 from admin.users.scope import _scope_get, _scope_save
 
 
@@ -24,13 +25,19 @@ def login():
     data = request.get_json(silent=True)
     require(data, ["username", "password"])
     conn = get_db()
+    login_guard.check(conn, data["username"])            # brute-force хязгаар -> 429
     row = conn.execute(USER_SELECT + " WHERE u.username=?", (data["username"],)).fetchone()
     if not row or not check_password_hash(row["password_hash"], data["password"]):
+        login_guard.record_failure(conn, data["username"])
         audit.event("login_failed", username=data["username"], reason="bad_credentials")
         fail(conn, 400, "Нэвтрэх нэр эсвэл нууц үг буруу")
     if not row["is_active"]:
         audit.event("login_failed", username=data["username"], reason="inactive")
         fail(conn, 400, "Хэрэглэгчийн эрх идэвхгүй байна")
+    login_guard.reset(conn, data["username"])
+    if needs_rehash(row["password_hash"]):                # хуучин 1M давталттай hash -> 600k
+        update_row(conn, "app_user", row["id"], {"password_hash": _hash(data["password"])})
+    conn.commit()
     audit.event("login", user_id=row["id"], username=row["username"])
     out = _user_profile(conn, row)
     conn.close()
