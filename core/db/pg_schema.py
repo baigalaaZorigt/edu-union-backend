@@ -100,7 +100,8 @@ END $$ LANGUAGE plpgsql;
 def _pg_tables(conn):
     return [r[0] for r in conn.execute(
         "SELECT table_name FROM information_schema.tables "
-        "WHERE table_schema='public' AND table_type='BASE TABLE' ORDER BY table_name")]
+        "WHERE table_schema='public' AND table_type='BASE TABLE' "
+        "AND table_name <> 'alembic_version' ORDER BY table_name")]      # Alembic-ийн хүснэгт биш
 
 
 def _pg_migrate(conn):

@@ -106,7 +106,7 @@ from core.db.seed_ref import (REFERENCE_SEEDS, seed_education_degree, seed_posit
 from core.db.seed_portal import (DEFAULT_MENUS, DEFAULT_PORTAL_SETTINGS, seed_menu,
                                  seed_portal_settings, seed_users)
 from core.db.seed_data import seed, seed_union, _load_json
-from core.db.bootstrap import ensure_seeded, seed_all
+from core.db.bootstrap import ensure_seeded, seed_all, migrate
 
 __all__ = [
     "BASE_DIR",
@@ -196,5 +196,6 @@ __all__ = [
     "seed_union",
     "_load_json",
     "ensure_seeded",
+    "migrate",
     "seed_all",
 ]

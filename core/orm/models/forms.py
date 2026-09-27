@@ -1,0 +1,132 @@
+"""ORM model: Судалгаа / санал асуулга.
+
+Багана бүр production-ийн схемтэй таарна — хүснэгтийг model-оос биш
+alembic/versions/0001_baseline үүсгэдэг. created_at/updated_at-ийг DB-ийн trigger бөглөнө.
+"""
+from typing import Optional
+
+from sqlalchemy import REAL, ForeignKey, Index, Integer, Text, text
+from sqlalchemy.orm import Mapped, mapped_column
+
+from core.orm.base import Base
+
+
+class Form(Base):
+    __tablename__ = "form"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    type: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("'survey'::text"))
+    title: Mapped[str] = mapped_column(Text, nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("'draft'::text"))
+    start_at: Mapped[Optional[str]] = mapped_column(Text)
+    end_at: Mapped[Optional[str]] = mapped_column(Text)
+    show_results: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("1"))
+    one_response: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("1"))
+    created_by: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("app_user.id", ondelete="SET NULL"))
+    updated_by: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("app_user.id", ondelete="SET NULL"))
+    created_at: Mapped[Optional[str]] = mapped_column(Text)
+    updated_at: Mapped[Optional[str]] = mapped_column(Text)
+    deleted_at: Mapped[Optional[str]] = mapped_column(Text)
+
+
+class FormQuestion(Base):
+    __tablename__ = "form_question"
+    __table_args__ = (
+        Index('idx_form_question_form', 'form_id'),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    form_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("form.id", ondelete="CASCADE"), nullable=False)
+    question_type: Mapped[str] = mapped_column(Text, nullable=False)
+    title: Mapped[str] = mapped_column(Text, nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text)
+    is_required: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
+    sort_order: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
+    settings: Mapped[Optional[str]] = mapped_column(Text)
+    created_at: Mapped[Optional[str]] = mapped_column(Text)
+    updated_at: Mapped[Optional[str]] = mapped_column(Text)
+
+
+class FormOption(Base):
+    __tablename__ = "form_option"
+    __table_args__ = (
+        Index('idx_form_option_question', 'question_id'),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    question_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("form_question.id", ondelete="CASCADE"), nullable=False)
+    label: Mapped[str] = mapped_column(Text, nullable=False)
+    sort_order: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
+    created_at: Mapped[Optional[str]] = mapped_column(Text)
+    updated_at: Mapped[Optional[str]] = mapped_column(Text)
+
+
+class FormDocument(Base):
+    __tablename__ = "form_document"
+    __table_args__ = (
+        Index('idx_form_document_form', 'form_id'),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    form_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("form.id", ondelete="CASCADE"), nullable=False)
+    file_name: Mapped[str] = mapped_column(Text, nullable=False)
+    file_path: Mapped[str] = mapped_column(Text, nullable=False)
+    mime_type: Mapped[Optional[str]] = mapped_column(Text)
+    file_size: Mapped[Optional[int]] = mapped_column(Integer)
+    created_at: Mapped[Optional[str]] = mapped_column(Text)
+    updated_at: Mapped[Optional[str]] = mapped_column(Text)
+
+
+class FormSubmission(Base):
+    __tablename__ = "form_submission"
+    __table_args__ = (
+        Index('idx_form_submission_form', 'form_id', 'user_id'),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    form_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("form.id", ondelete="CASCADE"), nullable=False)
+    user_id: Mapped[Optional[int]] = mapped_column(Integer)
+    submitted_at: Mapped[Optional[str]] = mapped_column(Text)
+    created_at: Mapped[Optional[str]] = mapped_column(Text)
+    updated_at: Mapped[Optional[str]] = mapped_column(Text)
+
+
+class FormAnswer(Base):
+    __tablename__ = "form_answer"
+    __table_args__ = (
+        Index('idx_form_answer_question', 'question_id'),
+        Index('idx_form_answer_submission', 'submission_id'),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    submission_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("form_submission.id", ondelete="CASCADE"), nullable=False)
+    question_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("form_question.id", ondelete="CASCADE"), nullable=False)
+    text_value: Mapped[Optional[str]] = mapped_column(Text)
+    numeric_value: Mapped[Optional[float]] = mapped_column(REAL)
+    created_at: Mapped[Optional[str]] = mapped_column(Text)
+    updated_at: Mapped[Optional[str]] = mapped_column(Text)
+
+
+class FormAnswerOption(Base):
+    __tablename__ = "form_answer_option"
+    __table_args__ = (
+        Index('idx_form_answer_option_answer', 'answer_id'),
+        Index('idx_form_answer_option_option', 'option_id'),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    answer_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("form_answer.id", ondelete="CASCADE"), nullable=False)
+    option_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("form_option.id", ondelete="CASCADE"), nullable=False)
+    created_at: Mapped[Optional[str]] = mapped_column(Text)
+    updated_at: Mapped[Optional[str]] = mapped_column(Text)

@@ -145,7 +145,8 @@ def _ensure_timestamps(conn):
     эндээс хойшхи INSERT/UPDATE тэмдэглэгдэнэ.
     """
     tables = [r[0] for r in conn.execute(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")]
+        "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' "
+        "AND name <> 'alembic_version'")]                                 # Alembic-ийн хүснэгт биш
     for t in tables:
         if t in _TS_SKIP:
             continue

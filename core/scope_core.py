@@ -18,9 +18,12 @@ admin болон бусад дүр автоматаар "шүүлтгүй" бо�
 """
 import json
 
-from flask import g
+from flask import abort, g
+from sqlalchemy import false, select
 
 from core.helpers import fail
+from core.orm import session
+from core.orm.models import Member, Organization, UserScope
 
 # Зөвлөх мэргэжилтний дүрийн нэр — `onboarding_completed` зөвхөн энэ дүрд
 # утга учиртай (спек §3.1). Харьцуулалт нь зай/том-жижиг үсгийг үл хайхарна.
@@ -151,3 +154,66 @@ def require_member_in_scope(conn, mid, user=None):
     row = conn.execute("SELECT organization_id FROM member WHERE id=?", (mid,)).fetchone()
     if row is not None and not _org_visible(conn, cond, params, row["organization_id"]):
         fail(conn, 403, "Энэ гишүүн таны хамрах хүрээнд байхгүй")
+
+
+# ============================ ORM API ============================
+# (дээрх SQL-текст API нь бүх модуль ORM руу шилжтэл түр хадгалагдана)
+def scope_of(user=None):
+    """Хэрэглэгчийн хамрах хүрээ (dict) — ORM-оор. Токенгүй эсвэл мөргүй бол None."""
+    u = user if user is not None else getattr(g, "user", None)
+    if u is None:
+        return None
+    row = session().get(UserScope, u["id"])
+    return public_scope(row.to_dict()) if row is not None else None
+
+
+def org_clause(user=None):
+    """Organization-д тавих ORM нөхцөл; None = шүүлтгүй, false() = юу ч харагдахгүй."""
+    scope = scope_of(user)
+    if not scope:
+        return None
+    if scope.get("organization_id"):            # Сургуулийн менежер — яг нэг сургууль
+        return Organization.id == scope["organization_id"]
+    st = scope.get("school_type")
+    if st == RURAL:                             # ХОН — гараар сонгосон сургуулиуд
+        ids = scope.get("organization_ids") or []
+        return Organization.id.in_(ids) if ids else false()
+    if st:                                      # Ангилал + дүүрэг
+        cat = SCHOOL_TYPE_CATEGORY.get(st)
+        if cat is None:
+            return false()
+        cond = Organization.school_category_id == cat
+        if scope.get("district_au2_code"):
+            cond = cond & (Organization.au2_code == scope["district_au2_code"])
+        return cond
+    return None
+
+
+def member_clause(user=None):
+    """Member-д тавих ORM нөхцөл (харьяа байгууллагаараа); None = шүүлтгүй."""
+    cond = org_clause(user)
+    if cond is None:
+        return None
+    return Member.organization_id.in_(select(Organization.id).where(cond))
+
+
+def check_org_scope(oid, user=None):
+    """Байгууллага хүрээнд байхгүй бол 403."""
+    cond = org_clause(user)
+    if cond is not None and session().scalar(
+            select(Organization.id).where(cond, Organization.id == oid)) is None:
+        abort(403, description="Энэ байгууллага таны хамрах хүрээнд байхгүй")
+
+
+def check_member_scope(mid, user=None):
+    """Гишүүн хүрээнд байхгүй бол 403 (гишүүн байхгүй бол шүүхгүй — 404-ийг маршрут өгнө)."""
+    if org_clause(user) is None:
+        return
+    member = session().get(Member, mid)
+    if member is not None:
+        try:
+            check_org_scope(member.organization_id, user)
+        except Exception as exc:                # мессежийг гишүүнийх болгоно
+            if getattr(exc, "code", None) == 403:
+                abort(403, description="Энэ гишүүн таны хамрах хүрээнд байхгүй")
+            raise

@@ -17,7 +17,10 @@ import jwt  # PyJWT
 from flask import request, abort, g
 from werkzeug.exceptions import HTTPException
 
-from core.db import get_db
+from sqlalchemy import select
+
+from core.orm import session
+from core.orm.models import AppUser, Permission, RolePermission
 
 SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-key-CHANGE-IN-PRODUCTION")
 JWT_ALGORITHM = "HS256"
@@ -116,25 +119,19 @@ def _load_user(token):
         abort(401, description="Токены хугацаа дууссан — дахин нэвтэрнэ үү")
     except (jwt.InvalidTokenError, KeyError, ValueError, TypeError):
         abort(401, description="Токен буруу байна")
-    conn = get_db()
-    row = conn.execute("SELECT * FROM app_user WHERE id=?", (user_id,)).fetchone()
-    conn.close()
-    if not row or not row["is_active"]:
+    user = session().get(AppUser, user_id)
+    if user is None or not user.is_active:
         abort(401, description="Хэрэглэгч олдсонгүй эсвэл идэвхгүй байна")
-    return row
+    return user.to_dict()          # g.user["id"] г.м. хуучин мөр шиг хандалт хэвээр
 
 
 def _user_permission_codes(user_row):
     """Хэрэглэгчийн дүрээс удамшсан бүх эрхийн код (set)."""
     if not user_row["role_id"]:
         return set()
-    conn = get_db()
-    codes = conn.execute(
-        "SELECT p.code FROM role_permission rp "
-        "JOIN permission p ON p.id = rp.permission_id WHERE rp.role_id=?",
-        (user_row["role_id"],)).fetchall()
-    conn.close()
-    return {r["code"] for r in codes}
+    return set(session().scalars(
+        select(Permission.code).join(RolePermission, RolePermission.permission_id == Permission.id)
+        .where(RolePermission.role_id == user_row["role_id"])))
 
 
 def _required_permission():
