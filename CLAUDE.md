@@ -112,6 +112,7 @@ core/               # ── SHARED (хоёр site хуваалцана) ──
   forms_core/       #   survey/poll домэйний цөм (base, questions, results, documents)
   news_core.py  scope_core.py  feedback_core.py  settings_core.py  home_core.py
   search_core.py    #   порталын хайлтын индекс, тааруулалт, snippet
+  xlsx.py           #   Excel экспорт (xlsxwriter constant_memory, bold+freeze толгой)
   storage.py        #   файлын сан: S3 (S3_BUCKET) эсвэл локал диск — Area(area, local_dir)
   audit.py          #   хүсэлт бүрийн JSON лог -> stdout -> (awslogs) CloudWatch
 admin/              # ── ADMIN SITE (токен + эрх) ──
@@ -207,8 +208,8 @@ python -m pytest tests -q      # the whole pytest suite (~460 tests, ~15 s)
   The Postman collection (`docs/edu-union-backend.postman_collection.json`) is the second,
   black-box suite, run against a live server. It runs **top to bottom** (Postman Runner or
   `newman run docs/edu-union-backend.postman_collection.json --env-var base_url=...`, **from the
-  repo root** — the form-data requests upload `docs/fixtures/sample.png|pdf` by relative path): 551 requests,
-  1068 assertions, and repeatable — three consecutive runs leave every table's row count
+  repo root** — the form-data requests upload `docs/fixtures/sample.png|pdf` by relative path): 555 requests,
+  1079 assertions, and repeatable — three consecutive runs leave every table's row count
   unchanged. (One known red on a *fresh* DB: `ҮЭ — Гишүүний боловсрол / Нэгийг авах` reads
   `member_education_id`=1, but `seed_union()` creates no `member_education` row.) **Keep it that way when adding requests:** run "0. Нэвтрэлт" first (it stores
   `{{token}}`), have each folder's `Нэмэх` save the new id into a `{{new_*}}` variable, and point
@@ -463,6 +464,19 @@ python -m pytest tests -q      # the whole pytest suite (~460 tests, ~15 s)
   fresh deploy needs no manual step. The portal reads it token-free at
   `/api/public/portal_settings` (and `/api/portal/portal_settings`, the same handler) —
   `/api/public/` is the read-only public namespace added to `PUBLIC_PREFIXES`.
+- **Excel exports reuse the list query, never a second one.** `GET /api/member/export` and
+  `/api/organization/export` (`admin/union/export.py`) call `member_list_query()` /
+  `org_list_query()` — the exact `(sql, params)` the list endpoints page over, filters and
+  **scope** included — so the file always matches the screen, just unpaged. Permission follows
+  the usual path rule (`member.read`, `organization.read`); the survey file
+  `GET /api/admin/forms/<id>/results/export` (`admin/forms/export.py`) needs `form_result.read`,
+  the same as the results screen (the spec said `form.read`). It is the spec's option A: sheet
+  "Хариултууд" (one row per submission, one column per question) + "Дүгнэлт" (`form_results()`
+  written out). **No respondent column** — the results screen never identifies respondents and
+  forms have no "named" flag, so the file may not either. `core/xlsx.py` writes with
+  `constant_memory` to a temp file that is **unlinked right after it is opened** (the open handle
+  streams it; nothing is left on disk even if a close hook never fires). Dates are real date
+  cells, `None` is an empty cell, errors stay `{error}` JSON.
 - **Portal search is Python-side, not SQL `LIKE`** (`core/search_core.py` + `client/search.py`).
   SQLite's `LIKE`/`lower()` only fold ASCII and Postgres `LIKE` is case-sensitive, so neither
   matches Cyrillic case-insensitively; instead `build_corpus()` loads everything the portal shows

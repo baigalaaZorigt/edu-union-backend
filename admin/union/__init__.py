@@ -20,6 +20,7 @@
     member_education  — /api/member_education
     member_reward     — /api/member_reward
     member_file       — /api/member_file (PDF хавсралт)
+    export            — /api/member/export, /api/organization/export (Excel)
 """
 from flask import Blueprint
 
@@ -28,5 +29,5 @@ bp = Blueprint("union", __name__)
 # Маршрутын модулиудыг bp үүссэний ДАРАА импортлоно — тэд `bp`-г эндээс авна.
 from admin.union import (  # noqa: E402,F401
     horoo, organization, member, contact, salary, references,
-    member_education, member_reward, member_file,
+    member_education, member_reward, member_file, export,
 )

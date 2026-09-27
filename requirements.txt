@@ -2,5 +2,6 @@ Flask>=3.1,<4.0
 PyJWT>=2.8               # JWT токен (core/auth.py) — HS256 гарын үсэг
 gunicorn>=23.0           # production WSGI сервер: gunicorn run:app
 boto3>=1.34              # S3 файлын сан (core/storage.py) — S3_BUCKET өгсөн үед л
+XlsxWriter>=3.1          # Excel экспорт (core/xlsx.py) — constant_memory горим
 
 psycopg[binary,pool]>=3.2   # Postgres драйвер + connection pool — DATABASE_URL өгсөн үед л

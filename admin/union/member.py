@@ -32,7 +32,8 @@ SELECT m.*,
        ss.code AS salary_scale_code,
        ss.salary AS salary_scale_salary,
        {ORG_FULL_CODE_SQL.format(t='o')} AS organization_code,
-       sc.short_name AS school_category_short_name
+       sc.short_name AS school_category_short_name,
+       o.name AS organization_name
   FROM member m
   LEFT JOIN position      p  ON p.id  = m.position_id
   LEFT JOIN profession    pr ON pr.id = m.profession_id
@@ -101,7 +102,18 @@ def _member_refs(conn, data):
 # ======================= member (Гишүүн) =======================
 @bp.route("/api/member", methods=["GET"])
 def list_member():
-    # ?organization_id= ба ?is_active= (0/1) шүүлтүүд — хосолж болно
+    conn = get_db()
+    data, meta = fetch_page(conn, *member_list_query(conn))
+    conn.close()
+    return list_json(rows(data), meta)
+
+
+def member_list_query(conn):
+    """GET /api/member-ийн (sql, params) — шүүлт + хамрах хүрээ. Excel экспорт (export.py)
+    ЯГ ЭНИЙГ ашиглана, тиймээс файл жагсаалттай ижил мөрүүдийг агуулна.
+
+    ?organization_id= ба ?is_active= (0/1) шүүлтүүд — хосолж болно.
+    """
     cond, params = [], []
     if request.args.get("organization_id"):
         cond.append("m.organization_id=?")
@@ -109,15 +121,12 @@ def list_member():
     if request.args.get("is_active") is not None:
         cond.append("m.is_active=?")
         params.append(1 if request.args["is_active"] in ("1", "true", "True") else 0)
-    conn = get_db()
     # Хамрах хүрээ — гишүүн нь харьяа байгууллагаараа дамжин шүүгдэнэ (спек §5)
     scope_cond, scope_params = member_condition(conn, alias="m")
     if scope_cond:
         cond.append(scope_cond)
         params += scope_params
-    data, meta = fetch_page(conn, MEMBER_SELECT + _where(cond) + " ORDER BY m.id", params)
-    conn.close()
-    return list_json(rows(data), meta)
+    return MEMBER_SELECT + _where(cond) + " ORDER BY m.id", params
 
 
 @bp.route("/api/member/<int:mid>", methods=["GET"])

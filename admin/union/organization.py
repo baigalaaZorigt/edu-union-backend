@@ -78,22 +78,28 @@ def org_stats(conn, org_id):
 # =================== organization (Гишүүн байгууллага) ===================
 @bp.route("/api/organization", methods=["GET"])
 def list_org():
-    # ?school_category_id= ба ?structure_id= шүүлтүүр — хосолж болно
-    # (байгууллага хороонд харьяалагдахаа больсон)
-    cond, params = _arg_filters(("school_category_id", "structure_id"), prefix="o.")
     conn = get_db()
-    # Хамрах хүрээ — серверийн талд НЭМЭГДЭХ нөхцөл (спек §5)
-    scope_cond, scope_params = org_condition(conn, alias="o")
-    if scope_cond:
-        cond.append(scope_cond)
-        params += scope_params
-    page_rows, meta = fetch_page(conn, ORG_SELECT + _where(cond) + " ORDER BY o.id", params)
+    page_rows, meta = fetch_page(conn, *org_list_query(conn))
     data = rows(page_rows)
     stats = org_stats_many(conn, [o["id"] for o in data])   # хуудасны мөрүүдэд, нэг query
     for o in data:
         o.update(stats[o["id"]])
     conn.close()
     return list_json(data, meta)
+
+
+def org_list_query(conn):
+    """GET /api/organization-ийн (sql, params) — шүүлт + хамрах хүрээ (Excel экспорт ч ашиглана).
+
+    ?school_category_id= ба ?structure_id= шүүлтүүр — хосолж болно.
+    """
+    cond, params = _arg_filters(("school_category_id", "structure_id"), prefix="o.")
+    # Хамрах хүрээ — серверийн талд НЭМЭГДЭХ нөхцөл (спек §5)
+    scope_cond, scope_params = org_condition(conn, alias="o")
+    if scope_cond:
+        cond.append(scope_cond)
+        params += scope_params
+    return ORG_SELECT + _where(cond) + " ORDER BY o.id", params
 
 
 @bp.route("/api/organization/<int:oid>", methods=["GET"])

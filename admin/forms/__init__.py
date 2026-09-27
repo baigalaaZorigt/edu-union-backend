@@ -24,5 +24,5 @@ bp = Blueprint("admin_forms", __name__)
 
 # Маршрутын модулиудыг bp үүссэний ДАРАА импортлоно — тэд `bp`-г эндээс авна.
 from admin.forms import (  # noqa: E402,F401
-    forms, questions, options, documents, results,
+    forms, questions, options, documents, results, export,
 )
