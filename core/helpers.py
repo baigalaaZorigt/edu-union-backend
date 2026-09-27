@@ -109,7 +109,8 @@ def register_error_handlers(target):
     @target.errorhandler(422)
     @target.errorhandler(429)
     def _handle(err):
-        return jsonify(error=err.description), err.code
+        # extra — ж: core.orm.restrict.Referenced-ийн {"references": [...]}
+        return jsonify(error=err.description, **getattr(err, "extra", {})), err.code
 
     @target.errorhandler(405)
     def _bad_method(err):

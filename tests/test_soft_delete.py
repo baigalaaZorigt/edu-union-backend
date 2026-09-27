@@ -32,17 +32,46 @@ def test_user_hidden_row_kept_username_freed(api):
     api.delete(f"/api/user/{again.get_json()['id']}")
 
 
-def test_org_cascade_hides_members_and_contacts(api):
+def test_member_cascade_hides_contacts_and_education(api):
     o = make_org(api)
     m = make_member(api, o["id"])
     c = api.post("/api/contact", json={"owner_type": "member", "owner_id": m["id"],
                                        "type": "утас", "value": "99112233"}).get_json()
-    assert api.delete(f"/api/organization/{o['id']}").status_code == 200
+    e = api.post("/api/member_education", json={"member_id": m["id"]}).get_json()
+    assert api.delete(f"/api/member/{m['id']}").status_code == 200
     stamps = [_raw(t, i).deleted_at for t, i in
-              (("organization", o["id"]), ("member", m["id"]), ("contact", c["id"]))]
+              (("member", m["id"]), ("contact", c["id"]), ("member_education", e["id"]))]
     assert all(stamps) and len(set(stamps)) == 1                            # нэг агшинд
-    assert api.get(f"/api/organization/{o['id']}").status_code == 404
     assert m["id"] not in {x["id"] for x in api.get("/api/member").get_json()}
+    assert api.delete(f"/api/organization/{o['id']}").status_code == 200
+
+
+def test_referenced_row_blocked_with_details(api):
+    o = make_org(api)
+    m = make_member(api, o["id"], last_name="Холбоос", first_name="Шалгах")
+    r = api.delete(f"/api/organization/{o['id']}")
+    assert r.status_code == 409
+    d = r.get_json()
+    assert d["error"].startswith(f"«{o['name']}» (байгууллага) устгах боломжгүй: "
+                                 "үүнтэй холбоотой 1 гишүүн (Холбоос Шалгах) бүртгэлтэй байна.")
+    assert d["references"] == [{"table": "member", "label": "гишүүн", "count": 1,
+                                "examples": ["Холбоос Шалгах"]}]
+    assert _raw("organization", o["id"]).deleted_at is None                 # юу ч өөрчлөгдөөгүй
+    assert api.get(f"/api/member/{m['id']}").status_code == 200
+    api.delete(f"/api/member/{m['id']}")                                     # салгаад
+    assert api.delete(f"/api/organization/{o['id']}").status_code == 200     # устгагдана
+
+
+def test_admin_unit_cascade_checks_every_child(api):
+    au1 = api.post("/api/au1", json={"code": "9" + uniq("")[-2:], "name": uniq("Аймаг ")}).get_json()
+    au2 = api.post("/api/au2", json={"au2_code": au1["code"] + "01", "au2_name": "Сум",
+                                     "au1_code": au1["code"]}).get_json()
+    o = make_org(api, au2_code=au2["au2_code"])        # зөвхөн СУМ-ыг заана
+    r = api.delete(f"/api/au1/{au1['code']}")          # каскадаар устах сум нь хаана -> 409
+    assert r.status_code == 409 and "«Сум» (сум/дүүрэг)" in r.get_json()["error"]
+    assert api.get(f"/api/au2/{au2['au2_code']}").status_code == 200
+    api.delete(f"/api/organization/{o['id']}")
+    assert api.delete(f"/api/au1/{au1['code']}").status_code == 200
 
 
 def test_same_code_recreated_after_delete(api):

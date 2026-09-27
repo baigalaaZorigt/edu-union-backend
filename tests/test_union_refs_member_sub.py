@@ -68,12 +68,15 @@ def test_member_education_cascade_on_member_delete(api, member):
     assert api.get(f"/api/member_education/{eid}").status_code == 404
 
 
-def test_delete_degree_nulls_member_education(api, member):
+def test_delete_degree_blocked_while_used(api, member):
     deg = api.post("/api/education_degree", json={"name": uniq("Түр зэрэг ")}).get_json()
     eid = api.post("/api/member_education", json={
         "member_id": member["id"], "education_degree_id": deg["id"]}).get_json()["id"]
+    r = api.delete(f"/api/education_degree/{deg['id']}")
+    assert r.status_code == 409 and "1 гишүүний боловсрол" in r.get_json()["error"]
+    assert api.get(f"/api/member_education/{eid}").get_json()["education_degree_id"] == deg["id"]
+    api.delete(f"/api/member_education/{eid}")
     assert api.delete(f"/api/education_degree/{deg['id']}").status_code == 200
-    assert api.get(f"/api/member_education/{eid}").get_json()["education_degree_id"] is None
 
 
 # ============================== member_reward ==============================
@@ -114,14 +117,15 @@ def test_member_reward_crud_and_filters(api, member):
     got = api.get(f"/api/member_reward/{rid}").get_json()
     assert got["reward_type_name"] == rt2["name"] and got["description"] == "Медаль"
 
-    # төрлийг устгахад reward_type_id NULL болно, мөр үлдэнэ
-    assert api.delete(f"/api/reward_type/{rt2['id']}").status_code == 200
-    got = api.get(f"/api/member_reward/{rid}").get_json()
-    assert got["reward_type_id"] is None and got["reward_type_name"] is None
+    # шагнал заасан төрлийг устгах -> 409 (2 шагнал), шагнал хөндөгдөхгүй
+    r = api.delete(f"/api/reward_type/{rt2['id']}")
+    assert r.status_code == 409 and r.get_json()["references"][0]["count"] == 2
+    assert api.get(f"/api/member_reward/{rid}").get_json()["reward_type_id"] == rt2["id"]
 
     assert api.delete(f"/api/member_reward/{rid}").get_json() == {"deleted": rid}
     assert api.get(f"/api/member_reward/{rid}").status_code == 404
     api.delete(f"/api/member_reward/{rid2}")
+    assert api.delete(f"/api/reward_type/{rt2['id']}").status_code == 200   # холбоосгүй болсон
     api.delete(f"/api/reward_type/{rt1['id']}")
 
 

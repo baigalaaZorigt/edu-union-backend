@@ -102,7 +102,7 @@ def test_coded_ref_explicit_id(api):
     assert api.delete(f"/api/position/{rid}").status_code == 200
 
 
-def test_delete_position_profession_nulls_member(api, member):
+def test_delete_position_profession_blocked_while_used(api, member):
     pos = _new_ref(api, "position")
     prof = _new_ref(api, "profession")
     mid = member["id"]
@@ -113,14 +113,22 @@ def test_delete_position_profession_nulls_member(api, member):
     assert m["position_id"] == pos["id"] and m["position_name"] == pos["name"]
     assert m["profession_id"] == prof["id"] and m["profession_name"] == prof["name"]
 
+    # гишүүн заасан байхад -> 409, юу холбоотойг хэлнэ, гишүүний утга хөндөгдөхгүй
+    r = api.delete(f"/api/position/{pos['id']}")
+    assert r.status_code == 409
+    d = r.get_json()
+    assert "холбоотой 1 гишүүн" in d["error"] and "холбоосыг салгаж" in d["error"]
+    assert d["references"] == [{"table": "member", "label": "гишүүн", "count": 1,
+                                "examples": [f"{m['last_name']} {m['first_name']}"]}]
+    assert api.delete(f"/api/profession/{prof['id']}").status_code == 409
+    assert api.get(f"/api/member/{mid}").get_json()["position_id"] == pos["id"]
+    # холбоосыг салгасны дараа устгагдана
+    api.patch(f"/api/member/{mid}", json={"position_id": None, "profession_id": None})
     assert api.delete(f"/api/position/{pos['id']}").status_code == 200
     assert api.delete(f"/api/profession/{prof['id']}").status_code == 200
-    m = api.get(f"/api/member/{mid}").get_json()
-    assert m["position_id"] is None and m["position_name"] is None
-    assert m["profession_id"] is None and m["profession_name"] is None
 
 
-def test_delete_structure_nulls_org_and_user(api):
+def test_delete_structure_blocked_by_org_and_user(api):
     st = _new_ref(api, "structure")
     r = api.post("/api/organization",
                  json={"name": uniq("Бүтэцтэй "), "structure_id": st["id"]})
@@ -136,12 +144,16 @@ def test_delete_structure_nulls_org_and_user(api):
     uid = r.get_json()["id"]
     assert api.get(f"/api/user/{uid}").get_json()["structure_id"] == st["id"]
 
-    assert api.delete(f"/api/structure/{st['id']}").status_code == 200
-    got = api.get(f"/api/organization/{org['id']}").get_json()
-    assert got["structure_id"] is None and got["structure_name"] is None
-    assert api.get(f"/api/user/{uid}").get_json()["structure_id"] is None
-    api.delete(f"/api/user/{uid}")
+    r = api.delete(f"/api/structure/{st['id']}")
+    assert r.status_code == 409
+    assert {x["table"]: x["count"] for x in r.get_json()["references"]} == \
+        {"organization": 1, "app_user": 1}
+    assert "1 байгууллага" in r.get_json()["error"] and "1 хэрэглэгч" in r.get_json()["error"]
+    api.delete(f"/api/user/{uid}")                      # нэгийг нь салгахад нөгөө нь үлдэнэ
+    r = api.delete(f"/api/structure/{st['id']}")
+    assert r.status_code == 409 and [x["table"] for x in r.get_json()["references"]] == ["organization"]
     api.delete(f"/api/organization/{org['id']}")
+    assert api.delete(f"/api/structure/{st['id']}").status_code == 200
 
 
 def test_organization_bad_structure_400(api):

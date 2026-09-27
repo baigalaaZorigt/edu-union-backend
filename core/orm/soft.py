@@ -80,6 +80,8 @@ def soft_delete(s, obj, ts=None):
     """Нэг объектыг (ба каскадаар хүүхдүүдийг) soft delete хийнэ."""
     if obj is None or getattr(obj, "deleted_at", None):
         return
+    from core.orm.restrict import check_references       # models-ийг импортлодог тул энд
+    check_references(s, obj)                               # холбоостой бол 409
     ts = ts or _now()
     model = type(obj)
     obj.deleted_at = ts

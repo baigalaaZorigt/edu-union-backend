@@ -209,7 +209,7 @@ def test_org_recompute_cards(api):
     api.delete(f"/api/organization/{o['id']}")
 
 
-def test_org_delete_cascades_members_contacts_files(api):
+def test_org_delete_blocked_then_cascades_contacts_files(api):
     o = make_org(api)
     m = make_member(api, o["id"])
     c1 = api.post("/api/contact", json={"owner_type": "organization", "owner_id": o["id"],
@@ -221,6 +221,8 @@ def test_org_delete_cascades_members_contacts_files(api):
     assert os.path.isfile(path)
     assert len(api.get(f"/api/organization/{o['id']}").get_json()["contacts"]) == 1
 
+    assert api.delete(f"/api/organization/{o['id']}").status_code == 409   # гишүүнтэй
+    assert api.delete(f"/api/member/{m['id']}").status_code == 200
     assert api.delete(f"/api/organization/{o['id']}").status_code == 200
     assert api.get(f"/api/member/{m['id']}").status_code == 404
     ids = {x["id"] for x in api.get("/api/contact").get_json()}

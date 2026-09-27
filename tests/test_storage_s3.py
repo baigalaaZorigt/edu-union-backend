@@ -82,7 +82,8 @@ def test_member_file_s3(api, s3):
 
     assert api.delete(f"/api/member_file/{files[0]['id']}").status_code == 200
     assert f"uploads/member/{files[0]['stored_name']}" in _keys(s3)
-    # soft delete: байгууллага устгахад (каскад) мөр нуугдана, S3-ийн объект үлдэнэ
+    # soft delete: гишүүн (каскадаар файлууд нь) нуугдана, S3-ийн объект үлдэнэ
+    assert api.delete(f"/api/member/{mem['id']}").status_code == 200
     assert api.delete(f"/api/organization/{org['id']}").status_code == 200
     assert keys <= _keys(s3)
 

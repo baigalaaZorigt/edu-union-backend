@@ -60,14 +60,17 @@ def test_salary_scale_errors(api):
     api.delete(f"/api/salary_scale/{b['id']}")
 
 
-def test_delete_salary_scale_nulls_member(api, member):
+def test_delete_salary_scale_blocked_while_used(api, member):
     sc = _new_scale(api)
     mid = member["id"]
     assert api.patch(f"/api/member/{mid}", json={"salary_scale_id": sc["id"]}).status_code == 200
     m = api.get(f"/api/member/{mid}").get_json()
     assert m["salary_scale_code"] == sc["code"]
+    r = api.delete(f"/api/salary_scale/{sc['id']}")
+    assert r.status_code == 409 and "цалингийн шатлал" in r.get_json()["error"]
+    assert api.get(f"/api/member/{mid}").get_json()["salary_scale_id"] == sc["id"]
+    api.patch(f"/api/member/{mid}", json={"salary_scale_id": None})
     assert api.delete(f"/api/salary_scale/{sc['id']}").status_code == 200
-    assert api.get(f"/api/member/{mid}").get_json()["salary_scale_id"] is None
 
 
 # ============================= salary_request =============================

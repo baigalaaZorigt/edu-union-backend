@@ -5,8 +5,7 @@ from sqlalchemy import select, update
 
 from core.helpers import json_body, pick, require
 from core.orm import session
-from core.orm.models import (AppUser, EducationDegree, MemberReward, Member, Organization,
-                             Position, Profession, RewardType, Structure)
+from core.orm.models import EducationDegree, Position, Profession, RewardType, Structure
 
 from admin.union import bp
 from admin.union.common import _delete_by_id, _get_one, _list_rows
@@ -20,17 +19,6 @@ ID_TAKEN = "Энэ id аль хэдийн бүртгэгдсэн байна"
 # Хүснэгтийн нэр -> model (маршрутууд хүснэгтийн нэрээр дууддаг)
 REF_MODELS = {"position": Position, "profession": Profession,
               "reward_type": RewardType, "structure": Structure}
-
-# Лавлахын мөрийг устгахад ямар баганууд NULL болох ёстой вэ.
-# ON DELETE SET NULL нь ЗӨВХӨН шинэ DB дээр ажиллана: хуучин DB дээр эдгээр
-# багана нь ALTER TABLE ADD COLUMN-оор нэмэгдсэн бөгөөд SQLite тэгж FK үүсгэж
-# чаддаггүй. Тиймээс хоёр тохиолдолд ижил ажиллуулахын тулд гараар цэвэрлэнэ.
-REF_CLEAR_REFS = {
-    "structure": (Organization.structure_id, AppUser.structure_id),
-    "position": (Member.position_id,),
-    "profession": (Member.profession_id,),
-    "reward_type": (MemberReward.reward_type_id,),
-}
 
 
 def _insert_with_id(model, values, data):
@@ -139,10 +127,8 @@ def _ref_update(table, rid, label):
 
 
 def _ref_delete(table, rid, label):
-    s = session()
-    for col in REF_CLEAR_REFS.get(table, ()):
-        s.execute(update(col.class_).where(col == rid).values({col.key: None})
-                  .execution_options(synchronize_session=False))
+    """Гишүүн/байгууллага/хэрэглэгч заасан бол 409 (core/orm/restrict.py) — холбоосыг
+    салгаж байж устгана. Өмнө нь холбоосыг чимээгүй NULL болгодог байв."""
     return _delete_by_id(REF_MODELS[table], rid, f"{label} олдсонгүй")
 
 

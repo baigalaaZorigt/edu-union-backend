@@ -93,9 +93,12 @@ def test_role_crud_and_permissions(api):
     assert api.delete(f"/api/role/{rid}/permission/{p_read}").status_code == 404
 
     # user_count
-    _new_user(api, role_id=rid)
+    u, _ = _new_user(api, role_id=rid)
     assert api.get(f"/api/role/{rid}").get_json()["user_count"] == 1
 
+    r = api.delete(f"/api/role/{rid}")                  # хэрэглэгчтэй дүр -> 409
+    assert r.status_code == 409 and r.get_json()["references"][0]["table"] == "app_user"
+    api.delete(f"/api/user/{u['id']}")
     assert api.delete(f"/api/role/{rid}").get_json() == {"deleted": rid}
     assert api.get(f"/api/role/{rid}").status_code == 404
     assert api.delete(f"/api/role/{rid}").status_code == 404

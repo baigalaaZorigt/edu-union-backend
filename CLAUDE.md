@@ -242,8 +242,8 @@ python -m pytest tests -q      # the whole pytest suite (571 tests, ~13 s)
   The Postman collection (`docs/edu-union-backend.postman_collection.json`) is the second,
   black-box suite, run against a live server. It runs **top to bottom** (Postman Runner or
   `newman run docs/edu-union-backend.postman_collection.json --env-var base_url=...`, **from the
-  repo root** — the form-data requests upload `docs/fixtures/sample.png|pdf` by relative path): 623 requests,
-  ~1190 assertions (a few are conditional), and repeatable — three consecutive runs leave every table's **visible**
+  repo root** — the form-data requests upload `docs/fixtures/sample.png|pdf` by relative path): 627 requests,
+  ~1194 assertions (a few are conditional), and repeatable — three consecutive runs leave every table's **visible**
   row count (`deleted_at IS NULL`) unchanged; since every delete is soft, hidden rows do pile up. Every request is green, on a fresh database too (`Нэгийг авах` in
   the member_education folder reads the row its own `Нэмэх` created, not a seed id). **Keep it that way when adding requests:** run "0. Нэвтрэлт" first (it stores
   `{{token}}`), have each folder's `Нэмэх` save the new id into a `{{new_*}}` variable, and point
@@ -272,8 +272,8 @@ python -m pytest tests -q      # the whole pytest suite (571 tests, ~13 s)
   `Портал 8` checks the uploaded image is **still served** (200) after its block is deleted.
   The `Soft delete 1` folder proves the soft-delete contract end to end: a deleted user is 404 on
   read and on a second delete and gone from the list, the same `username` can be created again;
-  deleting an organization hides its member and that member's contacts, and its `org_code` is
-  free again; a deleted banner's uploaded image is still served token-free (200). The
+  deleting an organization that still has a member is a 409 naming that member, deleting the
+  member hides its contacts, then the organization goes and its `org_code` is free again; a deleted banner's uploaded image is still served token-free (200). The
   `Мэргэжилтэн 1` folder covers the specialist flow
   end to end: it builds its own role + two organizations (one in scope, one out) + user, logs
   in with the initial password, changes it, fills the scope through `/api/me/scope`, then
@@ -303,6 +303,22 @@ python -m pytest tests -q      # the whole pytest suite (571 tests, ~13 s)
   (`integer = varchar`). Anything dialect-specific (`printf`, `julianday`, `DATE()`) is computed
   in Python instead (`full_code`, the under-35 cutoff, trend days). `Base.to_dict()` = the old
   `dict(row)`; joined/derived columns come from labelled selects read with `.mappings()`.
+- **Deleting a referenced row is a 409 that says what refers to it** (`core/orm/restrict.py`).
+  `RESTRICT` lists the *reference* relations — a child that would lose its value: school category,
+  structure, position, profession, salary scale, education degree, reward type ← the rows that
+  picked them; role ← users; organization ← members and a manager's `user_scope.organization_id`;
+  admin units ← organizations / members / `user_scope.district_au2_code` (logical `au*_code`
+  links with no FK). `check_references()` runs inside `soft_delete()`, so every handler gets it
+  with no code of its own, and answers `409 {"error": "«X» (албан тушаал) устгах боломжгүй:
+  үүнтэй холбоотой 3 гишүүн (…) бүртгэлтэй байна. Эхлээд тэдгээрийн холбоосыг салгаж …",
+  "references": [{table, label, count, examples}]}` (`Referenced` is a `Conflict` with `extra`,
+  which `register_error_handlers` merges into the JSON). Hidden (soft-deleted) children do not
+  count. **Ownership cascades are untouched** — news → blocks, form → questions, member →
+  education/rewards/files/contacts, menu → sub-menus/page, role → `role_permission`, and the
+  admin-unit hierarchy (aimag → sum → bag) still go with their parent; but every row a cascade
+  would hide is checked too, so an aimag whose sum has an organization is a 409 naming the sum.
+  Not covered: audit columns (`created_by`/`updated_by`), `notifications.role_id` history, and the
+  ХОН `user_scope.organization_ids` JSON list.
 - **Every delete is a soft delete — every table, and nothing is ever restored**
   (`core/orm/soft.py`, Alembic 0004 added `deleted_at TEXT` to all 46 tables). `new_session()` /
   `session()` hand out a `SoftSession`, so handlers keep writing plain `s.delete(obj)` /
@@ -450,11 +466,9 @@ python -m pytest tests -q      # the whole pytest suite (571 tests, ~13 s)
   `code` has **no DB-level UNIQUE** (SQLite cannot add one via `ALTER TABLE ADD COLUMN` on older
   DBs) — `_check_code_unique()` enforces it in code → 409. `PUT` is partial: send `code`, `name`
   or both. The seeds fill `code` with the 2-digit id (`01`, `02`, …); `_fill_ref_codes()` does the
-  same once for pre-existing rows, guarded by `PRAGMA user_version = 2`. Deleting a lookup row
-  first NULLs every column that points at it (`REF_CLEAR_REFS` in `admin/union/references.py`): on an older
-  DB those columns arrived through `ALTER TABLE ADD COLUMN`, which SQLite cannot give a foreign
-  key, so `ON DELETE SET NULL` fires only on a freshly created database — the explicit `UPDATE`
-  makes both behave the same.
+  same once for pre-existing rows, guarded by `PRAGMA user_version = 2`. Deleting a lookup row that
+  anything still points at is a **409** (see *Deleting a referenced row* below) — it used to NULL
+  those columns silently (`REF_CLEAR_REFS`, removed).
 - **`structure` (Бүтцийн удирдлага) is picked by two different tables** — `organization.structure_id`
   **and** `app_user.structure_id`, so it is the one lookup the client site and the admin site
   share. Both list endpoints filter by it (`GET /api/organization?structure_id=`,
