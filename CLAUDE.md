@@ -427,11 +427,11 @@ bash scripts/check.sh --pg     # + Postgres in docker: alembic, model drift, Pos
   `SUB_ACTION` (`POST .../publish` → `update`, not `create`). So **adding a new `/api/<resource>`
   route automatically needs `<resource>.{action}` permissions** — add the resource to
   `PERMISSION_RESOURCES` in `db.py` (which is the cross-product source for the seeded CRUD permissions).
-  **A member permission opens the form's lookups**: with `member.read`, `member.create` or
-  `member.update`, a
-  `GET` on `MEMBER_FORM_LOOKUPS` (`position`, `profession`, `salary_scale`, `education_degree`,
-  `reward_type`, `admin_unit`) passes without that lookup's own `.read` — read only; writing a
-  lookup still needs its own permission.
+  **A form's permission opens that form's lookups** (`IMPLIED_READ`): `member.read|create|update`
+  lets a `GET` through on `position`, `profession`, `salary_scale`, `education_degree`,
+  `reward_type` and `admin_unit`; `user.read|create|update` on `role`, `structure` and
+  `admin_unit` (the Хэрэглэгчид form's role / structure / district dropdowns) — without the
+  lookup's own `.read`. Read only: writing a lookup or a role still needs its own permission.
   The other exception is `SELF_PATHS` / `SELF_PREFIXES` (`/api/change_password`, `/api/me`,
   `/api/me/...`, `/api/notifications...`): they still need a token but **no permission at all**,
   because they only ever touch `g.user`'s own row — a Зөвлөх мэргэжилтэн must be able to change

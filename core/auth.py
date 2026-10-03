@@ -69,12 +69,19 @@ SUB_RESOURCE = {
 SUB_ACTION = {"publish": "update", "close": "update", "reorder": "update",
               "reset_password": "update"}
 
-# Гишүүн бүртгэх/засах эрхтэй хүн маягтын сонголтуудыг (лавлагаа) УНШИЖ чадна —
-# тухайн лавлагааны `<resource>.read` эрх байхгүй байсан ч. Зөвхөн унших: лавлагааг
-# нэмэх/засах/устгахад өөрийнх нь эрх шаардсан хэвээр.
-MEMBER_FORM_LOOKUPS = {"position", "profession", "salary_scale", "education_degree",
-                       "reward_type", "admin_unit"}
-MEMBER_FORM_PERMISSIONS = {"member.read", "member.create", "member.update"}
+# Маягтын сонголтууд (лавлагаа): гишүүн / хэрэглэгч харах-бүртгэх-засах эрхтэй хүн тухайн
+# маягтын dropdown-уудыг УНШИЖ чадна — лавлагааны `<resource>.read` эрх байхгүй байсан ч.
+# Зөвхөн унших: лавлагааг (дүрийг ч) нэмэх/засах/устгахад өөрийнх нь эрх шаардсан хэвээр.
+#   resource -> түүнийг уншихыг дагуулдаг эрхүүд
+_MEMBER_FORM = {"member.read", "member.create", "member.update"}
+_USER_FORM = {"user.read", "user.create", "user.update"}        # Хэрэглэгчид: дүр, бүтэц, хүрээ
+IMPLIED_READ = {
+    **{r: _MEMBER_FORM for r in ("position", "profession", "salary_scale", "education_degree",
+                                 "reward_type")},
+    "admin_unit": _MEMBER_FORM | _USER_FORM,
+    "role": _USER_FORM,
+    "structure": _USER_FORM,
+}
 
 # Токен шаардахгүй нээлттэй замууд (нэвтрэлт)
 PUBLIC_PATHS = {"/api/login"}
@@ -214,6 +221,6 @@ def require_auth():
     if need in codes:
         return
     resource, action = need.rsplit(".", 1)
-    if action == "read" and resource in MEMBER_FORM_LOOKUPS and codes & MEMBER_FORM_PERMISSIONS:
+    if action == "read" and codes & IMPLIED_READ.get(resource, set()):
         return
     abort(403, description=f"Танд энэ үйлдлийн эрх алга: {need}")

@@ -1,4 +1,4 @@
-"""core/auth.py: гишүүн харах/бүртгэх/засах эрх нь маягтын лавлагааг УНШИХ эрхийг дагуулна."""
+"""core/auth.py: гишүүн / хэрэглэгч харах-бүртгэх-засах эрх нь маягтын лавлагааг УНШИХ эрхийг дагуулна."""
 import pytest
 
 LOOKUPS = ["/api/position", "/api/profession", "/api/salary_scale", "/api/education_degree",
@@ -26,3 +26,16 @@ def test_member_writer_cannot_change_lookups_or_read_others(make_user):
     assert u.delete("/api/position/1").status_code == 403
     for url in ("/api/structure", "/api/school_category", "/api/user", "/api/role"):
         assert u.get(url).status_code == 403, url
+
+
+@pytest.mark.parametrize("perm", ["user.read", "user.create", "user.update"])
+def test_user_form_reads_role_structure_units(make_user, perm):
+    u, user = make_user([perm])
+    for url in ("/api/role", f"/api/role/{user['role_id']}", "/api/structure", "/api/au2"):
+        assert u.get(url).status_code == 200, url
+    # зөвхөн унших; гишүүний лавлагаа нээгдэхгүй
+    assert u.post("/api/role", json={"name": "x"}).status_code == 403
+    assert u.put(f"/api/role/{user['role_id']}", json={"description": "x"}).status_code == 403
+    assert u.delete(f"/api/role/{user['role_id']}").status_code == 403
+    assert u.get("/api/position").status_code == 403
+    assert u.get("/api/permission").status_code == 403
