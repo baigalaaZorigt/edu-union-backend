@@ -1,7 +1,7 @@
-"""аудит — created_by / updated_by (хэн үүсгэсэн, хэн зассан) + app_user.tokens_invalid_before
+"""аудит — created_by / updated_by (хэн үүсгэсэн, хэн зассан) + app_user.token_version
 
 form, news-д аль хэдийн байсан. Утгыг ORM session өөрөө бөглөнө — core/orm/stamp.py.
-tokens_invalid_before (epoch) — нууц үг сэргээхэд өмнө нь олгосон JWT-г хүчингүй болгоно.
+token_version — нууц үг сэргээхэд +1; JWT-ийн `ver` claim таарахгүй бол 401.
 
 Revision ID: 0005
 Revises: 0004
@@ -53,12 +53,12 @@ def upgrade():
             op.add_column(table, sa.Column(
                 col, sa.Integer, sa.ForeignKey("app_user.id", ondelete="SET NULL")),
                 inline_references=True)      # SQLite: ADD CONSTRAINT байхгүй тул REFERENCES-ийг мөрд нь
-    op.add_column("app_user", sa.Column("tokens_invalid_before", sa.Integer))
+    op.add_column("app_user", sa.Column("token_version", sa.Integer))
 
 
 def downgrade():
     with op.batch_alter_table("app_user") as batch:
-        batch.drop_column("tokens_invalid_before")
+        batch.drop_column("token_version")
     for table in TABLES:
         with op.batch_alter_table(table) as batch:
             for col in COLUMNS:

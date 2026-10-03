@@ -85,7 +85,7 @@ class AppUser(Base):
     deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)
     created_by: Mapped[Optional[int]] = mapped_column(Int, ForeignKey("app_user.id", ondelete="SET NULL"))   # аудит (0005)
     updated_by: Mapped[Optional[int]] = mapped_column(Int, ForeignKey("app_user.id", ondelete="SET NULL"))
-    tokens_invalid_before: Mapped[Optional[int]] = mapped_column(Int)   # epoch; өмнөх iat-тай JWT хүчингүй
+    token_version: Mapped[Optional[int]] = mapped_column(Int)   # нууц үг сэргээхэд +1; JWT-ийн ver-тэй таарна
 
 
 

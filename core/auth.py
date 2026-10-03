@@ -102,13 +102,16 @@ SELF_PATHS = {"/api/change_password", "/api/me", "/api/notifications"}
 SELF_PREFIXES = ("/api/me/", "/api/notifications/")
 
 
-def make_token(user_id):
-    """Хэрэглэгчийн id-г агуулсан JWT токен үүсгэнэ (sub, iat, exp claim-тэй)."""
+def make_token(user_id, version=0):
+    """Хэрэглэгчийн id-г агуулсан JWT токен үүсгэнэ (sub, iat, exp + ver claim-тэй).
+
+    `ver` = app_user.token_version: нууц үг сэргээхэд нэмэгддэг тул хуучин токен таарахгүй."""
     now = datetime.now(timezone.utc)
     payload = {
         "sub": str(user_id),                                  # subject — хэрэглэгчийн id
         "iat": now,                                           # үүсгэсэн хугацаа
         "exp": now + timedelta(seconds=TOKEN_MAX_AGE),        # дуусах хугацаа
+        "ver": version or 0,                                  # токены хувилбар
     }
     return jwt.encode(payload, SECRET_KEY, algorithm=JWT_ALGORITHM)
 
@@ -134,7 +137,7 @@ def _load_user(token):
     if user is None or not user.is_active:
         abort(401, description="Хэрэглэгч олдсонгүй эсвэл идэвхгүй байна")
     # Нууц үг сэргээхээс ӨМНӨ олгосон токен хүчингүй (POST /api/user/<id>/reset_password)
-    if user.tokens_invalid_before and payload.get("iat", 0) < user.tokens_invalid_before:
+    if payload.get("ver", 0) != (user.token_version or 0):
         abort(401, description="Нууц үг сэргээгдсэн — дахин нэвтэрнэ үү")
     return user.to_dict()          # g.user["id"] г.м. хуучин мөр шиг хандалт хэвээр
 

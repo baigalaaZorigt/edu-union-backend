@@ -1,6 +1,4 @@
 """app_user (Хэрэглэгч) — CRUD + нууц үг сэргээх."""
-import time
-
 from flask import abort, g, jsonify, request
 from sqlalchemy import delete, select, update
 from sqlalchemy.exc import SQLAlchemyError
@@ -136,7 +134,7 @@ def reset_password(uid):
     """Нууц үгийг хэрэглэгчийн `username` (утасны дугаар) болгож, дахин солиулна.
 
     Зөвхөн Super Admin, эсвэл тэр бүртгэлийг ҮҮСГЭСЭН хүн (created_by) -> бусдад 403.
-    Өмнө нь олгосон токенууд хүчингүй болно (tokens_invalid_before).
+    Өмнө нь олгосон токенууд хүчингүй болно (token_version).
     """
     s = session()
     user = s.get(AppUser, uid)
@@ -147,6 +145,6 @@ def reset_password(uid):
                                "нууц үгийг сэргээнэ")
     user.password_hash = _hash(user.username)
     user.must_change_password = 1
-    user.tokens_invalid_before = int(time.time())
+    user.token_version = (user.token_version or 0) + 1
     s.commit()
     return jsonify(status=True)

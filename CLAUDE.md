@@ -251,8 +251,8 @@ bash scripts/check.sh --pg     # + Postgres in docker: alembic, model drift, Pos
   The Postman collection (`docs/edu-union-backend.postman_collection.json`) is the second,
   black-box suite, run against a live server. It runs **top to bottom** (Postman Runner or
   `newman run docs/edu-union-backend.postman_collection.json --env-var base_url=...`, **from the
-  repo root** — the form-data requests upload `docs/fixtures/sample.png|pdf` by relative path): 686 requests,
-  ~1303 assertions (a few are conditional), and repeatable — three consecutive runs leave every table's **visible**
+  repo root** — the form-data requests upload `docs/fixtures/sample.png|pdf` by relative path): 744 requests,
+  ~1395 assertions (a few are conditional), and repeatable — three consecutive runs leave every table's **visible**
   row count (`deleted_at IS NULL`) unchanged; since every delete is soft, hidden rows do pile up. Every request is green, on a fresh database too (`Нэгийг авах` in
   the member_education folder reads the row its own `Нэмэх` created, not a seed id). **Keep it that way when adding requests:** run "0. Нэвтрэлт" first (it stores
   `{{token}}`), have each folder's `Нэмэх` save the new id into a `{{new_*}}` variable, and point
@@ -296,6 +296,12 @@ bash scripts/check.sh --pg     # + Postgres in docker: alembic, model drift, Pos
   in with the initial password, changes it, fills the scope through `/api/me/scope`, then
   proves `GET /api/member` / `GET /api/organization` come back **filtered** and that the
   out-of-scope organization answers 403 — all under `{{spec_token}}`, not `{{token}}`.
+  `Эрх зүй 1` builds a 3-level `legal_reference` tree, reorders it, reads it token-free, hides a
+  group (its child disappears too), walks the 400/401 paths and deletes the section — the cascade
+  takes all four rows. `Нууц үг 1` creates two users, proves a non-creator's reset is a 403, then
+  resets as admin: the old token is 401, the old password 400, the username logs in with
+  `must_change_password`. `Хамрах хүрээ 2` saves picked schools for a non-rural type, the
+  wrong-category / empty 400s and the legacy district-only shape.
   **Postman runs every test script in one sandbox**, so declare script locals with `var`
   (a second `const data` anywhere in the collection is a `SyntaxError`, not a failed test).
   A folder that creates N rows must delete all N. Pointing a `PUT`
@@ -372,8 +378,8 @@ bash scripts/check.sh --pg     # + Postgres in docker: alembic, model drift, Pos
 - **Password reset is admin-initiated** (`POST /api/user/<id>/reset_password`, needs
   `user.update` via `SUB_ACTION`): only the account's creator (`created_by`) or a Super Admin
   (`role.code == "1"` or the seeded `admin` role) → else 403. It sets the password to the
-  `username`, `must_change_password = 1` and `tokens_invalid_before = now` (epoch) — `_load_user`
-  rejects any JWT whose `iat` is older, so earlier sessions die. Returns `{"status": true}`.
+  `username`, `must_change_password = 1` and `token_version += 1` — `_load_user` rejects any JWT
+  whose `ver` claim differs (a token without one counts as 0), so earlier sessions die. Returns `{"status": true}`.
 - **Эрх зүй is a numbered outline tree** (`legal_reference`, Alembic 0006; `admin/legal_reference.py`,
   `core/legal_ref_core.py`): `parent_id` (self FK, `CASCADE` — deleting a row soft-deletes its
   whole subtree) + `sort_order`; the "1.1.1" numbers are **never stored**, the frontend derives

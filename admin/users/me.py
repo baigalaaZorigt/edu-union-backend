@@ -45,7 +45,7 @@ def login():
     audit.event("login", user_id=row["id"], username=row["username"])
     out = _user_profile(row)
     # Дараагийн хүсэлтүүдэд ашиглах токен: Authorization: Bearer <token>
-    out["token"] = make_token(row["id"])
+    out["token"] = make_token(row["id"], row["token_version"])
     return jsonify(out)
 
 
