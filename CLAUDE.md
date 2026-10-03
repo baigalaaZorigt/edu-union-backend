@@ -362,6 +362,27 @@ bash scripts/check.sh --pg     # + Postgres in docker: alembic, model drift, Pos
   which open `new_session(include_deleted=True)` so a deleted seed row is neither re-created nor a
   PK collision — and `seed_users()` un-hides the admin role's `role_permission` links so admin
   always keeps every permission. `tests/test_soft_delete.py` covers it.
+- **`created_by` / `updated_by` are stamped by the session, not by handlers** (`core/orm/stamp.py`,
+  Alembic 0005: 27 tables, FK → `app_user.id` `SET NULL`). With a `g.user`: a new object gets
+  `created_by`, a modified one (soft delete included) `updated_by`, and a bulk
+  `update(Model)` gets `updated_by` added to its values. No token (portal, `/api/login`, seeds)
+  → untouched, so a guest's suggestion keeps `created_by = NULL`. Responses carry both ids;
+  news / portal settings / feedback add them on the **admin** side only (`audit=True`), there is
+  no `*_name` join. `notifications` has only `created_by`.
+- **Password reset is admin-initiated** (`POST /api/user/<id>/reset_password`, needs
+  `user.update` via `SUB_ACTION`): only the account's creator (`created_by`) or a Super Admin
+  (`role.code == "1"` or the seeded `admin` role) → else 403. It sets the password to the
+  `username`, `must_change_password = 1` and `tokens_invalid_before = now` (epoch) — `_load_user`
+  rejects any JWT whose `iat` is older, so earlier sessions die. Returns `{"status": true}`.
+- **Эрх зүй is a numbered outline tree** (`legal_reference`, Alembic 0006; `admin/legal_reference.py`,
+  `core/legal_ref_core.py`): `parent_id` (self FK, `CASCADE` — deleting a row soft-deletes its
+  whole subtree) + `sort_order`; the "1.1.1" numbers are **never stored**, the frontend derives
+  them. A row with `url` (`http(s)://`) is a link, without one a group heading; no depth limit,
+  cycles are a 400. `POST` without `sort_order` appends after the last sibling;
+  `PUT|PATCH /api/legal_reference/reorder` takes `{items: [{id, sort_order}]}` of one parent.
+  Portal: `GET /api/portal/legal_references` → `{items}` of rows whose whole ancestor chain is
+  visible; search indexes the linked ones as `type="document"`. The older `legal_document`
+  routes below are superseded by this but **still in place** until the frontend switches.
 - **Schema changes go through Alembic.** `alembic/versions/0001_baseline.py` runs the frozen
   legacy DDL (`core/db/schema*.py` + `_pg_schema()` + timestamp triggers), so a fresh database is
   byte-for-byte the production schema (checked with `pg_dump`). `core.db.bootstrap.migrate()`
@@ -400,7 +421,12 @@ bash scripts/check.sh --pg     # + Postgres in docker: alembic, model drift, Pos
   `SUB_ACTION` (`POST .../publish` → `update`, not `create`). So **adding a new `/api/<resource>`
   route automatically needs `<resource>.{action}` permissions** — add the resource to
   `PERMISSION_RESOURCES` in `db.py` (which is the cross-product source for the seeded CRUD permissions).
-  The one exception is `SELF_PATHS` / `SELF_PREFIXES` (`/api/change_password`, `/api/me`,
+  **A member permission opens the form's lookups**: with `member.read`, `member.create` or
+  `member.update`, a
+  `GET` on `MEMBER_FORM_LOOKUPS` (`position`, `profession`, `salary_scale`, `education_degree`,
+  `reward_type`, `admin_unit`) passes without that lookup's own `.read` — read only; writing a
+  lookup still needs its own permission.
+  The other exception is `SELF_PATHS` / `SELF_PREFIXES` (`/api/change_password`, `/api/me`,
   `/api/me/...`, `/api/notifications...`): they still need a token but **no permission at all**,
   because they only ever touch `g.user`'s own row — a Зөвлөх мэргэжилтэн must be able to change
   their password and confirm their scope without being granted `user.*` over everybody, and
@@ -726,6 +752,12 @@ bash scripts/check.sh --pg     # + Postgres in docker: alembic, model drift, Pos
   One row per `app_user` (`user_id` is the PK, `ON DELETE CASCADE`), reached at
   `GET|PUT|PATCH|DELETE /api/user/<id>/scope` and embedded as `scope` in `GET /api/user`,
   `GET /api/user/<id>` and `/api/login`, so the frontend never has to fan out per user.
+  **Every `school_type` now scopes by `organization_ids`** (picked schools; each must be in that
+  type's category, rural excepted) — `district_au2_code` is optional and only a remembered
+  picker filter. A row with a district and an **empty** list is the legacy "whole district" and
+  still works (read, enforce, and save — the old frontend still sends it); a non-rural type with
+  neither is a 400. `/api/me/specialist` matches picked schools first (`matched_by:
+  "organization"`), legacy districts last. The older description follows.
   Two shapes share the table: a **Зөвлөх/Мэргэжилтэн** picks a `school_type` (`SCHOOL_TYPES` in
   `admin/users/common.py`: general/preschool/higher/vocational/science/rural) plus either
   `organization_ids` (only when `school_type='rural'` — ХОН) or `district_au2_code` (every other

@@ -7,12 +7,17 @@
     GET /api/portal/legal_documents/<id>   — нэг мөр + blocks (detail горимд); нуусан /
                                              байхгүй бол 404 {error}
 
+    GET /api/portal/legal_references       — эрх зүйн дугаарласан мод: харагдах мөрүүд
+                                             (эцгүүд нь бүгд харагдах), хавтгай
+                                             {items: [{id, parent_id, title, url, sort_order}]}
+
 `legal` төрлийн цэс энэ жагсаалтыг дууддаг (`news` цэс /api/portal/news-ийг дууддаг шиг).
 """
 from flask import Blueprint, abort, jsonify
 from sqlalchemy import select
 
 from core.legal_core import public_block, public_document
+from core.legal_ref_core import public_row, visible_rows
 from core.orm import session
 from core.orm.models import LegalDocument, LegalDocumentBlock
 
@@ -37,3 +42,8 @@ def get_document(did):
         select(LegalDocumentBlock).where(LegalDocumentBlock.legal_document_id == did)
         .order_by(LegalDocumentBlock.sort_order, LegalDocumentBlock.id))
     return jsonify({**public_document(doc), "blocks": [public_block(b) for b in blocks]})
+
+
+@bp.route("/api/portal/legal_references", methods=["GET"])
+def list_references():
+    return jsonify(items=[public_row(r) for r in visible_rows()])

@@ -21,5 +21,5 @@ from core.orm.models.forms import (  # noqa: F401
     Form, FormAnswer, FormAnswerOption, FormDocument, FormOption, FormQuestion, FormSubmission,
 )
 from core.orm.models.legal import (  # noqa: F401
-    LegalDocument, LegalDocumentBlock,
+    LegalDocument, LegalDocumentBlock, LegalReference,
 )

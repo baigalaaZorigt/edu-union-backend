@@ -38,9 +38,10 @@ BLOCK_FIELDS = {
 }
 BLOCK_TYPES = tuple(BLOCK_FIELDS)
 
-# JSON-д гарах мэдээний баганууд (created_by/updated_by/deleted_at нь дотоод)
+# JSON-д гарах мэдээний баганууд (deleted_at дотоод; аудит нь зөвхөн админ талд)
 NEWS_COLUMNS = ("id", "title", "category", "author", "cover_image_url", "summary",
                 "status", "published_at", "created_at", "updated_at")
+AUDIT_COLUMNS = ("created_by", "updated_by")
 
 
 def bad(message, code=400):
@@ -74,14 +75,14 @@ def block_list(news_id, btype=None):
     return [public_block(r) for r in session().scalars(stmt)]
 
 
-def public_news(row, **extra):
-    """Мэдээг JSON болгоно. blocks зэргийг extra-гаар нэмж дамжуулна."""
-    out = {f: getattr(row, f) for f in NEWS_COLUMNS}
+def public_news(row, audit=False, **extra):
+    """Мэдээг JSON болгоно. blocks зэргийг extra-гаар; audit=True (админ) -> created_by/updated_by."""
+    out = {f: getattr(row, f) for f in NEWS_COLUMNS + (AUDIT_COLUMNS if audit else ())}
     out.update(extra)
     return out
 
 
-def news_page(conds, default_per_page):
+def news_page(conds, default_per_page, audit=False):
     """`conds` (ORM нөхцлүүд)-ээр шүүсэн мэдээний нэг хуудас (?page= &per_page=).
 
     Нийтлэгдсэн огноогоор (байхгүй бол үүсгэсэн) шинэ нь эхэлж. Буцаалт нь мэдээний
@@ -99,7 +100,7 @@ def news_page(conds, default_per_page):
         select(News).where(*conds)
         .order_by(func.coalesce(News.published_at, News.created_at).desc(), News.id.desc())
         .limit(per_page).offset((page - 1) * per_page)).all()
-    return dict(data=[public_news(r) for r in data], total=total,
+    return dict(data=[public_news(r, audit=audit) for r in data], total=total,
                 per_page=per_page, current_page=page,
                 pages=(total + per_page - 1) // per_page)
 

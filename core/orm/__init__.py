@@ -22,6 +22,7 @@ from sqlalchemy import create_engine, event
 from core import db as _db
 from core.orm.base import Base  # noqa: F401  (models импортлоход хэрэгтэй)
 from core.orm.soft import SoftSession
+from core.orm import stamp  # noqa: F401,E402  (аудитын listener-уудыг бүртгэнэ)
 
 _engines = {}
 

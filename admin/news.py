@@ -77,14 +77,14 @@ def list_news():
     if search:
         pat = f"%{search}%"
         conds.append(News.title.ilike(pat) | News.summary.ilike(pat) | News.author.ilike(pat))
-    return jsonify(news_page(conds, default_per_page=20))
+    return jsonify(news_page(conds, default_per_page=20, audit=True))
 
 
 @bp.route("/api/admin/news/<int:nid>", methods=["GET"])
 def get_news_detail(nid):
     """Нэг мэдээ + `blocks` массив (эрэмбээрээ)."""
     row = require_news(nid)
-    return jsonify(public_news(row, blocks=block_list(nid)))
+    return jsonify(public_news(row, audit=True, blocks=block_list(nid)))
 
 
 @bp.route("/api/admin/news", methods=["POST"])
@@ -103,7 +103,7 @@ def create_news():
     s = session()
     s.add(news)
     s.commit()
-    return jsonify(public_news(require_news(news.id), blocks=[])), 201
+    return jsonify(public_news(require_news(news.id), audit=True, blocks=[])), 201
 
 
 @bp.route("/api/admin/news/<int:nid>", methods=["PUT", "PATCH"])
@@ -128,7 +128,7 @@ def update_news(nid):
     for k, v in values.items():
         setattr(current, k, v)
     session().commit()
-    out = public_news(require_news(nid), blocks=block_list(nid))
+    out = public_news(require_news(nid), audit=True, blocks=block_list(nid))
     # Ковер зураг солигдвол хуучныг дискнээс арилгана.
     if "cover_image_url" in data and old_cover != data["cover_image_url"]:
         remove_upload(old_cover)

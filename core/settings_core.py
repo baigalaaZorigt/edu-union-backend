@@ -23,11 +23,14 @@ SETTINGS_FIELDS = (
 )
 
 
-def public(row):
-    """Мөрийг (PortalSettings) JSON болгоно — phones нь үргэлж жагсаалт."""
+def public(row, audit=False):
+    """Мөрийг (PortalSettings) JSON болгоно — phones нь үргэлж жагсаалт; audit=True (админ)
+    -> created_by/updated_by."""
     out = {f: getattr(row, f) for f in SETTINGS_FIELDS}
     out["phones"] = load_phones(row.phones)
     out["updated_at"] = row.updated_at
+    if audit:
+        out.update(created_by=row.created_by, updated_by=row.updated_by)
     return out
 
 

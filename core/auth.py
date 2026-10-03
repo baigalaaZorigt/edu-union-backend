@@ -66,7 +66,15 @@ SUB_RESOURCE = {
 
 # HTTP методоос гарах үйлдлийг дарж бичих дэд замууд
 # (ж: POST .../publish бол шинээр үүсгэх биш, төлөв ЗАСАХ үйлдэл).
-SUB_ACTION = {"publish": "update", "close": "update", "reorder": "update"}
+SUB_ACTION = {"publish": "update", "close": "update", "reorder": "update",
+              "reset_password": "update"}
+
+# Гишүүн бүртгэх/засах эрхтэй хүн маягтын сонголтуудыг (лавлагаа) УНШИЖ чадна —
+# тухайн лавлагааны `<resource>.read` эрх байхгүй байсан ч. Зөвхөн унших: лавлагааг
+# нэмэх/засах/устгахад өөрийнх нь эрх шаардсан хэвээр.
+MEMBER_FORM_LOOKUPS = {"position", "profession", "salary_scale", "education_degree",
+                       "reward_type", "admin_unit"}
+MEMBER_FORM_PERMISSIONS = {"member.read", "member.create", "member.update"}
 
 # Токен шаардахгүй нээлттэй замууд (нэвтрэлт)
 PUBLIC_PATHS = {"/api/login"}
@@ -125,6 +133,9 @@ def _load_user(token):
     user = session().get(AppUser, user_id)
     if user is None or not user.is_active:
         abort(401, description="Хэрэглэгч олдсонгүй эсвэл идэвхгүй байна")
+    # Нууц үг сэргээхээс ӨМНӨ олгосон токен хүчингүй (POST /api/user/<id>/reset_password)
+    if user.tokens_invalid_before and payload.get("iat", 0) < user.tokens_invalid_before:
+        abort(401, description="Нууц үг сэргээгдсэн — дахин нэвтэрнэ үү")
     return user.to_dict()          # g.user["id"] г.м. хуучин мөр шиг хандалт хэвээр
 
 
@@ -194,5 +205,12 @@ def require_auth():
     if request.path in SELF_PATHS or request.path.startswith(SELF_PREFIXES):
         return
     need = _required_permission()
-    if need and need not in _user_permission_codes(g.user):
-        abort(403, description=f"Танд энэ үйлдлийн эрх алга: {need}")
+    if not need:
+        return
+    codes = _user_permission_codes(g.user)
+    if need in codes:
+        return
+    resource, action = need.rsplit(".", 1)
+    if action == "read" and resource in MEMBER_FORM_LOOKUPS and codes & MEMBER_FORM_PERMISSIONS:
+        return
+    abort(403, description=f"Танд энэ үйлдлийн эрх алга: {need}")

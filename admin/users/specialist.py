@@ -5,8 +5,9 @@
 хамрах хүрээндээ агуулсан мэргэжилтнийг хайна:
   1. ХОН (rural) — school_type='rural' БӨГӨӨД organization_ids-д энэ сургууль байгаа.
      "rural" нь ангилал биш, сургуулийг шууд нэрлэж оноодог тул эхэлж шалгана.
-  2. Бусад — school_type = сургуулийн ангиллын төрөл (SCHOOL_TYPE_CATEGORY) БӨГӨӨД
-     district_au2_code = сургуулийн au2_code.
+  2. Бусад төрөл — organization_ids-д энэ сургууль байгаа (matched_by="organization").
+  3. Хуучин мөр (organization_ids хоосон) — school_type = сургуулийн ангиллын төрөл
+     (SCHOOL_TYPE_CATEGORY) БӨГӨӨД district_au2_code = сургуулийн au2_code.
 Олон таарвал хамгийн бага id. Зөвхөн идэвхтэй, "Зөвлөх мэргэжилтэн" дүртэй хэрэглэгч.
 Токен шаардана, тусгай эрх шаардахгүй (core/auth.py-ийн SELF_PREFIXES — /api/me/...).
 """
@@ -37,7 +38,7 @@ def _my_organization_id():
     scope = scope_of()
     if scope and scope.get("organization_id"):
         return int(scope["organization_id"])
-    if scope and scope.get("organization_ids") and scope.get("school_type") != RURAL:
+    if scope and scope.get("organization_ids") and not scope.get("school_type"):
         return int(scope["organization_ids"][0])
     abort(403, description="Зөвхөн сургуулийн менежерт — таны хамрах хүрээнд сургууль алга")
 
@@ -63,10 +64,14 @@ def find_specialist(org):
     for p in people:
         if p["school_type"] == RURAL and org.id in _ids(p["organization_ids"]):
             return p, "rural"
+    for p in people:
+        if p["school_type"] != RURAL and org.id in _ids(p["organization_ids"]):
+            return p, "organization"
     school_type = CATEGORY_TYPE.get(org.school_category_id)
     if school_type and org.au2_code:
         for p in people:
-            if p["school_type"] == school_type and p["district_au2_code"] == org.au2_code:
+            if (p["school_type"] == school_type and p["district_au2_code"] == org.au2_code
+                    and not _ids(p["organization_ids"])):
                 return p, "district"
     return None, None
 

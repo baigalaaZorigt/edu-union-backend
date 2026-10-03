@@ -132,10 +132,10 @@ def insert(kind, values):
 
 
 def public_row(kind, row):
-    """Мөрийг спекийн §4 хэлбэрээр буцаана (updated_at нь гадагшаа хэрэггүй)."""
+    """Мөрийг спекийн §4 хэлбэрээр (+ аудит) буцаана — зөвхөн админ жагсаалтад хэрэглэгдэнэ."""
     spec = KINDS[kind]
     return {f: getattr(row, f) for f in
-            ("id",) + spec["required"] + spec["optional"] + ("status", "created_at")}
+            ("id",) + spec["required"] + spec["optional"] + ("status", "created_at", "updated_at", "created_by", "updated_by")}
 
 
 def list_page(kind, args):

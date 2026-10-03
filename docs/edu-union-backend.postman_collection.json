@@ -19193,7 +19193,7 @@
          "  fbPage.items.map(i => String(i.id))).to.include(",
          "  String(pm.collectionVariables.get('new_suggestion_id'))));",
          "pm.test('дэлгэрэнгүй талбарууд шууд ирнэ', () => pm.expect(fbPage.items[0])",
-         "  .to.have.all.keys('id','name','email','phone','message','status','created_at'));",
+         "  .to.have.all.keys('id','name','email','phone','message','status','created_at','updated_at','created_by','updated_by'));",
          "pm.test('шинэ нь дээрээ', () => pm.expect(fbPage.items[0].id)",
          "  .to.be.at.least(fbPage.items[fbPage.items.length - 1].id));"
         ]
@@ -19229,7 +19229,7 @@
          "pm.test('статус 200', () => pm.response.to.have.status(200));",
          "pm.test('хавсралтын талбарууд бий', () => pm.expect(fbPage.items[0])",
          "  .to.have.all.keys('id','name','email','phone','description','file_url',",
-         "  'file_name','status','created_at'));",
+         "  'file_name','status','created_at','updated_at','created_by','updated_by'));",
          "var fbAtt = fbPage.items.find(i => String(i.id) ===",
          "  String(pm.collectionVariables.get('new_complaint_file_id')));",
          "pm.test('хавсралт хадгалагдсан', () => pm.expect(fbAtt.file_name)",

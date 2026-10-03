@@ -67,6 +67,7 @@ def public_user(row):
     """
     d = dict(row)
     d.pop("password_hash", None)
+    d.pop("tokens_invalid_before", None)          # дотоод (core/auth.py)
     d["must_change_password"] = bool(d.get("must_change_password"))
     d["onboarding_completed"] = (
         bool(d.get("onboarding_completed_at")) if is_specialist(row) else True)

@@ -9,7 +9,8 @@
 Дүрэм (specialist_onboarding_api_spec.md §5):
   - `organization_id` (Сургуулийн менежер) -> зөвхөн тэр НЭГ байгууллага
   - `school_type='rural'` (ХОН)            -> `organization_ids`-д багтсан байгууллагууд
-  - `school_type` бусад утгатай            -> тухайн ангилал БӨГӨӨД `district_au2_code`
+  - `school_type` бусад утгатай            -> `organization_ids` (сонгосон сургуулиуд);
+    жагсаалт ХООСОН хуучин мөр             -> тухайн ангилал БӨГӨӨД `district_au2_code`
   - Хамрах хүрээний мөр байхгүй (admin г.м.) -> шүүлтгүй, БҮГДИЙГ харна
 
 Шүүлт нь ДҮРНЭЭС биш, `user_scope` мөрнөөс хамаарна: тэр мөрийг зөвхөн Зөвлөх
@@ -84,10 +85,12 @@ def org_clause(user=None):
     if scope.get("organization_id"):            # Сургуулийн менежер — яг нэг сургууль
         return Organization.id == scope["organization_id"]
     st = scope.get("school_type")
+    ids = scope.get("organization_ids") or []
     if st == RURAL:                             # ХОН — гараар сонгосон сургуулиуд
-        ids = scope.get("organization_ids") or []
         return Organization.id.in_(ids) if ids else false()
-    if st:                                      # Ангилал + дүүрэг
+    if st and ids:                              # Ангилал — гараар сонгосон сургуулиуд
+        return Organization.id.in_(ids)
+    if st:                                      # Хуучин мөр: ангилал + бүхэл дүүрэг
         cat = SCHOOL_TYPE_CATEGORY.get(st)
         if cat is None:
             return false()

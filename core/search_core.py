@@ -26,15 +26,17 @@ import time
 
 from sqlalchemy import func, select
 
+from core.legal_ref_core import visible_rows
 from core.orm import session
-from core.orm.models import (Form, LegalDocument, LegalDocumentBlock, Menu, News, NewsBlock,
+from core.orm.models import (Form, LegalDocument, LegalDocumentBlock, LegalReference, Menu, News, NewsBlock,
                               Page, PageBlock, Partner)
 
 MIN_Q, MAX_Q = 2, 60
 SNIPPET = 160
 # Индекс барих эх хүснэгтүүд — эдгээрийн аль нэг өөрчлөгдвөл индекс дахин баригдана
 CORPUS_MAX_AGE = 10                  # хээ ижил байсан ч үүнээс хуучин индексийг дахин барина
-SOURCES = (News, NewsBlock, Menu, Page, PageBlock, Form, Partner, LegalDocument, LegalDocumentBlock)
+SOURCES = (News, NewsBlock, Menu, Page, PageBlock, Form, Partner, LegalDocument, LegalDocumentBlock,
+           LegalReference)
 TYPES = ("news", "page", "document", "survey", "poll", "partner")
 
 _TAG = re.compile(r"<[^>]+>")
@@ -140,6 +142,10 @@ def build_corpus(s):
                      "anchor": None, "date": _date(d.published_date or d.created_at),
                      "body": " ".join([d.category or "", d.source_name or ""]
                                       + legal_text.get(d.id, [])).strip()})
+    for r in visible_rows(s):                    # эрх зүйн мод — холбоостой мөрүүд
+        if r.url:
+            docs.append({"type": "document", "id": r.id, "title": r.title, "path": r.url,
+                         "anchor": None, "date": _date(r.created_at), "body": ""})
     for p in s.execute(select(Partner.id, Partner.name, Partner.url, Partner.created_at)
                        .where(Partner.is_visible == 1)):
         docs.append({"type": "partner", "id": p.id, "title": p.name, "path": p.url,

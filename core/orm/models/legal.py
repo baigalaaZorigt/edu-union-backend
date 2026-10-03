@@ -36,6 +36,8 @@ class LegalDocument(Base):
     created_at: Mapped[Optional[str]] = mapped_column(Str, default=utc_iso)
     updated_at: Mapped[Optional[str]] = mapped_column(Str, default=utc_iso, onupdate=utc_iso)
     deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)
+    created_by: Mapped[Optional[int]] = mapped_column(Int, ForeignKey("app_user.id", ondelete="SET NULL"))   # аудит (0005)
+    updated_by: Mapped[Optional[int]] = mapped_column(Int, ForeignKey("app_user.id", ondelete="SET NULL"))
 
 
 
@@ -60,3 +62,26 @@ class LegalDocumentBlock(Base):
     created_at: Mapped[Optional[str]] = mapped_column(Str, default=utc_iso)
     updated_at: Mapped[Optional[str]] = mapped_column(Str, default=utc_iso, onupdate=utc_iso)
     deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)
+
+
+class LegalReference(Base):
+    """Эрх зүй — дугаарласан мод (1, 1.1, 1.1.1 …). Дугаар ХАДГАЛАГДАХГҮЙ: parent_id +
+    sort_order-оос гарна. url-тай мөр гадаад холбоос, url-гүй нь бүлгийн гарчиг. (0006)"""
+    __tablename__ = "legal_reference"
+    __table_args__ = (
+        Index("idx_legal_reference_parent", "parent_id", "sort_order"),
+        {"sqlite_autoincrement": True},
+    )
+
+    id: Mapped[int] = mapped_column(Int, primary_key=True)
+    parent_id: Mapped[Optional[int]] = mapped_column(
+        Int, ForeignKey("legal_reference.id", ondelete="CASCADE"))   # NULL = дээд түвшин
+    title: Mapped[str] = mapped_column(Str, nullable=False)
+    url: Mapped[Optional[str]] = mapped_column(Str)
+    sort_order: Mapped[int] = mapped_column(Int, nullable=False, server_default=text("0"))
+    is_visible: Mapped[int] = mapped_column(Int, nullable=False, server_default=text("1"))
+    created_at: Mapped[Optional[str]] = mapped_column(Str, default=utc_iso)
+    updated_at: Mapped[Optional[str]] = mapped_column(Str, default=utc_iso, onupdate=utc_iso)
+    deleted_at: Mapped[Optional[str]] = mapped_column(Str)
+    created_by: Mapped[Optional[int]] = mapped_column(Int, ForeignKey("app_user.id", ondelete="SET NULL"))
+    updated_by: Mapped[Optional[int]] = mapped_column(Int, ForeignKey("app_user.id", ondelete="SET NULL"))

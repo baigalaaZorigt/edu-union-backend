@@ -57,7 +57,9 @@ def test_public_settings_without_token(anon, api, original):
     for url in ("/api/public/portal_settings", "/api/portal/portal_settings"):
         r = anon.get(url)
         assert r.status_code == 200
-        assert r.get_json() == api.get("/api/portal_settings").get_json()
+        admin = api.get("/api/portal_settings").get_json()
+        assert {admin.pop("created_by", 0), admin.pop("updated_by", 0)} != {0}   # аудит — админд л
+        assert r.get_json() == admin
 
 
 def test_patch_merges(api, original):

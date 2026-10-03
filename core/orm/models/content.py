@@ -30,6 +30,8 @@ class Menu(Base):
     created_at: Mapped[Optional[str]] = mapped_column(Str)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
     deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)
+    created_by: Mapped[Optional[int]] = mapped_column(Int, ForeignKey("app_user.id", ondelete="SET NULL"))   # аудит (0005)
+    updated_by: Mapped[Optional[int]] = mapped_column(Int, ForeignKey("app_user.id", ondelete="SET NULL"))
 
 
 
@@ -94,6 +96,8 @@ class PortalSettings(Base):
     created_at: Mapped[Optional[str]] = mapped_column(Str)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
     deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)
+    created_by: Mapped[Optional[int]] = mapped_column(Int, ForeignKey("app_user.id", ondelete="SET NULL"))   # аудит (0005)
+    updated_by: Mapped[Optional[int]] = mapped_column(Int, ForeignKey("app_user.id", ondelete="SET NULL"))
 
 
 
@@ -111,6 +115,8 @@ class Banner(Base):
     created_at: Mapped[Optional[str]] = mapped_column(Str)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
     deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)
+    created_by: Mapped[Optional[int]] = mapped_column(Int, ForeignKey("app_user.id", ondelete="SET NULL"))   # аудит (0005)
+    updated_by: Mapped[Optional[int]] = mapped_column(Int, ForeignKey("app_user.id", ondelete="SET NULL"))
 
 
 
@@ -127,3 +133,5 @@ class Partner(Base):
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
     logo_url: Mapped[Optional[str]] = mapped_column(Str)          # Alembic 0003 — /api/upload
     deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)
+    created_by: Mapped[Optional[int]] = mapped_column(Int, ForeignKey("app_user.id", ondelete="SET NULL"))   # аудит (0005)
+    updated_by: Mapped[Optional[int]] = mapped_column(Int, ForeignKey("app_user.id", ondelete="SET NULL"))

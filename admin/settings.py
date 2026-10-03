@@ -78,7 +78,7 @@ def _validate(data, partial):
 @bp.route("/api/portal_settings", methods=["GET"])
 def get_settings():
     """Одоогийн тохиргоо (мөр байхгүй бол анхдагчаар үүсгэж буцаана)."""
-    return jsonify(public(get_row()))
+    return jsonify(public(get_row(), audit=True))
 
 
 @bp.route("/api/portal_settings", methods=["PUT", "PATCH"])
@@ -91,7 +91,7 @@ def update_settings():
     for f, v in {**values, "updated_at": now_str()}.items():
         setattr(row, f, v)
     session().commit()
-    out = public(row)
+    out = public(row, audit=True)
     # Лого солигдвол хуучныг дискнээс арилгана (гадаад URL-д хүрэхгүй).
     if "logo_url" in values and old_logo != values["logo_url"]:
         remove_upload(old_logo)

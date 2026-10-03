@@ -1,5 +1,7 @@
-"""app_user (Хэрэглэгч) — CRUD."""
-from flask import abort, jsonify, request
+"""app_user (Хэрэглэгч) — CRUD + нууц үг сэргээх."""
+import time
+
+from flask import abort, g, jsonify, request
 from sqlalchemy import delete, select, update
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -116,3 +118,35 @@ def update_user(uid):
 @bp.route("/api/user/<int:uid>", methods=["DELETE"])
 def delete_user(uid):
     return _delete_by_id(AppUser, uid, NOT_FOUND)
+
+
+# Бүх хэрэглэгчийн нууц үгийг сэргээж чадах дүр: role.code = "1" (Super Admin) эсвэл
+# seed-ийн бүх эрхтэй `admin` дүр (кодгүй).
+SUPER_ROLE_CODE, SUPER_ROLE_NAME = "1", "admin"
+
+
+def _is_super(user_id):
+    row = _user_row(user_id)
+    return bool(row) and (str(row["role_code"] or "").strip() == SUPER_ROLE_CODE
+                          or row["role_name"] == SUPER_ROLE_NAME)
+
+
+@bp.route("/api/user/<int:uid>/reset_password", methods=["POST"])
+def reset_password(uid):
+    """Нууц үгийг хэрэглэгчийн `username` (утасны дугаар) болгож, дахин солиулна.
+
+    Зөвхөн Super Admin, эсвэл тэр бүртгэлийг ҮҮСГЭСЭН хүн (created_by) -> бусдад 403.
+    Өмнө нь олгосон токенууд хүчингүй болно (tokens_invalid_before).
+    """
+    s = session()
+    user = s.get(AppUser, uid)
+    if user is None:
+        abort(404, description=NOT_FOUND)
+    if user.created_by != g.user["id"] and not _is_super(g.user["id"]):
+        abort(403, description="Зөвхөн энэ хэрэглэгчийг бүртгэсэн хүн эсвэл Super Admin "
+                               "нууц үгийг сэргээнэ")
+    user.password_hash = _hash(user.username)
+    user.must_change_password = 1
+    user.tokens_invalid_before = int(time.time())
+    s.commit()
+    return jsonify(status=True)

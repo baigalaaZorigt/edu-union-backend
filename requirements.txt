@@ -3,7 +3,7 @@ PyJWT>=2.8               # JWT токен (core/auth.py) — HS256 гарын ү
 gunicorn>=23.0           # production WSGI сервер: gunicorn run:app
 boto3>=1.34              # S3 файлын сан (core/storage.py) — S3_BUCKET өгсөн үед л
 SQLAlchemy>=2.0          # ORM (core/orm) — бүх query
-alembic>=1.13            # схемийн migration (alembic/, core/db/bootstrap.migrate)
+alembic>=1.20            # схемийн migration (alembic/, core/db/bootstrap.migrate)
 XlsxWriter>=3.1          # Excel экспорт (core/xlsx.py) — constant_memory горим
 
 psycopg[binary]>=3.2   # Postgres драйвер (SQLAlchemy-ийн pool) — DATABASE_URL өгсөн үед л

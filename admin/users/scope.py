@@ -7,14 +7,16 @@ from sqlalchemy import delete
 from core.helpers import json_body
 from core.orm import session
 from core.orm.models import AdminUnit2, AppUser, Organization, UserScope
-from core.scope_core import RURAL
+from core.scope_core import RURAL, SCHOOL_TYPE_CATEGORY
 
 from admin.users import bp
 from admin.users.common import SCHOOL_TYPES, _exists, _now, load_scope
 
 
-# "ХОН" (RURAL) — зөвхөн энэ төрөлд тодорхой сургуулиудыг (organization_ids) сонгоно,
-# бусад төрөлд ганц дүүрэг (district_au2_code) сонгоно.
+# Төрөл бүрд (ХОН ч, ангилал ч) тодорхой сургуулиудыг organization_ids-ээр сонгоно
+# (specialist-scope-multiselect-spec). district_au2_code нь ангилалтай төрөлд зөвхөн
+# сонголтын шүүлтүүр болж хадгалагдана; organization_ids хоосон үед л ХУУЧИН "бүхэл дүүрэг"
+# утгаараа үйлчилнэ (өмнө нь хадгалсан мөрүүд, хуучин frontend).
 SCOPE_FIELDS = ("school_type", "district_au2_code", "organization_ids", "organization_id")
 EMPTY_SCOPE = {"school_type": None, "district_au2_code": None,
                "organization_ids": [], "organization_id": None}
@@ -49,18 +51,20 @@ def _validate_scope(s):
         if district:
             bad("school_type='rural' үед district_au2_code сонгохгүй "
                 "(тодорхой сургуулиудыг organization_ids-ээр сонгоно)")
-    elif st is not None:
-        if not district:
-            bad(f"school_type='{st}' үед district_au2_code заавал")
-        if ids:
-            bad(f"school_type='{st}' үед organization_ids хоосон байх ёстой")
+    elif st is not None and not ids and not district:
+        bad(f"school_type='{st}' үед organization_ids-ээр дор хаяж нэг сургууль сонгоно")
 
     if district and not _exists(AdminUnit2, district):
         bad("district_au2_code (дүүрэг) олдсонгүй")
 
+    category = SCHOOL_TYPE_CATEGORY.get(st)          # rural / төрөлгүй бол None
     for oid in ids:
-        if not _exists(Organization, oid):
+        org = session().get(Organization, oid)
+        if org is None:
             bad(f"organization_ids: {oid} дугаартай байгууллага олдсонгүй")
+        if category is not None and org.school_category_id != category:
+            bad(f"organization_ids: {oid} дугаартай байгууллага school_type='{st}' ангилалд "
+                "хамаарахгүй")
 
     if s["organization_id"] is not None and not _exists(Organization, s["organization_id"]):
         bad("organization_id (сургууль) олдсонгүй")
