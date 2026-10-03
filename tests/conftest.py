@@ -145,3 +145,8 @@ def _clear_login_attempts():
     s.execute(delete(LoginAttempt))
     s.commit()
     s.close()
+
+
+# Гишүүний заавал талбарууд (member-required-fields-spec) — тест `{**MEMBER_REQ, ...}` гэж дарж бичнэ
+MEMBER_REQ = {"last_name": "Овог", "first_name": "Нэр", "gender": "эр",
+              "birth_date": "1990-01-01", "status": "идэвхтэй"}

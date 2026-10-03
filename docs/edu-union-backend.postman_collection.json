@@ -2164,6 +2164,180 @@
      ]
     },
     {
+     "name": "Хүйсгүй нэмэх → 400 (заавал талбар)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/member",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"organization_id\": \"{{new_member_org_id}}\",\n  \"last_name\": \"Батын\",\n  \"first_name\": \"Дорж\",\n  \"birth_date\": \"1990-05-10\",\n  \"status\": \"идэвхтэй\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));",
+         "pm.test('алдаа талбарыг нэрлэнэ', () => pm.expect(pm.response.json().error).to.include('gender'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Төрсөн огноо буруу → 400",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/member",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"organization_id\": \"{{new_member_org_id}}\",\n  \"last_name\": \"Батын\",\n  \"first_name\": \"Дорж\",\n  \"gender\": \"эр\",\n  \"birth_date\": \"17.05.1990\",\n  \"status\": \"идэвхтэй\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));",
+         "pm.test('алдаа талбарыг нэрлэнэ', () => pm.expect(pm.response.json().error).to.include('birth_date'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Статусыг хоосон болгох → 400",
+     "request": {
+      "method": "PUT",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/member/{{new_member_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member",
+        "{{new_member_id}}"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"status\": \"   \"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));",
+         "pm.test('алдаа талбарыг нэрлэнэ', () => pm.expect(pm.response.json().error).to.include('status'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Овгийг null болгох (PATCH) → 400",
+     "request": {
+      "method": "PATCH",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/member/{{new_member_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member",
+        "{{new_member_id}}"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"last_name\": null\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));",
+         "pm.test('алдаа талбарыг нэрлэнэ', () => pm.expect(pm.response.json().error).to.include('last_name'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
      "name": "Устгах",
      "request": {
       "method": "DELETE",
@@ -18192,7 +18366,7 @@
       ],
       "body": {
        "mode": "raw",
-       "raw": "{\n  \"organization_id\": {{new_spec_org_out}},\n  \"first_name\": \"Болохгүй\"\n}",
+       "raw": "{\n  \"organization_id\": {{new_spec_org_out}},\n  \"last_name\": \"Тест\",\n  \"first_name\": \"Болохгүй\",\n  \"gender\": \"эр\",\n  \"birth_date\": \"1990-01-01\",\n  \"status\": \"идэвхтэй\"\n}",
        "options": {
         "raw": {
          "language": "json"
@@ -25147,7 +25321,7 @@
       },
       "body": {
        "mode": "raw",
-       "raw": "{\n  \"organization_id\": \"{{sd_org_id}}\",\n  \"last_name\": \"Soft\",\n  \"first_name\": \"Гишүүн\",\n  \"union_card_code\": \"0001\"\n}",
+       "raw": "{\n  \"organization_id\": \"{{sd_org_id}}\",\n  \"last_name\": \"Soft\",\n  \"first_name\": \"Гишүүн\",\n  \"union_card_code\": \"0001\",\n  \"gender\": \"эр\",\n  \"birth_date\": \"1990-01-01\",\n  \"status\": \"идэвхтэй\"\n}",
        "options": {
         "raw": {
          "language": "json"
@@ -26067,7 +26241,7 @@
       },
       "body": {
        "mode": "raw",
-       "raw": "{\n  \"organization_id\": \"{{rs_org_id}}\",\n  \"last_name\": \"Холбоос\",\n  \"first_name\": \"Гишүүн\",\n  \"position_id\": \"{{rs_pos_id}}\",\n  \"profession_id\": \"{{rs_prof_id}}\",\n  \"salary_scale_id\": \"{{rs_scale_id}}\"\n}",
+       "raw": "{\n  \"organization_id\": \"{{rs_org_id}}\",\n  \"last_name\": \"Холбоос\",\n  \"first_name\": \"Гишүүн\",\n  \"position_id\": \"{{rs_pos_id}}\",\n  \"profession_id\": \"{{rs_prof_id}}\",\n  \"salary_scale_id\": \"{{rs_scale_id}}\",\n  \"gender\": \"эр\",\n  \"birth_date\": \"1990-01-01\",\n  \"status\": \"идэвхтэй\"\n}",
        "options": {
         "raw": {
          "language": "json"
@@ -27448,7 +27622,7 @@
       },
       "body": {
        "mode": "raw",
-       "raw": "{\n  \"organization_id\": \"{{h2_org_id}}\",\n  \"last_name\": \"Нууц\",\n  \"first_name\": \"Гишүүн\",\n  \"position_id\": \"{{h2_pos_id}}\"\n}",
+       "raw": "{\n  \"organization_id\": \"{{h2_org_id}}\",\n  \"last_name\": \"Нууц\",\n  \"first_name\": \"Гишүүн\",\n  \"position_id\": \"{{h2_pos_id}}\",\n  \"gender\": \"эр\",\n  \"birth_date\": \"1990-01-01\",\n  \"status\": \"идэвхтэй\"\n}",
        "options": {
         "raw": {
          "language": "json"

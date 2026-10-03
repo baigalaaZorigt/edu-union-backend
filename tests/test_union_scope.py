@@ -2,7 +2,7 @@
 
 import pytest
 
-from conftest import uniq
+from conftest import MEMBER_REQ, uniq
 
 from _union_helpers import AU1, AU2, make_member, make_org
 
@@ -46,11 +46,11 @@ def _check_scope(u, ins, out, m_in, m_out):
     assert u.put(f"/api/member/{m_out['id']}", json={"first_name": "x"}).status_code == 403
     assert u.patch(f"/api/member/{m_out['id']}", json={"first_name": "x"}).status_code == 403
     assert u.delete(f"/api/member/{m_out['id']}").status_code == 403
-    assert u.post("/api/member", json={"organization_id": out["id"],
+    assert u.post("/api/member", json={**MEMBER_REQ, "organization_id": out["id"],
                                        "first_name": "x"}).status_code == 403
 
     assert u.patch(f"/api/member/{m_in['id']}", json={"first_name": "OK"}).status_code == 200
-    r = u.post("/api/member", json={"organization_id": ins["id"], "first_name": "шинэ"})
+    r = u.post("/api/member", json={**MEMBER_REQ, "organization_id": ins["id"], "first_name": "шинэ"})
     assert r.status_code == 201
     assert u.delete(f"/api/member/{r.get_json()['id']}").status_code == 200
 

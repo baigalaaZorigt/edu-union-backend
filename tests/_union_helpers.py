@@ -3,7 +3,7 @@
 import io
 import random
 
-from conftest import uniq
+from conftest import MEMBER_REQ, uniq
 
 
 CAT = 16            # тестийн байгууллагууд энэ ангилалд (ЕБС=12-оос бусад)
@@ -26,7 +26,7 @@ def make_org(api, cat=CAT, **extra):
 
 
 def make_member(api, org_id, **extra):
-    body = {"organization_id": org_id, "last_name": "Бат", "first_name": uniq("Дорж")}
+    body = {**MEMBER_REQ, "organization_id": org_id, "last_name": "Бат", "first_name": uniq("Дорж")}
     body.update(extra)
     r = api.post("/api/member", json=body)
     assert r.status_code == 201, r.get_json()

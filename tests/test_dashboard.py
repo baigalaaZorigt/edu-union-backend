@@ -1,5 +1,5 @@
 """admin/dashboard.py — GET /api/admin/dashboard/summary."""
-from conftest import uniq
+from conftest import MEMBER_REQ, uniq
 
 URL = "/api/admin/dashboard/summary"
 
@@ -14,7 +14,7 @@ def _org(api, cat=None):
 
 
 def _member(api, oid, gender):
-    r = api.post("/api/member", json={"organization_id": oid, "first_name": "Гишүүн",
+    r = api.post("/api/member", json={**MEMBER_REQ, "organization_id": oid, "first_name": "Гишүүн",
                                       "last_name": "Т", "gender": gender})
     assert r.status_code == 201, r.get_json()
     return r.get_json()["id"]
@@ -40,7 +40,7 @@ def test_summary_counts_move(api):
     _member(api, oid, "эр")
     _member(api, oid, "эм")
     _member(api, oid, "эм")
-    _member(api, oid, None)
+    _member(api, oid, "бусад")                 # эр/эм биш — хүйсийн тоонд орохгүй
     after = api.get(URL).get_json()
     assert after["total_organizations"] == before["total_organizations"] + 1
     assert after["total_members"] == before["total_members"] + 4

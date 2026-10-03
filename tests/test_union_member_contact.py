@@ -5,7 +5,7 @@ import os
 import pytest
 
 import admin.union.common as union
-from conftest import PDF_BYTES
+from conftest import MEMBER_REQ, PDF_BYTES
 
 from _union_helpers import AU1, AU2, AU3, make_member, make_org, upload
 
@@ -56,7 +56,7 @@ def test_member_card_code(api):
     assert len(m["union_card_number"]) == 9
 
     # Ижил 4 орон ижил байгууллагад -> 409
-    r = api.post("/api/member", json={"organization_id": o["id"], "first_name": "x",
+    r = api.post("/api/member", json={**MEMBER_REQ, "organization_id": o["id"], "first_name": "x",
                                       "union_card_code": "0007"})
     assert r.status_code == 409
     m2 = make_member(api, o["id"], union_card_code="0008")
@@ -69,12 +69,12 @@ def test_member_card_code(api):
         o["full_code"] + "0009"
 
     # union_card_number-г шууд өгөх -> 400
-    assert api.post("/api/member", json={"organization_id": o["id"], "first_name": "x",
+    assert api.post("/api/member", json={**MEMBER_REQ, "organization_id": o["id"], "first_name": "x",
                                          "union_card_number": "123456789"}).status_code == 400
     assert api.put(f"/api/member/{m['id']}",
                    json={"union_card_number": "123456789"}).status_code == 400
     for bad in ("7", "00071", "abcd", 7):
-        assert api.post("/api/member", json={"organization_id": o["id"], "first_name": "x",
+        assert api.post("/api/member", json={**MEMBER_REQ, "organization_id": o["id"], "first_name": "x",
                                              "union_card_code": bad}).status_code == 400
     api.delete(f"/api/organization/{o['id']}")
 
@@ -83,7 +83,7 @@ def test_member_card_needs_org_code(api):
     r = api.post("/api/organization", json={"name": "кодгүй"})
     assert r.status_code == 201
     o = r.get_json()
-    assert api.post("/api/member", json={"organization_id": o["id"], "first_name": "x",
+    assert api.post("/api/member", json={**MEMBER_REQ, "organization_id": o["id"], "first_name": "x",
                                          "union_card_code": "0001"}).status_code == 400
     m = make_member(api, o["id"])
     assert m["union_card_number"] is None and m["organization_code"] is None
@@ -105,15 +105,15 @@ def test_member_card_needs_org_code(api):
 ])
 def test_member_create_400(api, extra):
     o = make_org(api)
-    body = {"organization_id": o["id"], "first_name": "x", **extra}
+    body = {**MEMBER_REQ, "organization_id": o["id"], **extra}
     assert api.post("/api/member", json=body).status_code == 400
     api.delete(f"/api/organization/{o['id']}")
 
 
 def test_member_errors(api):
-    assert api.post("/api/member", json={"first_name": "x"}).status_code == 400
+    assert api.post("/api/member", json={**MEMBER_REQ, "first_name": "x"}).status_code == 400
     assert api.post("/api/member", json={"organization_id": 1}).status_code == 400
-    assert api.post("/api/member", json={"organization_id": 999999,
+    assert api.post("/api/member", json={**MEMBER_REQ, "organization_id": 999999,
                                          "first_name": "x"}).status_code == 400
     assert api.get("/api/member/999999").status_code == 404
     assert api.put("/api/member/999999", json={"first_name": "x"}).status_code == 404

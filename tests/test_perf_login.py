@@ -6,7 +6,7 @@ from werkzeug.security import generate_password_hash
 import admin.users.login_guard as guard
 import core.orm as orm
 from core.orm.models import AppUser, LoginAttempt
-from conftest import uniq
+from conftest import MEMBER_REQ, uniq
 
 
 def _count_queries(client_call):
@@ -47,8 +47,8 @@ def test_org_list_query_count_is_constant(api):
 def test_org_stats_values_unchanged(api):
     org = api.post("/api/organization", json={"name": uniq("Статистик"),
                                               "org_code": f"{int(uniq('')) % 900 + 100:03d}"}).get_json()
-    for g, bd in (("эм", "2000-01-01"), ("эм", "1970-01-01"), ("эр", "2001-05-05"), ("эр", None)):
-        api.post("/api/member", json={"organization_id": org["id"], "last_name": "О",
+    for g, bd in (("эм", "2000-01-01"), ("эм", "1970-01-01"), ("эр", "2001-05-05"), ("эр", "1960-01-01")):
+        api.post("/api/member", json={**MEMBER_REQ, "organization_id": org["id"], "last_name": "О",
                                       "first_name": "Н", "gender": g, "birth_date": bd})
     listed = next(o for o in api.get("/api/organization").get_json() if o["id"] == org["id"])
     one = api.get(f"/api/organization/{org['id']}").get_json()

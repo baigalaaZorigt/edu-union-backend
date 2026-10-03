@@ -251,8 +251,8 @@ bash scripts/check.sh --pg     # + Postgres in docker: alembic, model drift, Pos
   The Postman collection (`docs/edu-union-backend.postman_collection.json`) is the second,
   black-box suite, run against a live server. It runs **top to bottom** (Postman Runner or
   `newman run docs/edu-union-backend.postman_collection.json --env-var base_url=...`, **from the
-  repo root** — the form-data requests upload `docs/fixtures/sample.png|pdf` by relative path): 744 requests,
-  ~1395 assertions (a few are conditional), and repeatable — three consecutive runs leave every table's **visible**
+  repo root** — the form-data requests upload `docs/fixtures/sample.png|pdf` by relative path): 748 requests,
+  ~1403 assertions (a few are conditional), and repeatable — three consecutive runs leave every table's **visible**
   row count (`deleted_at IS NULL`) unchanged; since every delete is soft, hidden rows do pile up. Every request is green, on a fresh database too (`Нэгийг авах` in
   the member_education folder reads the row its own `Нэмэх` created, not a seed id). **Keep it that way when adding requests:** run "0. Нэвтрэлт" first (it stores
   `{{token}}`), have each folder's `Нэмэх` save the new id into a `{{new_*}}` variable, and point
@@ -472,6 +472,12 @@ bash scripts/check.sh --pg     # + Postgres in docker: alembic, model drift, Pos
   PDF back under its original name. `run.py` caps the whole request at `MAX_FILE_SIZE * 5` → 413.
   **On Render the disk is ephemeral** — attach a persistent disk and point `UPLOAD_DIR` at it, or
   uploads vanish on redeploy.
+- **A member has five required fields** — `last_name`, `first_name`, `gender`, `birth_date`,
+  `status` (`_validate_required()` in `admin/union/member.py`). `POST` needs all five (non-blank
+  text, trimmed; `birth_date` a real `YYYY-MM-DD`, normalised) → 400 naming the field. `PUT`/`PATCH`
+  stay partial: a field that is *sent* may not be blank/null/invalid, one that is absent is left
+  alone — so older half-filled rows can still be edited. `gender` is not an enum. Everything
+  else, and `member_education`'s degree/year, stays optional.
 - **`member.member_status` and `member.status` are deliberately free text** (no lookup table, no
   enum) — `_validate_member()` only rejects a non-string / blank value with 400. Don't turn them
   into reference tables. They are three different things and all three are kept:

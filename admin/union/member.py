@@ -1,4 +1,5 @@
 """member (Гишүүн) — CRUD, эвлэлийн картын дугаар, хамрах хүрээ."""
+from datetime import datetime
 
 from flask import jsonify, request, abort
 from sqlalchemy import select
@@ -75,7 +76,31 @@ def _check_card_unique(card_number, member_id=None):
         abort(409, description=f"Батламжийн дугаар {card_number} аль хэдийн бүртгэгдсэн байна")
 
 
-def _validate_member(data):
+# Заавал бөглөх талбарууд (member-required-fields-spec): POST-д бүгд байх ёстой;
+# PUT/PATCH нь хэсэгчилсэн тул ИЛГЭЭСЭН талбарыг л хоосон/буруу болгохыг хориглоно.
+REQUIRED_TEXT = (("last_name", "Овог"), ("first_name", "Нэр"), ("gender", "Хүйс"),
+                 ("status", "Статус"))
+
+
+def _validate_required(data, creating):
+    """Овог, нэр, хүйс, төрсөн огноо, статус — хоосон биш; birth_date нь YYYY-MM-DD."""
+    for field, label in REQUIRED_TEXT:
+        if field not in data and not creating:
+            continue
+        val = data.get(field)
+        if not isinstance(val, str) or not val.strip():
+            abort(400, description=f"{label} ({field}) заавал бөглөнө")
+        data[field] = val.strip()
+    if "birth_date" in data or creating:
+        val = data.get("birth_date")
+        try:
+            data["birth_date"] = datetime.strptime(str(val or "").strip(), "%Y-%m-%d").strftime("%Y-%m-%d")
+        except ValueError:
+            abort(400, description="Төрсөн огноо (birth_date) заавал, YYYY-MM-DD хэлбэрээр "
+                                   "(ж: '1990-05-17')")
+
+
+def _validate_member(data, creating=False):
     """Гишүүний JSON-ы энгийн шалгалт (DB холболт нээхээс ӨМНӨ дуудна).
 
     - member_status / status: лавлахгүй, гараас бичих ЧӨЛӨӨТ ТЕКСТ
@@ -89,6 +114,7 @@ def _validate_member(data):
         if not (isinstance(val, bool) or val in (0, 1, "0", "1")):
             abort(400, description=f"{flag} нь 0 эсвэл 1 байна")
         data[flag] = int(val)
+    _validate_required(data, creating)
     for field in ("member_status", "status"):
         st = data.get(field)
         if st is not None and (not isinstance(st, str) or not st.strip()):
@@ -169,8 +195,8 @@ def get_member(mid):
 @bp.route("/api/member", methods=["POST"])
 def create_member():
     data = request.get_json(silent=True)
-    require(data, ["organization_id", "first_name"])
-    _validate_member(data)
+    require(data, ["organization_id"])
+    _validate_member(data, creating=True)
     _require_row(Organization.id, data["organization_id"],
                  "organization_id (эцэг байгууллага) олдсонгүй")
     check_org_scope(data["organization_id"])

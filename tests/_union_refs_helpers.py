@@ -2,7 +2,7 @@
 
 import pytest
 
-from conftest import uniq
+from conftest import MEMBER_REQ, uniq
 
 
 CODED_REFS = ["position", "profession", "reward_type", "structure"]
@@ -16,7 +16,7 @@ def member(api):
     r = api.post("/api/organization", json={"name": uniq("Байгууллага ")})
     assert r.status_code == 201, r.get_json()
     org = r.get_json()
-    r = api.post("/api/member", json={"organization_id": org["id"],
+    r = api.post("/api/member", json={**MEMBER_REQ, "organization_id": org["id"],
                                       "first_name": "Бат", "last_name": "Дорж"})
     assert r.status_code == 201, r.get_json()
     return r.get_json()

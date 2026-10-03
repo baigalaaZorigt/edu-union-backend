@@ -1,6 +1,6 @@
 """GET /api/portal/membership_structure — «Гишүүнчлэлийн бүтэц» (токенгүй)."""
 from client.stats import percents
-from conftest import uniq
+from conftest import MEMBER_REQ, uniq
 
 URL = "/api/portal/membership_structure"
 
@@ -16,7 +16,7 @@ def _org(api, category=None):
 
 def _members(api, org_id, n):
     for _ in range(n):
-        assert api.post("/api/member", json={"organization_id": org_id, "last_name": "О",
+        assert api.post("/api/member", json={**MEMBER_REQ, "organization_id": org_id, "last_name": "О",
                                              "first_name": uniq("Н")}).status_code == 201
 
 

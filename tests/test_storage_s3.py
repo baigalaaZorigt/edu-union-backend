@@ -10,7 +10,7 @@ import admin.content as content
 import admin.union.common as union_common
 import core.storage as storage
 from core.forms_core import UPLOAD_DIR as FORM_DIR
-from conftest import uniq, PDF_BYTES, PNG_BYTES
+from conftest import MEMBER_REQ, uniq, PDF_BYTES, PNG_BYTES
 
 BUCKET = "edu-union-test-uploads"
 
@@ -62,7 +62,7 @@ def test_content_upload_serve_delete(api, anon, s3):
 def test_member_file_s3(api, s3):
     org = api.post("/api/organization", json={
         "name": uniq("S3 сургууль"), "org_code": f"{int(uniq('')) % 900 + 100:03d}"}).get_json()
-    mem = api.post("/api/member", json={"organization_id": org["id"], "last_name": "S3",
+    mem = api.post("/api/member", json={**MEMBER_REQ, "organization_id": org["id"], "last_name": "S3",
                                         "first_name": "Гишүүн"}).get_json()
     before = _local_files(union_common.UPLOAD_DIR)
     r = api.post("/api/member_file", data={
@@ -91,7 +91,7 @@ def test_member_file_s3(api, s3):
 def test_member_file_missing_object(api, s3):
     org = api.post("/api/organization", json={
         "name": uniq("S3 сургууль"), "org_code": f"{int(uniq('')) % 900 + 100:03d}"}).get_json()
-    mem = api.post("/api/member", json={"organization_id": org["id"], "last_name": "S3",
+    mem = api.post("/api/member", json={**MEMBER_REQ, "organization_id": org["id"], "last_name": "S3",
                                         "first_name": "Алга"}).get_json()
     f = api.post("/api/member_file", data={"member_id": str(mem["id"]),
                                            "file": (io.BytesIO(PDF_BYTES), "x.pdf")},

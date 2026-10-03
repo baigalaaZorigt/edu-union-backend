@@ -6,7 +6,7 @@ import os
 import openpyxl
 
 import core.xlsx as xlsx
-from conftest import uniq
+from conftest import MEMBER_REQ, uniq
 from _forms_helpers import published_form, submit, opt
 
 MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -28,7 +28,7 @@ def _org(api, **kw):
 
 
 def _member(api, org_id, **kw):
-    body = {"organization_id": org_id, "last_name": "Бат", "first_name": uniq("Дорж")}
+    body = {**MEMBER_REQ, "organization_id": org_id, "last_name": "Бат", "first_name": uniq("Дорж")}
     body.update(kw)
     r = api.post("/api/member", json=body)
     assert r.status_code == 201, r.get_json()
@@ -63,7 +63,7 @@ def test_member_export_layout_and_values(api):
     assert row[7:9] == ["Идэвхтэй", "баталгаажсан"]
     assert row[11] == "99112233, 70112233" and row[12] == org["name"]
     empty = [c.value for c in ws[3]]
-    assert empty[2] is None and empty[6] is None and "null" not in [str(v) for v in empty]
+    assert empty[6] is None and "null" not in [str(v) for v in empty]
 
 
 def test_member_export_matches_list_filters(api):
