@@ -14,7 +14,7 @@ def test_member_writer_reads_lookups_without_their_permission(make_user, perm):
 
 
 def test_other_permissions_still_403_on_lookups(make_user):
-    u, _ = make_user(["member.delete", "organization.read", "member_education.create"])
+    u, _ = make_user(["member.delete", "organization.delete", "member_education.create"])
     for url in LOOKUPS:
         assert u.get(url).status_code == 403, url
 
@@ -26,6 +26,20 @@ def test_member_writer_cannot_change_lookups_or_read_others(make_user):
     assert u.delete("/api/position/1").status_code == 403
     for url in ("/api/structure", "/api/school_category", "/api/user", "/api/role"):
         assert u.get(url).status_code == 403, url
+
+
+@pytest.mark.parametrize("perm", ["organization.read", "organization.create",
+                                  "organization.update"])
+def test_org_form_reads_category_structure_units(make_user, perm):
+    u, _ = make_user([perm])
+    for url in ("/api/school_category", "/api/school_category/12", "/api/structure", "/api/au1",
+                "/api/au2", "/api/au3?au2_code=01101"):
+        assert u.get(url).status_code == 200, url
+    assert u.post("/api/school_category", json={"id": 96, "name": "x"}).status_code == 403
+    assert u.put("/api/school_category/12", json={"name": "x"}).status_code == 403
+    assert u.delete("/api/school_category/12").status_code == 403
+    assert u.get("/api/position").status_code == 403
+    assert u.get("/api/role").status_code == 403
 
 
 @pytest.mark.parametrize("perm", ["user.read", "user.create", "user.update"])

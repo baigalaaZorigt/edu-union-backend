@@ -69,18 +69,20 @@ SUB_RESOURCE = {
 SUB_ACTION = {"publish": "update", "close": "update", "reorder": "update",
               "reset_password": "update"}
 
-# Маягтын сонголтууд (лавлагаа): гишүүн / хэрэглэгч харах-бүртгэх-засах эрхтэй хүн тухайн
+# Маягтын сонголтууд (лавлагаа): гишүүн / байгууллага / хэрэглэгч харах-бүртгэх-засах эрхтэй хүн тухайн
 # маягтын dropdown-уудыг УНШИЖ чадна — лавлагааны `<resource>.read` эрх байхгүй байсан ч.
 # Зөвхөн унших: лавлагааг (дүрийг ч) нэмэх/засах/устгахад өөрийнх нь эрх шаардсан хэвээр.
 #   resource -> түүнийг уншихыг дагуулдаг эрхүүд
 _MEMBER_FORM = {"member.read", "member.create", "member.update"}
+_ORG_FORM = {"organization.read", "organization.create", "organization.update"}
 _USER_FORM = {"user.read", "user.create", "user.update"}        # Хэрэглэгчид: дүр, бүтэц, хүрээ
 IMPLIED_READ = {
     **{r: _MEMBER_FORM for r in ("position", "profession", "salary_scale", "education_degree",
                                  "reward_type")},
-    "admin_unit": _MEMBER_FORM | _USER_FORM,
+    "admin_unit": _MEMBER_FORM | _ORG_FORM | _USER_FORM,
+    "school_category": _ORG_FORM,
+    "structure": _ORG_FORM | _USER_FORM,
     "role": _USER_FORM,
-    "structure": _USER_FORM,
 }
 
 # Токен шаардахгүй нээлттэй замууд (нэвтрэлт)

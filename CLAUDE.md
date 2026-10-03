@@ -429,7 +429,8 @@ bash scripts/check.sh --pg     # + Postgres in docker: alembic, model drift, Pos
   `PERMISSION_RESOURCES` in `db.py` (which is the cross-product source for the seeded CRUD permissions).
   **A form's permission opens that form's lookups** (`IMPLIED_READ`): `member.read|create|update`
   lets a `GET` through on `position`, `profession`, `salary_scale`, `education_degree`,
-  `reward_type` and `admin_unit`; `user.read|create|update` on `role`, `structure` and
+  `reward_type` and `admin_unit`; `organization.read|create|update` on `school_category`,
+  `structure` and `admin_unit`; `user.read|create|update` on `role`, `structure` and
   `admin_unit` (the Хэрэглэгчид form's role / structure / district dropdowns) — without the
   lookup's own `.read`. Read only: writing a lookup or a role still needs its own permission.
   The other exception is `SELF_PATHS` / `SELF_PREFIXES` (`/api/change_password`, `/api/me`,
