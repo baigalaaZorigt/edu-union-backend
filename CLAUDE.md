@@ -251,8 +251,8 @@ bash scripts/check.sh --pg     # + Postgres in docker: alembic, model drift, Pos
   The Postman collection (`docs/edu-union-backend.postman_collection.json`) is the second,
   black-box suite, run against a live server. It runs **top to bottom** (Postman Runner or
   `newman run docs/edu-union-backend.postman_collection.json --env-var base_url=...`, **from the
-  repo root** — the form-data requests upload `docs/fixtures/sample.png|pdf` by relative path): 748 requests,
-  ~1403 assertions (a few are conditional), and repeatable — three consecutive runs leave every table's **visible**
+  repo root** — the form-data requests upload `docs/fixtures/sample.png|pdf` by relative path): 749 requests,
+  ~1405 assertions (a few are conditional), and repeatable — three consecutive runs leave every table's **visible**
   row count (`deleted_at IS NULL`) unchanged; since every delete is soft, hidden rows do pile up. Every request is green, on a fresh database too (`Нэгийг авах` in
   the member_education folder reads the row its own `Нэмэх` created, not a seed id). **Keep it that way when adding requests:** run "0. Нэвтрэлт" first (it stores
   `{{token}}`), have each folder's `Нэмэх` save the new id into a `{{new_*}}` variable, and point
@@ -375,9 +375,15 @@ bash scripts/check.sh --pg     # + Postgres in docker: alembic, model drift, Pos
   → untouched, so a guest's suggestion keeps `created_by = NULL`. Responses carry both ids;
   news / portal settings / feedback add them on the **admin** side only (`audit=True`), there is
   no `*_name` join. `notifications` has only `created_by`.
+- **Users are visible by who created them** (`admin/users/common.py`): a Super Admin
+  (`is_super()` — `role.code == "1"` or the seeded `admin` role) sees and manages everybody;
+  anyone else's `GET /api/user` lists only `created_by == me` (not even themselves — that is
+  `/api/me`), and `check_user_access()` answers **403** on another user's detail, update, delete,
+  `/scope` and `/reset_password`. Accounts from before 0005 have `created_by = NULL`, so only a
+  Super Admin reaches them. Alembic 0007 put `created_by`/`updated_by` on every remaining table
+  except `login_attempt` (fan-out rows get the notification's sender).
 - **Password reset is admin-initiated** (`POST /api/user/<id>/reset_password`, needs
-  `user.update` via `SUB_ACTION`): only the account's creator (`created_by`) or a Super Admin
-  (`role.code == "1"` or the seeded `admin` role) → else 403. It sets the password to the
+  `user.update` via `SUB_ACTION`), under the same creator-or-Super-Admin rule → else 403. It sets the password to the
   `username`, `must_change_password = 1` and `token_version += 1` — `_load_user` rejects any JWT
   whose `ver` claim differs (a token without one counts as 0), so earlier sessions die. Returns `{"status": true}`.
 - **Эрх зүй is a numbered outline tree** (`legal_reference`, Alembic 0006; `admin/legal_reference.py`,

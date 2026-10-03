@@ -47,6 +47,8 @@ class FormQuestion(Base):
     created_at: Mapped[Optional[str]] = mapped_column(Str)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
     deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)
+    created_by: Mapped[Optional[int]] = mapped_column(Int, ForeignKey("app_user.id", ondelete="SET NULL"))   # аудит (0007)
+    updated_by: Mapped[Optional[int]] = mapped_column(Int, ForeignKey("app_user.id", ondelete="SET NULL"))   # аудит (0007)
 
 
 
@@ -63,6 +65,8 @@ class FormOption(Base):
     created_at: Mapped[Optional[str]] = mapped_column(Str)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
     deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)
+    created_by: Mapped[Optional[int]] = mapped_column(Int, ForeignKey("app_user.id", ondelete="SET NULL"))   # аудит (0007)
+    updated_by: Mapped[Optional[int]] = mapped_column(Int, ForeignKey("app_user.id", ondelete="SET NULL"))   # аудит (0007)
 
 
 
@@ -81,6 +85,8 @@ class FormDocument(Base):
     created_at: Mapped[Optional[str]] = mapped_column(Str)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
     deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)
+    created_by: Mapped[Optional[int]] = mapped_column(Int, ForeignKey("app_user.id", ondelete="SET NULL"))   # аудит (0007)
+    updated_by: Mapped[Optional[int]] = mapped_column(Int, ForeignKey("app_user.id", ondelete="SET NULL"))   # аудит (0007)
 
 
 
@@ -97,6 +103,8 @@ class FormSubmission(Base):
     created_at: Mapped[Optional[str]] = mapped_column(Str)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
     deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)
+    created_by: Mapped[Optional[int]] = mapped_column(Int, ForeignKey("app_user.id", ondelete="SET NULL"))   # аудит (0007)
+    updated_by: Mapped[Optional[int]] = mapped_column(Int, ForeignKey("app_user.id", ondelete="SET NULL"))   # аудит (0007)
 
 
 
@@ -115,6 +123,8 @@ class FormAnswer(Base):
     created_at: Mapped[Optional[str]] = mapped_column(Str)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
     deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)
+    created_by: Mapped[Optional[int]] = mapped_column(Int, ForeignKey("app_user.id", ondelete="SET NULL"))   # аудит (0007)
+    updated_by: Mapped[Optional[int]] = mapped_column(Int, ForeignKey("app_user.id", ondelete="SET NULL"))   # аудит (0007)
 
 
 
@@ -131,3 +141,5 @@ class FormAnswerOption(Base):
     created_at: Mapped[Optional[str]] = mapped_column(Str)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
     deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)
+    created_by: Mapped[Optional[int]] = mapped_column(Int, ForeignKey("app_user.id", ondelete="SET NULL"))   # аудит (0007)
+    updated_by: Mapped[Optional[int]] = mapped_column(Int, ForeignKey("app_user.id", ondelete="SET NULL"))   # аудит (0007)

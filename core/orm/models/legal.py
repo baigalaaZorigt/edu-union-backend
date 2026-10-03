@@ -62,6 +62,8 @@ class LegalDocumentBlock(Base):
     created_at: Mapped[Optional[str]] = mapped_column(Str, default=utc_iso)
     updated_at: Mapped[Optional[str]] = mapped_column(Str, default=utc_iso, onupdate=utc_iso)
     deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)
+    created_by: Mapped[Optional[int]] = mapped_column(Int, ForeignKey("app_user.id", ondelete="SET NULL"))   # аудит (0007)
+    updated_by: Mapped[Optional[int]] = mapped_column(Int, ForeignKey("app_user.id", ondelete="SET NULL"))   # аудит (0007)
 
 
 class LegalReference(Base):

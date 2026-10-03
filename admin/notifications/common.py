@@ -177,10 +177,11 @@ def _fan_out(s, nid, user_ids):
     ON CONFLICT DO NOTHING; зэрэг ажилласан dispatch ч алдаа өгөхгүй)."""
     if user_ids:
         now = now_str()
+        sender = s.scalar(select(Notification.created_by).where(Notification.id == nid))
         insert = pg_insert if s.get_bind().dialect.name == "postgresql" else sqlite_insert
         s.execute(insert(NotificationRecipient)
                   .values([{"notification_id": nid, "user_id": uid, "created_at": now,
-                            "updated_at": now} for uid in user_ids])
+                            "updated_at": now, "created_by": sender} for uid in user_ids])
                   .on_conflict_do_nothing(index_elements=["notification_id", "user_id"]))
     return len(user_ids)
 

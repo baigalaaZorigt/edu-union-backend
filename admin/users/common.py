@@ -1,7 +1,7 @@
 """Хэрэглэгчийн модулиудын хуваалцсан тогтмол, query ба туслах функцууд."""
 from datetime import datetime, timezone
 
-from flask import jsonify, abort
+from flask import abort, g, jsonify
 from sqlalchemy import delete, select
 from werkzeug.security import generate_password_hash
 
@@ -78,6 +78,32 @@ def _user_row(uid=None, username=None):
     """Хэрэглэгчийн мөр (dict шиг RowMapping) id эсвэл username-аар; байхгүй бол None."""
     cond = AppUser.id == uid if username is None else AppUser.username == username
     return session().execute(user_select().where(cond)).mappings().first()
+
+
+# Бүх хэрэглэгчийг харж/засаж/нууц үгийг нь сэргээж чадах дүр: role.code = "1" (Super Admin)
+# эсвэл seed-ийн бүх эрхтэй `admin` дүр (кодгүй). Бусад нь зөвхөн ӨӨРИЙН ҮҮСГЭСЭН
+# (app_user.created_by) хэрэглэгчдээ харна.
+SUPER_ROLE_CODE, SUPER_ROLE_NAME = "1", "admin"
+
+
+def is_super(user_id=None):
+    row = _user_row(g.user["id"] if user_id is None else user_id)
+    return bool(row) and (str(row["role_code"] or "").strip() == SUPER_ROLE_CODE
+                          or row["role_name"] == SUPER_ROLE_NAME)
+
+
+def created_by_me():
+    """Хэрэглэгчийн жагсаалтад тавих нөхцөл; Super Admin бол None (шүүлтгүй)."""
+    return None if is_super() else AppUser.created_by == g.user["id"]
+
+
+def check_user_access(uid):
+    """Super Admin биш бол зөвхөн өөрийн үүсгэсэн хэрэглэгч рүү хандана -> бусад нь 403.
+    Байхгүй хэрэглэгчийг шүүхгүй — 404-ийг маршрут өөрөө өгнө."""
+    user = session().get(AppUser, uid)
+    if user is not None and user.created_by != g.user["id"] and not is_super():
+        abort(403, description="Энэ хэрэглэгчийг та бүртгээгүй — зөвхөн бүртгэсэн хүн эсвэл "
+                               "Super Admin хандана")
 
 
 def load_scope(uid):

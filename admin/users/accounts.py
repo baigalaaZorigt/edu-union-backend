@@ -1,5 +1,5 @@
 """app_user (Хэрэглэгч) — CRUD + нууц үг сэргээх."""
-from flask import abort, g, jsonify, request
+from flask import abort, jsonify, request
 from sqlalchemy import delete, select, update
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -10,8 +10,8 @@ from core.orm.query import paginate
 from core.scope_core import public_scope
 
 from admin.users import bp
-from admin.users.common import (public_user, user_select, _delete_by_id, _exists, _hash,
-                                _user_profile, _user_row)
+from admin.users.common import (check_user_access, created_by_me, public_user, user_select,
+                                _delete_by_id, _exists, _hash, _user_profile, _user_row)
 
 
 # Хэрэглэгчийн засаж/оруулж болох талбарууд (password, username-ээс бусад тусад нь).
@@ -40,6 +40,9 @@ def _check_user_refs(data):
 def list_user():
     # ?role_id= ба ?structure_id= шүүлтүүр — хосолж болно
     stmt = user_select()
+    mine = created_by_me()                   # Super Admin биш бол зөвхөн өөрийн үүсгэсэн
+    if mine is not None:
+        stmt = stmt.where(mine)
     for f in ("role_id", "structure_id"):
         if request.args.get(f):
             stmt = stmt.where(getattr(AppUser, f) == request.args[f])
@@ -55,6 +58,7 @@ def list_user():
 
 @bp.route("/api/user/<int:uid>", methods=["GET"])
 def get_user(uid):
+    check_user_access(uid)
     row = _user_row(uid)
     if not row:
         abort(404, description=NOT_FOUND)
@@ -92,6 +96,7 @@ def create_user():
 @bp.route("/api/user/<int:uid>", methods=["PUT", "PATCH"])
 def update_user(uid):
     data = json_body()
+    check_user_access(uid)
     _check_user_refs(data)
     # Логик талбаруудыг л 0/1 болгоно; бусдыг хэвээр нь дамжуулна
     values = {f: (1 if data[f] else 0) if f in BOOL_FIELDS else data[f]
@@ -115,18 +120,8 @@ def update_user(uid):
 
 @bp.route("/api/user/<int:uid>", methods=["DELETE"])
 def delete_user(uid):
+    check_user_access(uid)
     return _delete_by_id(AppUser, uid, NOT_FOUND)
-
-
-# Бүх хэрэглэгчийн нууц үгийг сэргээж чадах дүр: role.code = "1" (Super Admin) эсвэл
-# seed-ийн бүх эрхтэй `admin` дүр (кодгүй).
-SUPER_ROLE_CODE, SUPER_ROLE_NAME = "1", "admin"
-
-
-def _is_super(user_id):
-    row = _user_row(user_id)
-    return bool(row) and (str(row["role_code"] or "").strip() == SUPER_ROLE_CODE
-                          or row["role_name"] == SUPER_ROLE_NAME)
 
 
 @bp.route("/api/user/<int:uid>/reset_password", methods=["POST"])
@@ -140,9 +135,7 @@ def reset_password(uid):
     user = s.get(AppUser, uid)
     if user is None:
         abort(404, description=NOT_FOUND)
-    if user.created_by != g.user["id"] and not _is_super(g.user["id"]):
-        abort(403, description="Зөвхөн энэ хэрэглэгчийг бүртгэсэн хүн эсвэл Super Admin "
-                               "нууц үгийг сэргээнэ")
+    check_user_access(uid)
     user.password_hash = _hash(user.username)
     user.must_change_password = 1
     user.token_version = (user.token_version or 0) + 1

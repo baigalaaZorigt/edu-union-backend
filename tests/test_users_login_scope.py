@@ -51,7 +51,7 @@ def test_permissions_enforced(make_user):
     assert u.get("/api/role").status_code == 200             # маягтын dropdown (IMPLIED_READ)
     assert u.post("/api/role", json={"name": "x"}).status_code == 403
     assert u.get("/api/permission").status_code == 403
-    assert u.get("/api/user/1/scope").status_code == 200     # user.read хүрнэ
+    assert u.get("/api/user/1/scope").status_code == 403     # өөрийн бүртгээгүй хэрэглэгч
     assert u.put("/api/user/1/scope", json={}).status_code == 403
 
 

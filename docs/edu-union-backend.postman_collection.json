@@ -29181,6 +29181,60 @@
      ]
     },
     {
+     "name": "Бүртгээгүй хэрэглэгчийг засах → 403 (үүсгэснээрээ л хандана)",
+     "request": {
+      "method": "PATCH",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/user/{{pr_user_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "user",
+        "{{pr_user_id}}"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"first_name\": \"Болохгүй\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      },
+      "auth": {
+       "type": "bearer",
+       "bearer": [
+        {
+         "key": "token",
+         "value": "{{pr_other_token}}",
+         "type": "string"
+        }
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 403', () => pm.response.to.have.status(403));",
+         "pm.test('шалтгааныг хэлнэ', () => pm.expect(pm.response.json().error).to.include('бүртгээгүй'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
      "name": "403-ын дараа хуучин нууц үг хэвээр",
      "request": {
       "method": "POST",

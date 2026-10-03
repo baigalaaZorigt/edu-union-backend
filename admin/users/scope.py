@@ -10,7 +10,7 @@ from core.orm.models import AdminUnit2, AppUser, Organization, UserScope
 from core.scope_core import RURAL, SCHOOL_TYPE_CATEGORY
 
 from admin.users import bp
-from admin.users.common import SCHOOL_TYPES, _exists, _now, load_scope
+from admin.users.common import SCHOOL_TYPES, _exists, _now, check_user_access, load_scope
 
 
 # Төрөл бүрд (ХОН ч, ангилал ч) тодорхой сургуулиудыг organization_ids-ээр сонгоно
@@ -118,14 +118,17 @@ def _scope_delete(uid):
 
 @bp.route("/api/user/<int:uid>/scope", methods=["GET"])
 def get_user_scope(uid):
+    check_user_access(uid)
     return _scope_get(uid)
 
 
 @bp.route("/api/user/<int:uid>/scope", methods=["PUT", "PATCH"])
 def save_user_scope(uid):
+    check_user_access(uid)
     return _scope_save(uid)
 
 
 @bp.route("/api/user/<int:uid>/scope", methods=["DELETE"])
 def delete_user_scope(uid):
+    check_user_access(uid)
     return _scope_delete(uid)
