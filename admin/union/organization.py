@@ -7,10 +7,10 @@ from core.helpers import json_body, list_json, pick, require
 from core.orm import session
 from core.orm.models import Contact, Member, Organization, SchoolCategory, Structure
 from core.orm.query import paginate
-from core.scope_core import check_org_scope, org_clause
+from core.scope_core import adopt_org, check_org_scope, check_org_write, org_clause
 
 from admin.union import bp
-from admin.union.common import (_arg_filters, _check_au, _check_ref, _create, _delete_by_id,
+from admin.union.common import (_arg_filters, _check_au, _check_ref, _delete_by_id,
                                 _digit_code, _org_full_code, _purge_orphan_contacts,
                                 category_code, full_code, under35_cutoff)
 
@@ -193,7 +193,14 @@ def create_org():
     require(data, ["name"])
     _validate_org(data)
     _check_org_refs(data)
-    return _create(Organization, {f: data.get(f) for f in ORG_FIELDS}, read=_read)
+    check_org_write(data, creating=True)        # хүрээнээс гадуур хаяг/ангилал -> 403
+    s = session()
+    obj = Organization(**{f: data.get(f) for f in ORG_FIELDS})
+    s.add(obj)
+    s.flush()
+    adopt_org(obj.id)                           # бүртгэсэн хүнийхээ хүрээнд орно
+    s.commit()
+    return jsonify(_read(obj.id)), 201
 
 
 @bp.route("/api/organization/<int:oid>", methods=["PUT", "PATCH"])
@@ -205,6 +212,7 @@ def update_org(oid):
         abort(400, description="Шинэчлэх талбар алга")
     check_org_scope(oid)
     _check_org_refs(data, oid)
+    check_org_write(values, creating=False)
     s = session()
     count = s.execute(update(Organization).where(Organization.id == oid).values(values)
                       .execution_options(synchronize_session=False)).rowcount

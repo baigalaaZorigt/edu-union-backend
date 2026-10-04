@@ -23,7 +23,7 @@ from flask import abort, g
 from sqlalchemy import false, select
 
 from core.orm import session
-from core.orm.models import Member, Organization, UserScope
+from core.orm.models import AdminUnit2, Member, Organization, UserScope
 
 # Зөвлөх мэргэжилтний дүрийн нэр — `onboarding_completed` зөвхөн энэ дүрд
 # утга учиртай (спек §3.1). Харьцуулалт нь зай/том-жижиг үсгийг үл хайхарна.
@@ -129,3 +129,50 @@ def check_member_scope(mid, user=None):
             if getattr(exc, "code", None) == 403:
                 abort(403, description="Энэ гишүүн таны хамрах хүрээнд байхгүй")
             raise
+
+
+# ====================== Байгууллага бичих (үүсгэх/засах) ======================
+def check_org_write(values, creating, user=None):
+    """Хүрээтэй хэрэглэгч байгууллагыг ХҮРЭЭНЭЭСЭЭ ГАДУУР бүртгэж/зөөж болохгүй -> 403.
+
+    - `district_au2_code` оноосон бол хаяг (au2_code, өгсөн бол au1_code) яг тэр сум/дүүрэг;
+    - ангилалтай (rural биш) бол school_category_id нь тэр ангилал;
+    - Сургуулийн менежер (нэг сургууль) шинэ байгууллага бүртгэхгүй.
+    Үүсгэхэд бүгдийг, засахад зөвхөн ИЛГЭЭСЭН талбарыг шалгана. Хүрээгүй (admin) бол шалгахгүй.
+    """
+    scope = scope_of(user)
+    if not scope:
+        return
+    if scope.get("organization_id"):
+        if creating:
+            abort(403, description="Таны хамрах хүрээ нэг байгууллага — шинэ байгууллага "
+                                   "бүртгэх боломжгүй")
+        return
+    district = scope.get("district_au2_code")
+    if district:
+        if (creating or "au2_code" in values) and str(values.get("au2_code") or "") != district:
+            abort(403, description=f"Хаяг таны хамрах хүрээнд байхгүй — зөвхөн өөрт оноосон "
+                                   f"сум/дүүрэг (au2_code={district})-ийг сонгоно")
+        if values.get("au1_code"):
+            au2 = session().get(AdminUnit2, district)
+            if au2 is not None and str(values["au1_code"]) != au2.au1_code:
+                abort(403, description="Хаяг таны хамрах хүрээнд байхгүй — аймаг/нийслэл "
+                                       f"(au1_code) нь {au2.au1_code} байна")
+    cat = SCHOOL_TYPE_CATEGORY.get(scope.get("school_type"))
+    if cat is not None and (creating or "school_category_id" in values) \
+            and values.get("school_category_id") != cat:
+        abort(403, description="Сургуулийн ангилал таны хамрах хүрээнд байхгүй — "
+                               f"school_category_id={cat} байна")
+
+
+def adopt_org(oid, user=None):
+    """Сонгосон сургуулиудаар (organization_ids) хүрээлэгдсэн хэрэглэгчийн ШИНЭ байгууллагыг
+    жагсаалтад нь нэмнэ — эс бөгөөс өөрийн бүртгэснээ харахгүй. Хуучин "бүхэл дүүрэг" мөрөнд
+    хэрэггүй (ангилал + дүүргээрээ аль хэдийн харагдана). Commit-ыг дуудагч хийнэ."""
+    u = user if user is not None else getattr(g, "user", None)
+    row = session().get(UserScope, u["id"]) if u else None
+    if row is None or row.organization_id:
+        return
+    ids = public_scope(row.to_dict())["organization_ids"]
+    if (ids or row.school_type == RURAL) and oid not in ids:
+        row.organization_ids = json.dumps(ids + [oid])
