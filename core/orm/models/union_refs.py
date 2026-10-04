@@ -58,6 +58,7 @@ class RewardType(Base):
     id: Mapped[int] = mapped_column(Int, primary_key=True)
     code: Mapped[Optional[str]] = mapped_column(Str)
     name: Mapped[str] = mapped_column(Str, nullable=False)
+    category: Mapped[Optional[str]] = mapped_column(Str)            # ангилал (0008), чөлөөт текст
     created_at: Mapped[Optional[str]] = mapped_column(Str)
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
     deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)

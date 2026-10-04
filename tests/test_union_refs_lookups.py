@@ -4,7 +4,7 @@ import pytest
 
 from conftest import uniq
 
-from _union_refs_helpers import CODED_REFS, MISSING, _new_ref
+from _union_refs_helpers import CODED_REFS, MISSING, REF_REQ, _new_ref
 import _union_refs_helpers
 
 member = _union_refs_helpers.member   # pytest фикстур (_union_refs_helpers.py-д)
@@ -54,7 +54,7 @@ def test_coded_ref_crud(api, table):
 
 @pytest.mark.parametrize("table", CODED_REFS)
 def test_coded_ref_create_without_code(api, table):
-    r = api.post(f"/api/{table}", json={"name": uniq("Кодгүй ")})
+    r = api.post(f"/api/{table}", json={"name": uniq("Кодгүй "), **REF_REQ.get(table, {})})
     assert r.status_code == 201
     assert r.get_json()["code"] is None
     api.delete(f"/api/{table}/{r.get_json()['id']}")
@@ -83,13 +83,14 @@ def test_coded_ref_code_unique_409(api, table):
     a = _new_ref(api, table)
     b = _new_ref(api, table)
     # үүсгэхэд давхардсан код
-    assert api.post(f"/api/{table}", json={"code": a["code"], "name": "x"}).status_code == 409
+    assert api.post(f"/api/{table}", json={"code": a["code"], "name": "x", **REF_REQ.get(table, {})}).status_code == 409
     # засахад өөр мөрийн код
     assert api.put(f"/api/{table}/{b['id']}", json={"code": a["code"]}).status_code == 409
     assert api.patch(f"/api/{table}/{b['id']}", json={"code": a["code"]}).status_code == 409
     # давхардсан id
     assert api.post(f"/api/{table}",
-                    json={"id": a["id"], "code": uniq("z"), "name": "x"}).status_code == 409
+                    json={"id": a["id"], "code": uniq("z"), "name": "x",
+                          **REF_REQ.get(table, {})}).status_code == 409
     api.delete(f"/api/{table}/{a['id']}")
     api.delete(f"/api/{table}/{b['id']}")
 
@@ -190,3 +191,32 @@ def test_education_degree_errors(api):
     assert api.patch(f"/api/education_degree/{MISSING}", json={"name": "a"}).status_code == 404
     assert api.put(f"/api/education_degree/{first}", json={}).status_code == 400
     assert api.delete(f"/api/education_degree/{MISSING}").status_code == 404
+
+
+def test_reward_type_category(api):
+    """reward-type-category-spec: category заавал (trim), GET-д буцна, бусад лавлахад байхгүй."""
+    name = uniq("Шагнал ")
+    assert api.post("/api/reward_type", json={"name": name}).status_code == 400
+    for bad in ("", "   ", None, 5):
+        assert api.post("/api/reward_type", json={"name": name, "category": bad}).status_code == 400
+    r = api.post("/api/reward_type", json={"name": name, "category": "  Төрийн шагнал "})
+    assert r.status_code == 201, r.get_json()
+    rid = r.get_json()["id"]
+    assert r.get_json()["category"] == "Төрийн шагнал"
+    assert api.get(f"/api/reward_type/{rid}").get_json()["category"] == "Төрийн шагнал"
+    assert any(x["id"] == rid and x["category"] == "Төрийн шагнал"
+               for x in api.get("/api/reward_type").get_json())
+
+    # PUT/PATCH хэсэгчилсэн: илгээгээгүй бол хэвээр, илгээсэн бол хоосон байж болохгүй
+    assert api.patch(f"/api/reward_type/{rid}", json={"name": name + "2"}).get_json()["category"] \
+        == "Төрийн шагнал"
+    for bad in ("", "  ", None):
+        assert api.put(f"/api/reward_type/{rid}", json={"category": bad}).status_code == 400
+    r = api.put(f"/api/reward_type/{rid}", json={"category": " Салбарын шагнал "})
+    assert r.status_code == 200 and r.get_json()["category"] == "Салбарын шагнал"
+    api.delete(f"/api/reward_type/{rid}")
+
+    # бусад кодтой лавлахад category гэж байхгүй — үл тоогдоно
+    p = api.post("/api/position", json={"name": uniq("АТ "), "category": "x"})
+    assert p.status_code == 201 and "category" not in p.get_json()
+    api.delete(f"/api/position/{p.get_json()['id']}")

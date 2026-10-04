@@ -19,6 +19,9 @@ ID_TAKEN = "Энэ id аль хэдийн бүртгэгдсэн байна"
 # Хүснэгтийн нэр -> model (маршрутууд хүснэгтийн нэрээр дууддаг)
 REF_MODELS = {"position": Position, "profession": Profession,
               "reward_type": RewardType, "structure": Structure}
+# code/name-аас гадна ЗААВАЛ бөглөх текст талбарууд (reward-type-category-spec): утгыг нь
+# шалгахгүй (ангиллын жагсаалт frontend-д хатуу бичигдсэн), зөвхөн хоосон биш байхыг шаардана.
+REF_EXTRA_FIELDS = {"reward_type": ("category",)}
 
 
 def _insert_with_id(model, values, data):
@@ -99,20 +102,38 @@ def _ref_get(table, rid, label):
     return _get_one(REF_MODELS[table], rid, f"{label} олдсонгүй")
 
 
+def _clean_extra(table, data, creating):
+    """Нэмэлт заавал талбарууд: POST-д бүгд, PUT/PATCH-д ИЛГЭЭСЭН нь хоосон биш (trim) → 400."""
+    for field in REF_EXTRA_FIELDS.get(table, ()):
+        if field not in data and not creating:
+            continue
+        val = data.get(field)
+        if not isinstance(val, str) or not val.strip():
+            abort(400, description=f"{field} заавал бөглөнө")
+        data[field] = val.strip()
+
+
+def _ref_fields(table):
+    return CODED_REF_FIELDS + REF_EXTRA_FIELDS.get(table, ())
+
+
 def _ref_create(table, label):
     data = request.get_json(silent=True)
     require(data, ["name"])
+    _clean_extra(table, data, creating=True)
     model = REF_MODELS[table]
     _check_code_unique(model, data.get("code"), label)
-    return _insert_with_id(model, pick(data, CODED_REF_FIELDS, skip_none=True), data)
+    return _insert_with_id(model, pick(data, _ref_fields(table), skip_none=True), data)
 
 
 def _ref_update(table, rid, label):
-    """code/name-ийн аль нэг эсвэл хоёуланг нь засна (хэсэгчилсэн засвар)."""
+    """code/name (reward_type-д мөн category)-ийн илгээснийг л засна (хэсэгчилсэн засвар)."""
     data = json_body()
-    values = pick(data, CODED_REF_FIELDS)
+    values = pick(data, _ref_fields(table))
     if not values:
         abort(400, description="Шинэчлэх талбар алга")
+    _clean_extra(table, data, creating=False)
+    values = pick(data, _ref_fields(table))
     if "name" in data and not (data["name"] or "").strip():
         abort(400, description="name хоосон байж болохгүй")
     model = REF_MODELS[table]

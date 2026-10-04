@@ -7,6 +7,8 @@ from conftest import MEMBER_REQ, uniq
 
 CODED_REFS = ["position", "profession", "reward_type", "structure"]
 MISSING = 999999
+# Хүснэгт бүрийн code/name-аас гадна ЗААВАЛ талбарууд (reward_type.category)
+REF_REQ = {"reward_type": {"category": "Төрийн шагнал"}}
 
 
 # ----------------------------- туслахууд -----------------------------
@@ -24,6 +26,7 @@ def member(api):
 
 def _new_ref(api, table, **extra):
     body = {"code": uniq("c"), "name": uniq("Нэр ")}
+    body.update(REF_REQ.get(table, {}))
     body.update(extra)
     r = api.post(f"/api/{table}", json=body)
     assert r.status_code == 201, r.get_json()
