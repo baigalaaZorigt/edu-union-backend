@@ -5610,7 +5610,7 @@
       ],
       "body": {
        "mode": "raw",
-       "raw": "{\n  \"code\": \"ШТ-99\",\n  \"name\": \"Шинэ шагналын төрөл\"\n}"
+       "raw": "{\n  \"code\": \"ШТ-99\",\n  \"name\": \"Шинэ шагналын төрөл\",\n  \"category\": \"Төрийн шагнал\"\n}"
       }
      },
      "event": [
@@ -5622,7 +5622,50 @@
          "pm.test('статус 201', () => pm.response.to.have.status(201));",
          "var j = pm.response.json();",
          "pm.collectionVariables.set('new_reward_type_id', j.id);",
-         "pm.test('код буцаасан', () => pm.expect(j.code).to.eql('ШТ-99'));"
+         "pm.test('код буцаасан', () => pm.expect(j.code).to.eql('ШТ-99'));",
+         "pm.test('category буцна', function () {",
+         "    pm.expect(pm.response.json().category).to.eql('Төрийн шагнал');",
+         "});"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Нэмэх (category-гүй) → 400",
+     "request": {
+      "method": "POST",
+      "url": {
+       "raw": "{{base_url}}/api/reward_type",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "reward_type"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"code\": \"ШТ-98\",\n  \"name\": \"Ангилалгүй шагнал\"\n}"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('category заавал → 400', function () {",
+         "    pm.response.to.have.status(400);",
+         "    pm.expect(pm.response.json().error).to.include('category');",
+         "});"
         ]
        }
       }
@@ -5650,7 +5693,7 @@
       ],
       "body": {
        "mode": "raw",
-       "raw": "{\n  \"code\": \"ШТ-99\",\n  \"name\": \"Шинэ шагналын төрөл 2\"\n}"
+       "raw": "{\n  \"code\": \"ШТ-99\",\n  \"name\": \"Шинэ шагналын төрөл 2\",\n  \"category\": \"Төрийн шагнал\"\n}"
       }
      },
      "event": [
@@ -5688,7 +5731,7 @@
       ],
       "body": {
        "mode": "raw",
-       "raw": "{\n  \"code\": \"ШТ-99A\",\n  \"name\": \"Шинэ шагналын төрөл (шинэчилсэн)\"\n}"
+       "raw": "{\n  \"code\": \"ШТ-99A\",\n  \"name\": \"Шинэ шагналын төрөл (шинэчилсэн)\",\n  \"category\": \"Төрийн шагнал\"\n}"
       }
      },
      "event": [
@@ -5728,7 +5771,7 @@
       ],
       "body": {
        "mode": "raw",
-       "raw": "{\n  \"code\": \"ШТ-99A\",\n  \"name\": \"Шинэ шагналын төрөл (шинэчилсэн)\"\n}"
+       "raw": "{\n  \"code\": \"ШТ-99A\",\n  \"name\": \"Шинэ шагналын төрөл (шинэчилсэн)\",\n  \"category\": \"Төрийн шагнал\"\n}"
       }
      },
      "event": [
@@ -17242,10 +17285,10 @@
         "type": "text/javascript",
         "exec": [
          "pm.test('статус 200', () => pm.response.to.have.status(200));",
-         "var spNeed = ['organization.read','organization.update','member.read',",
+         "var spNeed = ['organization.read','organization.create','organization.update','member.read',",
          "              'member.create','member.update','member.delete'];",
          "var spIds = pm.response.json().filter(p => spNeed.includes(p.code)).map(p => p.id);",
-         "pm.test('6 эрх олдлоо', () => pm.expect(spIds).to.have.lengthOf(6));",
+         "pm.test('7 эрх олдлоо', () => pm.expect(spIds).to.have.lengthOf(7));",
          "pm.collectionVariables.set('spec_perm_ids', JSON.stringify(spIds));"
         ]
        }
@@ -18381,6 +18424,299 @@
         "type": "text/javascript",
         "exec": [
          "pm.test('статус 403', () => pm.response.to.have.status(403));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Өөр дүүргийн хаягтай байгууллага бүртгэх → 403",
+     "request": {
+      "method": "POST",
+      "auth": {
+       "type": "bearer",
+       "bearer": [
+        {
+         "key": "token",
+         "value": "{{spec_token}}",
+         "type": "string"
+        }
+       ]
+      },
+      "url": {
+       "raw": "{{base_url}}/api/organization",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "organization"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"name\": \"Хүрээнээс гадуур хаягтай сургууль\",\n  \"school_category_id\": 12,\n  \"au1_code\": \"{{au1_code}}\",\n  \"au2_code\": \"01104\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 403', () => pm.response.to.have.status(403));",
+         "pm.test('хамрах хүрээний алдаа', () => pm.expect(pm.response.json().error).to.include('хамрах хүрээнд байхгүй'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Өөр ангилалтай байгууллага бүртгэх → 403",
+     "request": {
+      "method": "POST",
+      "auth": {
+       "type": "bearer",
+       "bearer": [
+        {
+         "key": "token",
+         "value": "{{spec_token}}",
+         "type": "string"
+        }
+       ]
+      },
+      "url": {
+       "raw": "{{base_url}}/api/organization",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "organization"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"name\": \"Өөр ангиллын сургууль\",\n  \"school_category_id\": 14,\n  \"au1_code\": \"{{au1_code}}\",\n  \"au2_code\": \"{{au2_code}}\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 403', () => pm.response.to.have.status(403));",
+         "pm.test('хамрах хүрээний алдаа', () => pm.expect(pm.response.json().error).to.include('хамрах хүрээнд байхгүй'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Хүрээн дэх байгууллагын хаягийг өөр дүүрэг рүү зөөх → 403",
+     "request": {
+      "method": "PATCH",
+      "auth": {
+       "type": "bearer",
+       "bearer": [
+        {
+         "key": "token",
+         "value": "{{spec_token}}",
+         "type": "string"
+        }
+       ]
+      },
+      "url": {
+       "raw": "{{base_url}}/api/organization/{{new_spec_org_in}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "organization",
+        "{{new_spec_org_in}}"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"au2_code\": \"01104\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 403', () => pm.response.to.have.status(403));",
+         "pm.test('хамрах хүрээний алдаа', () => pm.expect(pm.response.json().error).to.include('хамрах хүрээнд байхгүй'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Өөрийн дүүрэгт байгууллага бүртгэх → {{new_spec_org_made}}",
+     "request": {
+      "method": "POST",
+      "auth": {
+       "type": "bearer",
+       "bearer": [
+        {
+         "key": "token",
+         "value": "{{spec_token}}",
+         "type": "string"
+        }
+       ]
+      },
+      "url": {
+       "raw": "{{base_url}}/api/organization",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "organization"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"name\": \"Мэргэжилтний бүртгэсэн сургууль\",\n  \"school_category_id\": 12,\n  \"au1_code\": \"{{au1_code}}\",\n  \"au2_code\": \"{{au2_code}}\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "var made = pm.response.json();",
+         "pm.collectionVariables.set('new_spec_org_made', made.id);",
+         "pm.test('оноосон дүүрэгт бүртгэгдсэн', () => pm.expect(made.au2_code).to.eql(pm.collectionVariables.get('au2_code')));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Өөрийн бүртгэсэн байгууллагаа харна",
+     "request": {
+      "method": "GET",
+      "auth": {
+       "type": "bearer",
+       "bearer": [
+        {
+         "key": "token",
+         "value": "{{spec_token}}",
+         "type": "string"
+        }
+       ]
+      },
+      "url": {
+       "raw": "{{base_url}}/api/organization/{{new_spec_org_made}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "organization",
+        "{{new_spec_org_made}}"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ]
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Цэвэрлэх: мэргэжилтний бүртгэсэн байгууллага",
+     "request": {
+      "method": "DELETE",
+      "url": {
+       "raw": "{{base_url}}/api/organization/{{new_spec_org_made}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "organization",
+        "{{new_spec_org_made}}"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ]
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
         ]
        }
       }
@@ -25986,7 +26322,7 @@
       },
       "body": {
        "mode": "raw",
-       "raw": "{\n  \"code\": \"RS-RW\",\n  \"name\": \"Холбоос тест шагнал\"\n}",
+       "raw": "{\n  \"code\": \"RS-RW\",\n  \"name\": \"Холбоос тест шагнал\",\n  \"category\": \"Төрийн шагнал\"\n}",
        "options": {
         "raw": {
          "language": "json"

@@ -133,7 +133,8 @@ core/               # ── SHARED (хоёр site хуваалцана) ──
     bootstrap.py    #     migrate() (Alembic), seed_all(), ensure_seeded()
     __main__.py     #     python -m core.db
 alembic/            # migration-ууд: 0001_baseline (хуучин бүх схем), 0002_legal_document,
-                    #   0003_partner_logo, 0004_soft_delete (бүх хүснэгтэд deleted_at)
+                    #   0003_partner_logo, 0004_soft_delete (бүх хүснэгтэд deleted_at),
+                    #   0005/0007 audit, 0006_legal_reference, 0008_reward_type_category
   auth.py           #   JWT + global permission check (before_request)
   helpers.py        #   require, json_body, pick, client_ip, now_str, page_params, list_json
   forms_core/       #   survey/poll домэйний цөм (base, questions, results, documents)
@@ -251,8 +252,8 @@ bash scripts/check.sh --pg     # + Postgres in docker: alembic, model drift, Pos
   The Postman collection (`docs/edu-union-backend.postman_collection.json`) is the second,
   black-box suite, run against a live server. It runs **top to bottom** (Postman Runner or
   `newman run docs/edu-union-backend.postman_collection.json --env-var base_url=...`, **from the
-  repo root** — the form-data requests upload `docs/fixtures/sample.png|pdf` by relative path): 749 requests,
-  ~1405 assertions (a few are conditional), and repeatable — three consecutive runs leave every table's **visible**
+  repo root** — the form-data requests upload `docs/fixtures/sample.png|pdf` by relative path): 756 requests,
+  ~1421 assertions (a few are conditional), and repeatable — three consecutive runs leave every table's **visible**
   row count (`deleted_at IS NULL`) unchanged; since every delete is soft, hidden rows do pile up. Every request is green, on a fresh database too (`Нэгийг авах` in
   the member_education folder reads the row its own `Нэмэх` created, not a seed id). **Keep it that way when adding requests:** run "0. Нэвтрэлт" first (it stores
   `{{token}}`), have each folder's `Нэмэх` save the new id into a `{{new_*}}` variable, and point
@@ -534,6 +535,11 @@ bash scripts/check.sh --pg     # + Postgres in docker: alembic, model drift, Pos
   same once for pre-existing rows, guarded by `PRAGMA user_version = 2`. Deleting a lookup row that
   anything still points at is a **409** (see *Deleting a referenced row* below) — it used to NULL
   those columns silently (`REF_CLEAR_REFS`, removed).
+- **`reward_type` also has `category`** (Alembic 0008, `reward-type-category-spec.md`): a flat
+  free-text string (the list is a static dropdown in the frontend — no enum, no table).
+  `REF_EXTRA_FIELDS` in `references.py` makes it required on `POST` (non-blank, trimmed → 400)
+  and, on the partial `PUT`/`PATCH`, non-blank when sent. The column is nullable: rows from
+  before 0008 and the seeds have `category = NULL` until an admin fills them in.
 - **`structure` (Бүтцийн удирдлага) is picked by two different tables** — `organization.structure_id`
   **and** `app_user.structure_id`, so it is the one lookup the client site and the admin site
   share. Both list endpoints filter by it (`GET /api/organization?structure_id=`,
@@ -801,6 +807,13 @@ bash scripts/check.sh --pg     # + Postgres in docker: alembic, model drift, Pos
   (so the frontend sends no extra query param) and calls `require_org_in_scope()` /
   `require_member_in_scope()` → **403** on the detail read and on every write. A rural scope with
   an empty `organization_ids` yields `0 = 1`, i.e. an empty list — not "everything".
+  **Writes must stay inside the scope too** (`check_org_write()`): a scoped user's
+  `POST /api/organization` needs `au2_code == district_au2_code` (when a district is assigned;
+  a sent `au1_code` must be its parent) and, for a non-rural `school_type`, that type's
+  `school_category_id`; `PUT`/`PATCH` checks the same on the fields that are *sent* → **403**.
+  A Сургуулийн менежер cannot create organizations at all. `adopt_org()` appends the new id to
+  the creator's `organization_ids` (picked / rural scopes only — a legacy whole-district row
+  already sees it), so they can read what they just registered.
   **Not extended to the sub-resources** (`member_education`, `member_reward`, `member_file`,
   `contact`, `salary_request`): a specialist with those permissions can still read them by
   `?member_id=`. The spec lists only member/organization; widening it is the next job.
