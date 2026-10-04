@@ -83,3 +83,19 @@ def test_manager_cannot_create_and_admin_unrestricted(api, make_user):
     assert r.status_code == 201
     for i in (r.get_json()["id"], school["id"]):
         api.delete(f"/api/organization/{i}")
+
+
+def test_full_form_put_on_picked_school_in_other_district(api, make_user):
+    """Сонгосон сургууль өөр дүүрэгт байж болно — маягт хаягийг нь ХЭВЭЭР нь буцааж илгээхэд
+    403 биш; хаягийг өөр (оноогоогүй) дүүрэг рүү сольсон үед л 403."""
+    far = make_org(api, cat=12, au1_code=AU1, au2_code=OTHER_AU2)
+    u, _ = _scoped(api, make_user, {"school_type": "general", "district_au2_code": AU2,
+                                    "organization_ids": [far["id"]]})
+    url = f"/api/organization/{far['id']}"
+    full = {"name": "Бүтэн маягт", "school_category_id": "12", "au1_code": AU1,
+            "au2_code": OTHER_AU2, "phone1": "99112233"}
+    assert u.put(url, json=full).status_code == 200
+    assert api.get(url).get_json()["phone1"] == "99112233"
+    assert u.put(url, json={**full, "au2_code": "01107"}).status_code == 403
+    assert u.put(url, json={**full, "au2_code": AU2}).status_code == 200    # хүрээ рүүгээ зөөнө
+    api.delete(url)

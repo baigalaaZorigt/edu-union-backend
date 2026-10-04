@@ -132,17 +132,24 @@ def check_member_scope(mid, user=None):
 
 
 # ====================== Байгууллага бичих (үүсгэх/засах) ======================
-def check_org_write(values, creating, user=None):
+def check_org_write(values, creating, user=None, current=None):
     """Хүрээтэй хэрэглэгч байгууллагыг ХҮРЭЭНЭЭСЭЭ ГАДУУР бүртгэж/зөөж болохгүй -> 403.
 
     - `district_au2_code` оноосон бол хаяг (au2_code, өгсөн бол au1_code) яг тэр сум/дүүрэг;
     - ангилалтай (rural биш) бол school_category_id нь тэр ангилал;
     - Сургуулийн менежер (нэг сургууль) шинэ байгууллага бүртгэхгүй.
-    Үүсгэхэд бүгдийг, засахад зөвхөн ИЛГЭЭСЭН талбарыг шалгана. Хүрээгүй (admin) бол шалгахгүй.
+    Үүсгэхэд бүгдийг, засахад зөвхөн ӨӨРЧЛӨГДӨЖ буй талбарыг шалгана: маягт бүх талбараа
+    (хаягийг ч) буцааж илгээдэг тул `current` мөрийн утгатай ИЖИЛ бол алгасна — эс бөгөөс өөр
+    дүүрэгт байрлах сонгосон сургуулийн нэрийг ч засаж болохгүй болно. Хүрээгүй (admin) бол
+    шалгахгүй.
     """
     scope = scope_of(user)
     if not scope:
         return
+    if current is not None:
+        values = {k: v for k, v in values.items()
+                  if str(v if v is not None else "") != str(
+                      getattr(current, k) if getattr(current, k) is not None else "")}
     if scope.get("organization_id"):
         if creating:
             abort(403, description="Таны хамрах хүрээ нэг байгууллага — шинэ байгууллага "

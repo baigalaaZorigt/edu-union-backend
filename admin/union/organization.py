@@ -212,8 +212,8 @@ def update_org(oid):
         abort(400, description="Шинэчлэх талбар алга")
     check_org_scope(oid)
     _check_org_refs(data, oid)
-    check_org_write(values, creating=False)
     s = session()
+    check_org_write(values, creating=False, current=s.get(Organization, oid))
     count = s.execute(update(Organization).where(Organization.id == oid).values(values)
                       .execution_options(synchronize_session=False)).rowcount
     # Кодын аль нэг хэсэг өөрчлөгдвөл гишүүдийн батламжийн дугаарыг дахин бодно

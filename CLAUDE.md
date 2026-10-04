@@ -810,7 +810,8 @@ bash scripts/check.sh --pg     # + Postgres in docker: alembic, model drift, Pos
   **Writes must stay inside the scope too** (`check_org_write()`): a scoped user's
   `POST /api/organization` needs `au2_code == district_au2_code` (when a district is assigned;
   a sent `au1_code` must be its parent) and, for a non-rural `school_type`, that type's
-  `school_category_id`; `PUT`/`PATCH` checks the same on the fields that are *sent* → **403**.
+  `school_category_id`; `PUT`/`PATCH` checks the same only on fields whose value actually
+  *changes* (the form re-sends the whole row, and a picked school may sit in another district) → **403**.
   A Сургуулийн менежер cannot create organizations at all. `adopt_org()` appends the new id to
   the creator's `organization_ids` (picked / rural scopes only — a legacy whole-district row
   already sees it), so they can read what they just registered.

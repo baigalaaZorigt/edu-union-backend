@@ -129,10 +129,9 @@ def _ref_create(table, label):
 def _ref_update(table, rid, label):
     """code/name (reward_type-д мөн category)-ийн илгээснийг л засна (хэсэгчилсэн засвар)."""
     data = json_body()
-    values = pick(data, _ref_fields(table))
-    if not values:
+    if not pick(data, _ref_fields(table)):
         abort(400, description="Шинэчлэх талбар алга")
-    _clean_extra(table, data, creating=False)
+    _clean_extra(table, data, creating=False)        # trim хийсэн утгыг data-д буцаана
     values = pick(data, _ref_fields(table))
     if "name" in data and not (data["name"] or "").strip():
         abort(400, description="name хоосон байж болохгүй")
