@@ -80,6 +80,11 @@ class LegalReference(Base):
         Int, ForeignKey("legal_reference.id", ondelete="CASCADE"))   # NULL = дээд түвшин
     title: Mapped[str] = mapped_column(Str, nullable=False)
     url: Mapped[Optional[str]] = mapped_column(Str)
+    doc_number: Mapped[Optional[str]] = mapped_column(Str)          # "№ 123" (0009)
+    approved_date: Mapped[Optional[str]] = mapped_column(Str)       # 'YYYY-MM-DD' (0009)
+    summary: Mapped[Optional[str]] = mapped_column(Str)             # товч утга (0009)
+    pdf_url: Mapped[Optional[str]] = mapped_column(Str)             # /uploads/content/<uuid>.pdf
+    pdf_name: Mapped[Optional[str]] = mapped_column(Str)            # файлын анхны нэр (0009)
     sort_order: Mapped[int] = mapped_column(Int, nullable=False, server_default=text("0"))
     is_visible: Mapped[int] = mapped_column(Int, nullable=False, server_default=text("1"))
     created_at: Mapped[Optional[str]] = mapped_column(Str, default=utc_iso)

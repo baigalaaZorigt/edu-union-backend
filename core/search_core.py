@@ -142,10 +142,12 @@ def build_corpus(s):
                      "anchor": None, "date": _date(d.published_date or d.created_at),
                      "body": " ".join([d.category or "", d.source_name or ""]
                                       + legal_text.get(d.id, [])).strip()})
-    for r in visible_rows(s):                    # эрх зүйн мод — холбоостой мөрүүд
-        if r.url:
-            docs.append({"type": "document", "id": r.id, "title": r.title, "path": r.url,
-                         "anchor": None, "date": _date(r.created_at), "body": ""})
+    for r in visible_rows(s):                    # эрх зүйн мод — холбоос/PDF-тэй мөрүүд
+        if r.url or r.pdf_url:
+            docs.append({"type": "document", "id": r.id, "title": r.title,
+                         "path": r.url or r.pdf_url, "anchor": None,
+                         "date": r.approved_date or _date(r.created_at),
+                         "body": " ".join(filter(None, (r.doc_number, r.summary)))})
     for p in s.execute(select(Partner.id, Partner.name, Partner.url, Partner.created_at)
                        .where(Partner.is_visible == 1)):
         docs.append({"type": "partner", "id": p.id, "title": p.name, "path": p.url,

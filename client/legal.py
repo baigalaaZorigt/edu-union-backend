@@ -9,7 +9,9 @@
 
     GET /api/portal/legal_references       — эрх зүйн дугаарласан мод: харагдах мөрүүд
                                              (эцгүүд нь бүгд харагдах), хавтгай
-                                             {items: [{id, parent_id, title, url, sort_order}]}
+                                             {items: [{id, parent_id, title, url, doc_number,
+                                                       approved_date, summary, pdf_url,
+                                                       pdf_name, sort_order}]}
 
 `legal` төрлийн цэс энэ жагсаалтыг дууддаг (`news` цэс /api/portal/news-ийг дууддаг шиг).
 """

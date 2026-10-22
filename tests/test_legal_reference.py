@@ -78,7 +78,9 @@ def test_reorder_siblings(api, tree):
 def test_portal_hides_whole_subtree(api, anon, tree):
     top, a, b, leaf = tree
     shown = _portal(anon)
-    assert set(shown[leaf["id"]]) == {"id", "parent_id", "title", "url", "sort_order"}
+    assert set(shown[leaf["id"]]) == {"id", "parent_id", "title", "url", "doc_number",
+                                      "approved_date", "summary", "pdf_url", "pdf_name",
+                                      "sort_order"}
     assert {top["id"], a["id"], b["id"], leaf["id"]} <= set(shown)
     api.patch(f"{URL}/{b['id']}", json={"is_visible": False})
     shown = _portal(anon)

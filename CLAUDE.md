@@ -135,6 +135,7 @@ core/               # ── SHARED (хоёр site хуваалцана) ──
 alembic/            # migration-ууд: 0001_baseline (хуучин бүх схем), 0002_legal_document,
                     #   0003_partner_logo, 0004_soft_delete (бүх хүснэгтэд deleted_at),
                     #   0005/0007 audit, 0006_legal_reference, 0008_reward_type_category
+                    #   0009_legal_reference_details (doc_number/approved_date/summary/pdf)
   auth.py           #   JWT + global permission check (before_request)
   helpers.py        #   require, json_body, pick, client_ip, now_str, page_params, list_json
   forms_core/       #   survey/poll домэйний цөм (base, questions, results, documents)
@@ -393,8 +394,13 @@ bash scripts/check.sh --pg     # + Postgres in docker: alembic, model drift, Pos
   them. A row with `url` (`http(s)://`) is a link, without one a group heading; no depth limit,
   cycles are a 400. `POST` without `sort_order` appends after the last sibling;
   `PUT|PATCH /api/legal_reference/reorder` takes `{items: [{id, sort_order}]}` of one parent.
+  Alembic 0009 added five optional fields (blank → `NULL`): `doc_number` (≤100), `approved_date`
+  (strict `YYYY-MM-DD`), `summary` (≤5000), `pdf_name` (≤255) and `pdf_url`, which must be a
+  `POST /api/upload` PDF path (`/uploads/content/<name>.pdf`, served token-free) — external URLs
+  are a 400. A replaced/cleared PDF leaves storage (`remove_upload()`); a deleted row keeps it.
   Portal: `GET /api/portal/legal_references` → `{items}` of rows whose whole ancestor chain is
-  visible; search indexes the linked ones as `type="document"`. The older `legal_document`
+  visible (with the five fields); search indexes rows with a `url` or `pdf_url` as
+  `type="document"` (body = `doc_number` + `summary`). The older `legal_document`
   routes below are superseded by this but **still in place** until the frontend switches.
 - **Schema changes go through Alembic.** `alembic/versions/0001_baseline.py` runs the frozen
   legacy DDL (`core/db/schema*.py` + `_pg_schema()` + timestamp triggers), so a fresh database is

@@ -3,9 +3,10 @@
     GET    /api/legal_reference            — бүх мөр (нуусан ч), хавтгай, parent_id-тай
                                              (frontend модыг өөрөө угсарна — /api/menu шиг)
     GET    /api/legal_reference/<id>
-    POST   /api/legal_reference            — {parent_id, title, url, sort_order, is_visible}
+    POST   /api/legal_reference            — {parent_id, title, url, doc_number, approved_date,
+                                              summary, pdf_url, pdf_name, sort_order, is_visible}
                                              sort_order өгөхгүй бол ах дүүсийн төгсгөлд
-    PUT|PATCH /api/legal_reference/<id>    — хэсэгчилсэн засвар
+    PUT|PATCH /api/legal_reference/<id>    — хэсэгчилсэн засвар; солигдсон PDF сангаас устна
     DELETE /api/legal_reference/<id>       — дэд мод БҮХЭЛДЭЭ хамт устна (каскад, soft)
     PUT|PATCH /api/legal_reference/reorder — {items: [{id, sort_order}]}; бүгд нэг эцэгтэй
 
@@ -14,6 +15,7 @@
 from flask import Blueprint, abort, jsonify
 from sqlalchemy import select
 
+from core.content_storage import remove_upload
 from core.helpers import json_body, list_json
 from core.legal_ref_core import NOT_FOUND, admin_row, bad, validate
 from core.orm import session
@@ -82,9 +84,12 @@ def update_reference(rid):
     values = validate(data, obj.to_dict())
     if not values:
         abort(400, description="Шинэчлэх талбар алга")
+    old_pdf = obj.pdf_url
     for k, v in values.items():
         setattr(obj, k, v)
     session().commit()
+    if "pdf_url" in values and old_pdf != obj.pdf_url:
+        remove_upload(old_pdf)               # солигдсон/арилгасан PDF (устгахад үлдэнэ)
     return jsonify(admin_row(obj))
 
 
