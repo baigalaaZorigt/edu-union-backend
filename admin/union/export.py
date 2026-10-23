@@ -46,7 +46,7 @@ def _member_rows(members, phones):
         born = as_date(m["birth_date"])
         yield [i, _full_name(m), born.year if born else None, m["gender"], m["register_number"],
                m["union_card_number"], as_date(m["union_joined_date"]), m["member_status"],
-               m["status"], m["position_name"], m["profession_name"], phones.get(m["id"]),
+               m["status_name"] or m["status"], m["position_name"], m["profession_name"], phones.get(m["id"]),
                m["organization_name"]]
 
 

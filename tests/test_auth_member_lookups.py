@@ -2,7 +2,7 @@
 import pytest
 
 LOOKUPS = ["/api/position", "/api/profession", "/api/salary_scale", "/api/education_degree",
-           "/api/reward_type", "/api/au1", "/api/au2", "/api/au3?au2_code=01101"]
+           "/api/reward_type", "/api/member_status", "/api/au1", "/api/au2", "/api/au3?au2_code=01101"]
 
 
 @pytest.mark.parametrize("perm", ["member.read", "member.create", "member.update"])

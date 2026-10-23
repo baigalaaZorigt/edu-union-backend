@@ -1,8 +1,10 @@
 """ORM model: ҮЭ-ийн лавлах хүснэгтүүд ба гишүүний дэд мэдээлэл.
 
 Багана бүр production-ийн схемтэй таарна — хүснэгтийг model-оос биш
-alembic/versions/0001_baseline үүсгэдэг. created_at/updated_at-ийг DB-ийн trigger бөглөнө.
+alembic/versions/0001_baseline үүсгэдэг. created_at/updated_at-ийг DB-ийн trigger бөглөнө
+(member_status-оос бусад — тэр нь Alembic 0010-оор үүссэн тул trigger-гүй, ORM бөглөнө).
 """
+from datetime import datetime, timezone
 from typing import Optional
 
 from sqlalchemy import ForeignKey, Index, UniqueConstraint
@@ -77,6 +79,30 @@ class Structure(Base):
     updated_at: Mapped[Optional[str]] = mapped_column(Str)
     deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # soft delete (0004)
     created_by: Mapped[Optional[int]] = mapped_column(Int, ForeignKey("app_user.id", ondelete="SET NULL"))   # аудит (0005)
+    updated_by: Mapped[Optional[int]] = mapped_column(Int, ForeignKey("app_user.id", ondelete="SET NULL"))
+
+
+
+def utc_iso():
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+class MemberStatus(Base):
+    """Гишүүний статус (Гишүүн, Дарга, Тэргүүлэгч ...) — member.status_id сонгоно (0010)."""
+    __tablename__ = "member_status"
+    __table_args__ = (
+        UniqueConstraint("code", name="member_status_code_key"),
+        UniqueConstraint("name", name="member_status_name_key"),
+        {"sqlite_autoincrement": True},
+    )
+
+    id: Mapped[int] = mapped_column(Int, primary_key=True)
+    code: Mapped[Optional[str]] = mapped_column(Str)
+    name: Mapped[str] = mapped_column(Str, nullable=False)
+    created_at: Mapped[Optional[str]] = mapped_column(Str, default=utc_iso)
+    updated_at: Mapped[Optional[str]] = mapped_column(Str, default=utc_iso, onupdate=utc_iso)
+    deleted_at: Mapped[Optional[str]] = mapped_column(Str)
+    created_by: Mapped[Optional[int]] = mapped_column(Int, ForeignKey("app_user.id", ondelete="SET NULL"))
     updated_by: Mapped[Optional[int]] = mapped_column(Int, ForeignKey("app_user.id", ondelete="SET NULL"))
 
 

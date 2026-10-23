@@ -43,7 +43,8 @@ from core.db.schema_base import SCHEMA, SCHEMA_UNION
 from core.db.schema_admin import SCHEMA_CONTENT, SCHEMA_REF, SCHEMA_USER
 from core.db.schema_portal import SCHEMA_FEEDBACK, SCHEMA_FORM, SCHEMA_NEWS, SCHEMA_NOTIFY
 from core.db.schema_home import SCHEMA_HOME
-from core.db.reference_data import (DEFAULT_ROLES, EDUCATION_DEGREES, PERMISSION_ACTIONS,
+from core.db.reference_data import (DEFAULT_ROLES, EDUCATION_DEGREES, MEMBER_STATUSES,
+                                    PERMISSION_ACTIONS,
                                     PERMISSION_RESOURCES, POSITIONS, PROFESSIONS,
                                     REWARD_TYPES, SALARY_SCALE, SCHOOL_CATEGORIES, STRUCTURES,
                                     STRUCTURE_CODES)
@@ -59,7 +60,8 @@ from core.db.pg_schema import (pg_sync_sequences, _PG_TS_FN, _RE_FK, _RE_ID_PK, 
                                _pg_migrate, _pg_schema, _pg_tables, _pg_timestamps,
                                _split_statements, _strip_dangling_comma)
 from core.db.schema import init_db
-from core.db.seed_ref import (REFERENCE_SEEDS, seed_education_degree, seed_position,
+from core.db.seed_ref import (REFERENCE_SEEDS, seed_education_degree, seed_member_status,
+                              seed_position,
                               seed_profession, seed_references, seed_reward_type,
                               seed_salary_scale, seed_school_category, seed_structure,
                               _seed_coded_ref, _seed_reference, _utc_now_iso)
@@ -86,6 +88,7 @@ __all__ = [
     "SCHEMA_HOME",
     "DEFAULT_ROLES",
     "EDUCATION_DEGREES",
+    "MEMBER_STATUSES",
     "PERMISSION_ACTIONS",
     "PERMISSION_RESOURCES",
     "POSITIONS",
@@ -135,6 +138,7 @@ __all__ = [
     "init_db",
     "REFERENCE_SEEDS",
     "seed_education_degree",
+    "seed_member_status",
     "seed_position",
     "seed_profession",
     "seed_references",

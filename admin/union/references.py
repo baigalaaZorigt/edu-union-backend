@@ -1,11 +1,13 @@
-"""Лавлах хүснэгтүүд: education_degree, position, profession, reward_type, structure."""
+"""Лавлах хүснэгтүүд: education_degree, position, profession, reward_type, structure,
+member_status."""
 
 from flask import jsonify, request, abort
 from sqlalchemy import select, update
 
 from core.helpers import json_body, pick, require
 from core.orm import session
-from core.orm.models import EducationDegree, Position, Profession, RewardType, Structure
+from core.orm.models import (EducationDegree, MemberStatus, Position, Profession, RewardType,
+                             Structure)
 
 from admin.union import bp
 from admin.union.common import _delete_by_id, _get_one, _list_rows
@@ -18,10 +20,12 @@ ID_TAKEN = "Энэ id аль хэдийн бүртгэгдсэн байна"
 
 # Хүснэгтийн нэр -> model (маршрутууд хүснэгтийн нэрээр дууддаг)
 REF_MODELS = {"position": Position, "profession": Profession,
-              "reward_type": RewardType, "structure": Structure}
+              "reward_type": RewardType, "structure": Structure, "member_status": MemberStatus}
 # code/name-аас гадна ЗААВАЛ бөглөх текст талбарууд (reward-type-category-spec): утгыг нь
 # шалгахгүй (ангиллын жагсаалт frontend-д хатуу бичигдсэн), зөвхөн хоосон биш байхыг шаардана.
 REF_EXTRA_FIELDS = {"reward_type": ("category",)}
+# Нэр нь мөн давтагдашгүй (DB-д UNIQUE) + уртын хязгаар (спекийн varchar) — зөвхөн member_status
+UNIQUE_NAME = {"member_status": {"code": 20, "name": 150}}
 
 
 def _insert_with_id(model, values, data):
@@ -93,6 +97,24 @@ def _check_code_unique(model, code, label, exclude_id=None):
         abort(409, description=f"{label}: '{code}' код аль хэдийн бүртгэгдсэн байна")
 
 
+def _check_unique_name(table, data, label, exclude_id=None):
+    """UNIQUE_NAME хүснэгтэд: урт → 400, нэр давхцвал (том/жижиг үсэг үл харгалзан) → 409."""
+    limits = UNIQUE_NAME.get(table)
+    if not limits:
+        return
+    for field, n in limits.items():
+        if isinstance(data.get(field), str) and len(data[field].strip()) > n:
+            abort(400, description=f"{field} {n} тэмдэгтээс хэтрэхгүй")
+    name = data.get("name")
+    if not isinstance(name, str):
+        return
+    data["name"] = name = name.strip()
+    model = REF_MODELS[table]
+    for rid, other in session().execute(select(model.id, model.name)):
+        if rid != exclude_id and (other or "").casefold() == name.casefold():
+            abort(409, description=f"{label}: '{name}' нэр аль хэдийн бүртгэгдсэн байна")
+
+
 def _ref_list(table):
     model = REF_MODELS[table]
     return _list_rows(select(model).order_by(model.id))
@@ -123,6 +145,7 @@ def _ref_create(table, label):
     _clean_extra(table, data, creating=True)
     model = REF_MODELS[table]
     _check_code_unique(model, data.get("code"), label)
+    _check_unique_name(table, data, label)
     return _insert_with_id(model, pick(data, _ref_fields(table), skip_none=True), data)
 
 
@@ -137,6 +160,8 @@ def _ref_update(table, rid, label):
         abort(400, description="name хоосон байж болохгүй")
     model = REF_MODELS[table]
     _check_code_unique(model, data.get("code"), label, rid)
+    _check_unique_name(table, data, label, rid)
+    values = pick(data, _ref_fields(table))          # нэрийг trim хийсэн байж болно
     s = session()
     count = s.execute(update(model).where(model.id == rid).values(values)
                       .execution_options(synchronize_session=False)).rowcount
@@ -255,3 +280,4 @@ def update_structure(sid):
 @bp.route("/api/structure/<int:sid>", methods=["DELETE"])
 def delete_structure(sid):
     return _ref_delete("structure", sid, "Бүтцийн удирдлага")
+

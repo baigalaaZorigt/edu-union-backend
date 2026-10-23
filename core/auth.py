@@ -78,7 +78,7 @@ _ORG_FORM = {"organization.read", "organization.create", "organization.update"}
 _USER_FORM = {"user.read", "user.create", "user.update"}        # Хэрэглэгчид: дүр, бүтэц, хүрээ
 IMPLIED_READ = {
     **{r: _MEMBER_FORM for r in ("position", "profession", "salary_scale", "education_degree",
-                                 "reward_type")},
+                                 "reward_type", "member_status")},
     "admin_unit": _MEMBER_FORM | _ORG_FORM | _USER_FORM,
     "school_category": _ORG_FORM,
     "structure": _ORG_FORM | _USER_FORM,

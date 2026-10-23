@@ -25,7 +25,8 @@ from sqlalchemy import false, func, select
 from werkzeug.exceptions import Conflict
 
 from core.orm.models import (AdminUnit1, AdminUnit2, AdminUnit3, AppUser, EducationDegree,
-                             Member, MemberEducation, MemberReward, Organization, Position,
+                             Member, MemberEducation, MemberReward, MemberStatus, Organization,
+                             Position,
                              Profession, RewardType, Role, SalaryRequest, SalaryScale,
                              SchoolCategory, Structure, UserScope)
 
@@ -46,6 +47,7 @@ RESTRICT = {
     EducationDegree: ("боловсролын зэрэг", [
         (MemberEducation.education_degree_id, "id", "гишүүний боловсрол")]),
     RewardType: ("шагналын төрөл", [(MemberReward.reward_type_id, "id", "гишүүний шагнал")]),
+    MemberStatus: ("гишүүний статус", [(Member.status_id, "id", "гишүүн")]),
     Role: ("дүр", [(AppUser.role_id, "id", "хэрэглэгч")]),
     Organization: ("байгууллага", [
         (Member.organization_id, "id", "гишүүн"),

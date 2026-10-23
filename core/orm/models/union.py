@@ -79,6 +79,7 @@ class Member(Base):
     __tablename__ = "member"
     __table_args__ = (
         Index('idx_member_org', 'organization_id'),
+        Index('idx_member_status_id', 'status_id'),
     )
 
     id: Mapped[int] = mapped_column(Int, primary_key=True)
@@ -92,7 +93,8 @@ class Member(Base):
     union_card_number: Mapped[Optional[str]] = mapped_column(Str)
     union_joined_date: Mapped[Optional[str]] = mapped_column(Str)
     member_status: Mapped[Optional[str]] = mapped_column(Str)
-    status: Mapped[Optional[str]] = mapped_column(Str)
+    status: Mapped[Optional[str]] = mapped_column(Str)              # хуучин текст (status_id-ийн нэр)
+    status_id: Mapped[Optional[int]] = mapped_column(Int, ForeignKey("member_status.id", ondelete="RESTRICT"))   # 0010
     position_id: Mapped[Optional[int]] = mapped_column(Int, ForeignKey("position.id", ondelete="SET NULL"))
     profession_id: Mapped[Optional[int]] = mapped_column(Int, ForeignKey("profession.id", ondelete="SET NULL"))
     salary_scale_id: Mapped[Optional[int]] = mapped_column(Int, ForeignKey("salary_scale.id", ondelete="SET NULL"))

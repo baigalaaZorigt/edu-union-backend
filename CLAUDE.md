@@ -28,8 +28,9 @@ portal's token-free API (`/api/portal/...`, `/api/public/...`). What both sides 
     `education_degree` (`id`+`name`) / `position` (албан тушаал) / `profession` (мэргэжил) /
     `reward_type` (шагналын төрөл) / `structure` (бүтцийн удирдлага) reference tables
     (`references.py`; the last four are `id`+`code`+`name`; each has full CRUD, seeded
-    16/20/20/12/22). A `member` is `last_name`+`first_name` and refers to the lookups by id
-    (`position_id`, `profession_id`, `salary_scale_id`); an `organization` refers to
+    16/20/20/12/22), plus `member_status` (гишүүний статус, `member_status.py` over the same
+    helpers; seeded 4). A `member` is `last_name`+`first_name` and refers to the lookups by id
+    (`position_id`, `profession_id`, `salary_scale_id`, `status_id`); an `organization` refers to
     `school_category` by `school_category_id`. `member_file.py` holds PDF attachments
     (батламж) — metadata in SQLite, bytes on disk under `uploads/member/`.
   - `users/` — `permission` → `role` (M:N via `role_permission`) → `app_user`, plus `/api/login`
@@ -136,6 +137,7 @@ alembic/            # migration-ууд: 0001_baseline (хуучин бүх сх�
                     #   0003_partner_logo, 0004_soft_delete (бүх хүснэгтэд deleted_at),
                     #   0005/0007 audit, 0006_legal_reference, 0008_reward_type_category
                     #   0009_legal_reference_details (doc_number/approved_date/summary/pdf)
+                    #   0010_member_status (лавлах + member.status_id, хуучин текстийг тааруулна)
   auth.py           #   JWT + global permission check (before_request)
   helpers.py        #   require, json_body, pick, client_ip, now_str, page_params, list_json
   forms_core/       #   survey/poll домэйний цөм (base, questions, results, documents)
@@ -203,7 +205,7 @@ FLASK_DEBUG=1 python run.py    # dev server with auto-reload/debugger
 gunicorn run:app               # production WSGI server (loads the module-level `app`)
 
 pip install -r requirements-dev.txt   # pytest, moto, openpyxl, ruff
-python -m pytest tests -q      # the whole pytest suite (~620 tests, ~20 s)
+python -m pytest tests -q      # the whole pytest suite (~720 tests, ~30 s)
 bash scripts/check.sh          # ruff + structural rules + pytest (--fast: no pytest)
 bash scripts/check.sh --pg     # + Postgres in docker: alembic, model drift, Postman ×2
 ```
@@ -253,8 +255,8 @@ bash scripts/check.sh --pg     # + Postgres in docker: alembic, model drift, Pos
   The Postman collection (`docs/edu-union-backend.postman_collection.json`) is the second,
   black-box suite, run against a live server. It runs **top to bottom** (Postman Runner or
   `newman run docs/edu-union-backend.postman_collection.json --env-var base_url=...`, **from the
-  repo root** — the form-data requests upload `docs/fixtures/sample.png|pdf` by relative path): 756 requests,
-  ~1421 assertions (a few are conditional), and repeatable — three consecutive runs leave every table's **visible**
+  repo root** — the form-data requests upload `docs/fixtures/sample.png|pdf` by relative path): 770 requests,
+  ~1437 assertions (a few are conditional), and repeatable — three consecutive runs leave every table's **visible**
   row count (`deleted_at IS NULL`) unchanged; since every delete is soft, hidden rows do pile up. Every request is green, on a fresh database too (`Нэгийг авах` in
   the member_education folder reads the row its own `Нэмэх` created, not a seed id). **Keep it that way when adding requests:** run "0. Нэвтрэлт" first (it stores
   `{{token}}`), have each folder's `Нэмэх` save the new id into a `{{new_*}}` variable, and point
@@ -330,8 +332,8 @@ bash scripts/check.sh --pg     # + Postgres in docker: alembic, model drift, Pos
   `dict(row)`; joined/derived columns come from labelled selects read with `.mappings()`.
 - **Deleting a referenced row is a 409 that says what refers to it** (`core/orm/restrict.py`).
   `RESTRICT` lists the *reference* relations — a child that would lose its value: school category,
-  structure, position, profession, salary scale, education degree, reward type ← the rows that
-  picked them; role ← users; organization ← members and a manager's `user_scope.organization_id`;
+  structure, position, profession, salary scale, education degree, reward type, member status ←
+  the rows that picked them; role ← users; organization ← members and a manager's `user_scope.organization_id`;
   admin units ← organizations / members / `user_scope.district_au2_code` (logical `au*_code`
   links with no FK). `check_references()` runs inside `soft_delete()`, so every handler gets it
   with no code of its own, and answers `409 {"error": "«X» (албан тушаал) устгах боломжгүй:
@@ -442,7 +444,7 @@ bash scripts/check.sh --pg     # + Postgres in docker: alembic, model drift, Pos
   `PERMISSION_RESOURCES` in `db.py` (which is the cross-product source for the seeded CRUD permissions).
   **A form's permission opens that form's lookups** (`IMPLIED_READ`): `member.read|create|update`
   lets a `GET` through on `position`, `profession`, `salary_scale`, `education_degree`,
-  `reward_type` and `admin_unit`; `organization.read|create|update` on `school_category`,
+  `reward_type`, `member_status` and `admin_unit`; `organization.read|create|update` on `school_category`,
   `structure` and `admin_unit`; `user.read|create|update` on `role`, `structure` and
   `admin_unit` (the Хэрэглэгчид form's role / structure / district dropdowns) — without the
   lookup's own `.read`. Read only: writing a lookup or a role still needs its own permission.
@@ -492,10 +494,23 @@ bash scripts/check.sh --pg     # + Postgres in docker: alembic, model drift, Pos
   stay partial: a field that is *sent* may not be blank/null/invalid, one that is absent is left
   alone — so older half-filled rows can still be edited. `gender` is not an enum. Everything
   else, and `member_education`'s degree/year, stays optional.
-- **`member.member_status` and `member.status` are deliberately free text** (no lookup table, no
-  enum) — `_validate_member()` only rejects a non-string / blank value with 400. Don't turn them
-  into reference tables. They are three different things and all three are kept:
-  `member_status` (ҮЭ-ийн гишүүний статус), `status` (бүртгэлийн төлөв) and the `is_active` 0/1 flag.
+- **`member.status` is picked from the `member_status` lookup** (Alembic 0010,
+  `admin/union/member_status.py`) — not to be confused with the `member.member_status` column,
+  which stays **free text** (идэвхтэй/идэвхгүй; `_validate_member()` only rejects non-string /
+  blank → 400), nor with the `is_active` 0/1 flag. The lookup is `id`+`code`+`name`, both
+  **DB-UNIQUE** (a new table, so unlike the older lookups it can have them); `references.py`'s
+  `UNIQUE_NAME` adds a case-insensitive name check → 409 and the spec's lengths (code ≤ 20,
+  name ≤ 150) → 400. `member.status_id` is FK `RESTRICT` (deleting a used status → 409 via
+  `restrict.py`). The old `status` text column is **kept** for the portal/export:
+  `_resolve_status()` fills it with the lookup's name when `status_id` is sent (bad id → 400),
+  and when only `status` text is sent (old frontend) it matches a name case-insensitively and
+  sets `status_id` (else `NULL`). Reads join `status_name`, and `member_row()` returns
+  `status = status_name` whenever `status_id` is set — 0010 matched the old texts
+  (`_match()`: тэргүүлэгч → Тэргүүлэгч, сонгуульт, "…дарга" → Дарга, гишүүн → Гишүүн; "Багш",
+  "0014", "Боловсрол" → `NULL`) but **left the original text in the column**. The Excel export
+  writes `status_name or status`. `POST /api/member` needs `status` *or* `status_id`.
+  `IMPLIED_READ` lets the member form read it; 0010 also granted `member_status.read` once to
+  every role with `code='1'` or named Зөвлөх мэргэжилтэн.
 - **Every table carries `created_at` / `updated_at`, filled by SQLite triggers.**
   `_ensure_timestamps()` (db.py) runs at the end of `init_db()`: it walks `sqlite_master`, adds
   both columns wherever they are missing, and creates `trg_<table>_created` (AFTER INSERT) and

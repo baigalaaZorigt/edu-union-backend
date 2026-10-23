@@ -686,6 +686,18 @@
   {
    "key": "sc2_user_id",
    "value": ""
+  },
+  {
+   "key": "new_member_status_id",
+   "value": ""
+  },
+  {
+   "key": "ms_org_id",
+   "value": ""
+  },
+  {
+   "key": "ms_member_id",
+   "value": ""
   }
  ],
  "item": [
@@ -5799,6 +5811,495 @@
         "api",
         "reward_type",
         "{{new_reward_type_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Лавлах — Гишүүний статус (member_status)",
+   "item": [
+    {
+     "name": "Жагсаалт (суурь 4 утга)",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/member_status",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member_status"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var j = pm.response.json();",
+         "pm.test('массив, суурь утгууд бий', function () {",
+         "    pm.expect(j).to.be.an('array');",
+         "    var names = j.map(function (r) { return r.name; });",
+         "    pm.expect(names).to.include.members(['Гишүүн', 'Дарга', 'Тэргүүлэгч', 'Сонгуульт']);",
+         "});"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Нэгийг авах",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/member_status/1",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member_status",
+        "1"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('code + name', () => pm.expect(pm.response.json()).to.include.keys('code', 'name'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Нэмэх → new_member_status_id",
+     "request": {
+      "method": "POST",
+      "url": {
+       "raw": "{{base_url}}/api/member_status",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member_status"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"code\": \"ГС-99\",\n  \"name\": \"Postman статус\"\n}"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "pm.collectionVariables.set('new_member_status_id', pm.response.json().id);",
+         "pm.test('код буцаасан', () => pm.expect(pm.response.json().code).to.eql('ГС-99'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Нэмэх (нэр давхардсан, том/жижиг үсэг) → 409",
+     "request": {
+      "method": "POST",
+      "url": {
+       "raw": "{{base_url}}/api/member_status",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member_status"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"code\": \"ГС-98\",\n  \"name\": \"POSTMAN СТАТУС\"\n}"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 409', () => pm.response.to.have.status(409));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Нэмэх (код давхардсан) → 409",
+     "request": {
+      "method": "POST",
+      "url": {
+       "raw": "{{base_url}}/api/member_status",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member_status"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"code\": \"ГС-99\",\n  \"name\": \"Postman статус 2\"\n}"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 409', () => pm.response.to.have.status(409));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Засах (код + нэр)",
+     "request": {
+      "method": "PUT",
+      "url": {
+       "raw": "{{base_url}}/api/member_status/{{new_member_status_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member_status",
+        "{{new_member_status_id}}"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"code\": \"ГС-99A\",\n  \"name\": \"Postman статус (шинэчилсэн)\"\n}"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('нэр шинэчлэгдсэн', () => pm.expect(pm.response.json().name).to.eql('Postman статус (шинэчилсэн)'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Засах (код + нэр) — PATCH-аар мөн",
+     "request": {
+      "method": "PATCH",
+      "url": {
+       "raw": "{{base_url}}/api/member_status/{{new_member_status_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member_status",
+        "{{new_member_status_id}}"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"code\": \"ГС-99A\",\n  \"name\": \"Postman статус (шинэчилсэн)\"\n}"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('PATCH мөн ажиллана (статус 200)', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Байгууллага нэмэх → ms_org_id",
+     "request": {
+      "method": "POST",
+      "url": {
+       "raw": "{{base_url}}/api/organization",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "organization"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"name\": \"Статусын туршилтын сургууль\"\n}"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "pm.collectionVariables.set('ms_org_id', pm.response.json().id);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Гишүүн нэмэх (status_id) → ms_member_id",
+     "request": {
+      "method": "POST",
+      "url": {
+       "raw": "{{base_url}}/api/member",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"organization_id\": \"{{ms_org_id}}\",\n  \"last_name\": \"Статус\",\n  \"first_name\": \"Туршилт\",\n  \"gender\": \"эр\",\n  \"birth_date\": \"1990-01-01\",\n  \"status_id\": \"{{new_member_status_id}}\",\n  \"member_status\": \"идэвхтэй\"\n}"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "var j = pm.response.json();",
+         "pm.collectionVariables.set('ms_member_id', j.id);",
+         "pm.test('status_name + status нэрээр бөглөгдсөн', function () {",
+         "    pm.expect(j.status_name).to.eql('Postman статус (шинэчилсэн)');",
+         "    pm.expect(j.status).to.eql('Postman статус (шинэчилсэн)');",
+         "    pm.expect(j.member_status).to.eql('идэвхтэй');",
+         "});"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Гишүүн нэмэх (буруу status_id) → 400",
+     "request": {
+      "method": "POST",
+      "url": {
+       "raw": "{{base_url}}/api/member",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"organization_id\": \"{{ms_org_id}}\",\n  \"last_name\": \"Статус\",\n  \"first_name\": \"Буруу\",\n  \"gender\": \"эр\",\n  \"birth_date\": \"1990-01-01\",\n  \"status_id\": 999999\n}"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Гишүүнд ашиглагдаж буй статусыг устгах → 409",
+     "request": {
+      "method": "DELETE",
+      "url": {
+       "raw": "{{base_url}}/api/member_status/{{new_member_status_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member_status",
+        "{{new_member_status_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 409', () => pm.response.to.have.status(409));",
+         "pm.test('гишүүний статус гэж хэлнэ', () => pm.expect(pm.response.json().error).to.include('(гишүүний статус) устгах боломжгүй'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Гишүүн устгах",
+     "request": {
+      "method": "DELETE",
+      "url": {
+       "raw": "{{base_url}}/api/member/{{ms_member_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member",
+        "{{ms_member_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Байгууллага устгах",
+     "request": {
+      "method": "DELETE",
+      "url": {
+       "raw": "{{base_url}}/api/organization/{{ms_org_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "organization",
+        "{{ms_org_id}}"
+       ]
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Устгах",
+     "request": {
+      "method": "DELETE",
+      "url": {
+       "raw": "{{base_url}}/api/member_status/{{new_member_status_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member_status",
+        "{{new_member_status_id}}"
        ]
       }
      },
@@ -28759,7 +29260,7 @@
          "var lrPub = pm.response.json().items;",
          "var lrFind = v => lrPub.find(r => String(r.id) === String(pm.collectionVariables.get(v)));",
          "pm.test('4 мөр бүгд харагдана', () => ['lr_top_id','lr_a_id','lr_b_id','lr_leaf_id'].forEach(v => pm.expect(lrFind(v)).to.be.an('object')));",
-         "pm.test('зөвхөн нийтийн талбарууд', () => pm.expect(lrFind('lr_a_id')).to.have.all.keys('id','parent_id','title','url','sort_order'));"
+         "pm.test('зөвхөн нийтийн талбарууд', () => pm.expect(lrFind('lr_a_id')).to.have.all.keys('id','parent_id','title','url','doc_number','approved_date','summary','pdf_url','pdf_name','sort_order'));"
         ]
        }
       }

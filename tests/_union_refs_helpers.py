@@ -5,7 +5,7 @@ import pytest
 from conftest import MEMBER_REQ, uniq
 
 
-CODED_REFS = ["position", "profession", "reward_type", "structure"]
+CODED_REFS = ["position", "profession", "reward_type", "structure", "member_status"]
 MISSING = 999999
 # Хүснэгт бүрийн code/name-аас гадна ЗААВАЛ талбарууд (reward_type.category)
 REF_REQ = {"reward_type": {"category": "Төрийн шагнал"}}

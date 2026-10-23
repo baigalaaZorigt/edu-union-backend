@@ -7,7 +7,7 @@ from sqlalchemy import select
 from core.helpers import json_body, list_json, pick, require
 from core.orm import session
 from core.orm.models import (Contact, Member, MemberEducation, MemberFile, MemberReward,
-                             Organization, Position, Profession, SalaryScale, SchoolCategory)
+                             MemberStatus, Organization, Position, Profession, SalaryScale, SchoolCategory)
 from core.orm.query import paginate
 from core.scope_core import check_member_scope, check_org_scope, member_clause
 
@@ -25,7 +25,7 @@ from admin.union.member_education import EDUCATION_QUERY
 # union_card_number энд БАЙХГҮЙ — тэр нь union_card_code-оос автоматаар бүрдэнэ.
 MEMBER_FIELDS = (
     "last_name", "first_name", "birth_date", "gender", "register_number",
-    "union_card_code", "union_joined_date", "member_status", "status",
+    "union_card_code", "union_joined_date", "member_status", "status", "status_id",
     "position_id", "profession_id", "salary_scale_id", "email",
     "au1_code", "au2_code", "au3_code", "address_detail", "signature", "is_active",
 )
@@ -34,6 +34,7 @@ MEMBER_FIELDS = (
 # organization_code-г member_row() Python-д бодно (DB-ээс хамааралгүй).
 MEMBER_QUERY = (
     select(*Member.__table__.c,
+           MemberStatus.name.label("status_name"),
            Position.name.label("position_name"),
            Profession.name.label("profession_name"),
            SalaryScale.code.label("salary_scale_code"),
@@ -43,6 +44,7 @@ MEMBER_QUERY = (
            SchoolCategory.short_name.label("school_category_short_name"),
            Organization.name.label("organization_name"))
     .select_from(Member)                # ORM entity — soft delete шүүлт үйлчилнэ
+    .outerjoin(MemberStatus, MemberStatus.id == Member.status_id)
     .outerjoin(Position, Position.id == Member.position_id)
     .outerjoin(Profession, Profession.id == Member.profession_id)
     .outerjoin(SalaryScale, SalaryScale.id == Member.salary_scale_id)
@@ -52,8 +54,14 @@ NOT_FOUND = "Гишүүн олдсонгүй"
 
 
 def member_row(mapping):
-    """MEMBER_QUERY-ийн мөр -> JSON dict (+ байгууллагын 5 оронтой organization_code)."""
+    """MEMBER_QUERY-ийн мөр -> JSON dict (+ байгууллагын 5 оронтой organization_code).
+
+    status_id-тай мөрөнд хуучин `status` текст нь лавлахын нэрийг (status_name) буцаана —
+    0010 шилжүүлэлт эх текстийг (ж: "Бүлгийн дарга") DB-д хэвээр үлдээсэн.
+    """
     d = dict(mapping)
+    if d["status_name"] is not None:
+        d["status"] = d["status_name"]
     d["organization_code"] = full_code(d.pop("_org_category"), d.pop("_org_code"))
     return d
 
@@ -100,10 +108,38 @@ def _validate_required(data, creating):
                                    "(ж: '1990-05-17')")
 
 
+def _norm(value):
+    return " ".join(str(value or "").split()).casefold()
+
+
+def _resolve_status(data):
+    """status_id ↔ status (хуучин текст) — хоёрыг нийцтэй байлгана.
+
+    - status_id ирвэл: байхгүй id → 400, байвал status = лавлахын нэр; null/"" бол цэвэрлэнэ
+    - зөвхөн status (хуучин frontend) ирвэл: нэрээр (том/жижиг үсэг үл харгалзан) тааруулж
+      status_id-г бөглөнө, таарахгүй бол status_id = NULL, текст нь хэвээр
+    """
+    if "status_id" in data:
+        if data["status_id"] in (None, ""):
+            data["status_id"] = None
+            return
+        name = session().scalar(select(MemberStatus.name)
+                                .where(MemberStatus.id == data["status_id"]))
+        if name is None:
+            abort(400, description="Гишүүний статус (status_id) олдсонгүй")
+        data["status"] = name
+    elif isinstance(data.get("status"), str) and data["status"].strip():
+        want = _norm(data["status"])
+        data["status_id"] = next((sid for sid, name in session().execute(
+            select(MemberStatus.id, MemberStatus.name).order_by(MemberStatus.id))
+            if _norm(name) == want), None)
+
+
 def _validate_member(data, creating=False):
     """Гишүүний JSON-ы энгийн шалгалт (DB холболт нээхээс ӨМНӨ дуудна).
 
-    - member_status / status: лавлахгүй, гараас бичих ЧӨЛӨӨТ ТЕКСТ
+    - member_status: лавлахгүй ЧӨЛӨӨТ ТЕКСТ; status: status_id-ийн нэр (_resolve_status) эсвэл
+      хуучин текст
     - union_card_code: яг 4 оронтой тоо (энэ нь union_card_number-ийн сүүлийн 4 орон)
     - is_active / signature: зөвхөн 0 эсвэл 1 (true/false-ыг хөрвүүлнэ)
     """
@@ -196,6 +232,7 @@ def get_member(mid):
 def create_member():
     data = request.get_json(silent=True)
     require(data, ["organization_id"])
+    _resolve_status(data)
     _validate_member(data, creating=True)
     _require_row(Organization.id, data["organization_id"],
                  "organization_id (эцэг байгууллага) олдсонгүй")
@@ -215,6 +252,7 @@ def create_member():
 @bp.route("/api/member/<int:mid>", methods=["PUT", "PATCH"])
 def update_member(mid):
     data = json_body()
+    _resolve_status(data)
     _validate_member(data)
     values = pick(data, MEMBER_FIELDS)
     if not values:

@@ -17,6 +17,7 @@
     contact           — /api/contact
     salary            — /api/salary_request, /api/salary_scale
     references        — /api/education_degree|position|profession|reward_type|structure
+    member_status     — /api/member_status (гишүүний статус, лавлах)
     member_education  — /api/member_education
     member_reward     — /api/member_reward
     member_file       — /api/member_file (PDF хавсралт)
@@ -28,6 +29,6 @@ bp = Blueprint("union", __name__)
 
 # Маршрутын модулиудыг bp үүссэний ДАРАА импортлоно — тэд `bp`-г эндээс авна.
 from admin.union import (  # noqa: E402,F401
-    horoo, organization, member, contact, salary, references,
+    horoo, organization, member, contact, salary, references, member_status,
     member_education, member_reward, member_file, export,
 )

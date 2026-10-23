@@ -6,7 +6,7 @@ from core.orm.models.union import (  # noqa: F401
     Contact, Holboo, Horoo, Member, Organization, SalaryRequest, SalaryScale,
 )
 from core.orm.models.union_refs import (  # noqa: F401
-    EducationDegree, MemberEducation, MemberFile, MemberReward, Position, Profession, RewardType, Structure,
+    EducationDegree, MemberEducation, MemberFile, MemberReward, MemberStatus, Position, Profession, RewardType, Structure,
 )
 from core.orm.models.users import (  # noqa: F401
     AppUser, LoginAttempt, Permission, Role, RolePermission, UserScope,

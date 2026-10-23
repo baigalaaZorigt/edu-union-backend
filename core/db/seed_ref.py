@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 
 from sqlalchemy import func, insert, or_, select
 
-from core.db.reference_data import (EDUCATION_DEGREES, POSITIONS, PROFESSIONS, REWARD_TYPES,
+from core.db.reference_data import (EDUCATION_DEGREES, MEMBER_STATUSES, POSITIONS, PROFESSIONS, REWARD_TYPES,
                                     SALARY_SCALE, SCHOOL_CATEGORIES, STRUCTURES,
                                     STRUCTURE_CODES)
 
@@ -118,6 +118,11 @@ def seed_reward_type():
     _seed_coded_ref("reward_type", REWARD_TYPES, "Шагнал, урамшууллын төрөл")
 
 
+def seed_member_status():
+    """Гишүүний статусын лавлахыг ачаална (давхардлыг алгасна)."""
+    _seed_coded_ref("member_status", MEMBER_STATUSES, "Гишүүний статус")
+
+
 def seed_structure():
     """Бүтцийн удирдлагын лавлахыг ачаална (давхардлыг алгасна).
 
@@ -151,6 +156,7 @@ REFERENCE_SEEDS = (
     ("profession", seed_profession),
     ("reward_type", seed_reward_type),
     ("structure", seed_structure),
+    ("member_status", seed_member_status),
 )
 
 
