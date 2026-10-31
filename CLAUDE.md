@@ -67,12 +67,23 @@ portal's token-free API (`/api/portal/...`, `/api/public/...`). What both sides 
     reorder (`/api/legal_document...`, `/api/legal_document_block/<id>`).
   - `home.py` — the portal home page's `banner` (slider) and `partner` (Хамтрагч байгууллага)
     lists: `GET|POST /api/banner`, `GET|PUT|PATCH|DELETE /api/banner/<id>`, same for `/api/partner`.
+  - `home_about.py` — the home page's «Холбооны тухай» section (`backend-spec-home-about.md`):
+    `home_about` singleton (id 1: `title` ≤120, `body` ≤1500 plain text, `\n\n` = paragraph) +
+    `home_about_cards` (`title` ≤60, `text` ≤300, `sort_order`, `is_visible`, max 6 stored).
+    `GET|PUT|PATCH /api/admin/home_about`, `POST /api/admin/home_about/cards` (appended),
+    `PUT|PATCH|DELETE .../cards/<id>`, `PUT|PATCH .../cards/reorder` `{ids}` (must be **every**
+    card id once). Permission `home_about.*`. HTML tags are stripped on save; validation is
+    **422** `{error, errors: {field: msg}}` (the spec's shape — unlike the rest of the repo's 400).
+    Alembic 0011 created both tables and seeded the spec's text + 3 cards once
+    (`core/home_about_core.py` is shared with the portal).
 - **`client/`** — the portal site, **token-free** (`PUBLIC_PREFIXES` in `core/auth.py`):
   `forms.py` (list, open, submit surveys), `news.py` (read news), `feedback.py` (send
   suggestions/complaints), `settings.py` (`/api/public/portal_settings` and
   `/api/portal/portal_settings`, read-only), `home.py` (`/api/portal/banners`,
   `/api/portal/partners` → `{items: [...]}` (partner: id, name, url, icon, logo_url),
-  `Cache-Control: public, max-age=300`),
+  `Cache-Control: public, max-age=300`), and `/api/portal/home_about` → `{title, body,
+  cards: [{id, title, text}], updated_at}` (visible cards by `sort_order`, at most 4; never 404 —
+  unconfigured is `body: ""`, `cards: []`; same 5-min cache),
   `legal.py` (`/api/portal/legal_documents[/<id>]` — visible rows; detail adds `blocks`),
   `content.py` (`/api/portal/menu`, `/api/portal/page/<menu_id>`, `/api/portal/page_block`,
   `POST /api/portal/upload` — the admin reads' exact responses, built by the same
@@ -138,6 +149,7 @@ alembic/            # migration-ууд: 0001_baseline (хуучин бүх сх�
                     #   0005/0007 audit, 0006_legal_reference, 0008_reward_type_category
                     #   0009_legal_reference_details (doc_number/approved_date/summary/pdf)
                     #   0010_member_status (лавлах + member.status_id, хуучин текстийг тааруулна)
+                    #   0011_home_about (нүүрний «Холбооны тухай» + 3 карт seed)
   auth.py           #   JWT + global permission check (before_request)
   helpers.py        #   require, json_body, pick, client_ip, now_str, page_params, list_json
   forms_core/       #   survey/poll домэйний цөм (base, questions, results, documents)
@@ -163,6 +175,7 @@ admin/              # ── ADMIN SITE (токен + эрх) ──
   dashboard.py      #   "admin_dashboard": /api/admin/dashboard/summary
   settings.py       #   "portal_settings": /api/portal_settings (GET/PUT/PATCH)
   home.py           #   "home_content": /api/banner, /api/partner (нүүр хуудас)
+  home_about.py     #   "admin_home_about": /api/admin/home_about(/cards) («Холбооны тухай»)
   legal.py          #   "legal": /api/legal_document(_block) (хууль тогтоомж)
 client/             # ── CLIENT SITE (портал, токенгүй) ──
   forms.py          #   "portal_forms": /api/portal/forms...

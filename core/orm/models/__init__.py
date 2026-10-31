@@ -23,3 +23,6 @@ from core.orm.models.forms import (  # noqa: F401
 from core.orm.models.legal import (  # noqa: F401
     LegalDocument, LegalDocumentBlock, LegalReference,
 )
+from core.orm.models.home import (  # noqa: F401
+    HomeAbout, HomeAboutCard,
+)

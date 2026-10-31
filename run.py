@@ -36,6 +36,7 @@ from admin.feedback import bp as admin_feedback_bp
 from admin.notifications import bp as notifications_bp
 from admin.dashboard import bp as admin_dashboard_bp
 from admin.home import bp as home_content_bp
+from admin.home_about import bp as admin_home_about_bp
 from admin.legal import bp as legal_bp
 from admin.legal_reference import bp as legal_reference_bp
 # --- client site: порталын нээлттэй (токенгүй) API ---
@@ -63,6 +64,7 @@ BLUEPRINTS = (
     notifications_bp,     # /api/admin/notifications + /api/notifications
     admin_dashboard_bp,   # /api/admin/dashboard/summary
     home_content_bp,      # /api/banner, /api/partner — нүүр хуудасны баннер, хамтрагч
+    admin_home_about_bp,  # /api/admin/home_about(/cards) — «Холбооны тухай» хэсэг
     legal_bp,             # /api/legal_document(_block) — хууль тогтоомж
     legal_reference_bp,   # /api/legal_reference — эрх зүйн дугаарласан мод
     # Client site — портал, токенгүй (core/auth.py-ийн PUBLIC_PREFIXES)
@@ -70,7 +72,7 @@ BLUEPRINTS = (
     portal_news_bp,       # /api/portal/news — мэдээ унших
     portal_feedback_bp,   # /api/portal/suggestions|complaints
     public_settings_bp,   # /api/public|portal/portal_settings
-    portal_home_bp,       # /api/portal/banners|partners
+    portal_home_bp,       # /api/portal/banners|partners|home_about
     portal_search_bp,     # /api/portal/search, /api/portal/search/suggest
     portal_legal_bp,      # /api/portal/legal_documents, /api/portal/legal_references
     portal_stats_bp,      # /api/portal/membership_structure (нүүр хуудасны статистик)
