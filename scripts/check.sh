@@ -72,6 +72,19 @@ if [ $PG = 1 ]; then
   export DATABASE_URL=postgresql://postgres:pw@127.0.0.1:$PORT_DB/eu
   if $PY -c "from core.db.bootstrap import ensure_seeded; ensure_seeded()" >/dev/null; then ok "alembic upgrade head + seed"
   else fail "migration/seed"; fi
+  # Migration бүр өгөгдөлтэй PG дээр хуучин хүснэгт/багана/мөр/утгыг хадгалах эсэх
+  # (tests/test_zz_migration_safety.py-ийн check_chain — pytest нь зөвхөн SQLite)
+  if $PY - <<'EOF'
+import os, sys
+sys.path.insert(0, "tests")
+from test_zz_migration_safety import check_chain
+url = os.environ["DATABASE_URL"].replace("postgresql://", "postgresql+psycopg://", 1)
+bad = {r: p for r, p in check_chain(url).items() if p}
+for r, p in bad.items():
+    print("   ", r, "; ".join(p[:5]))
+sys.exit(1 if bad else 0)
+EOF
+  then ok "migration бүр хуучин өгөгдөл/баганыг хадгална (PG)"; else fail "migration өгөгдөл устгасан/өөрчилсөн (PG)"; fi
   drift=$($PY - <<'EOF'
 from alembic.autogenerate import compare_metadata
 from alembic.migration import MigrationContext

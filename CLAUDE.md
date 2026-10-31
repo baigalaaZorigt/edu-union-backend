@@ -427,6 +427,17 @@ bash scripts/check.sh --pg     # + Postgres in docker: alembic, model drift, Pos
   `SCHEMA_*` strings or `_MIGRATIONS` again. Run `--autogenerate` against **Postgres** (SQLite's
   reflection reports false PK/UNIQUE differences) and review it. `core.db.get_db()` is the only
   raw connection left and exists solely for that frozen code and `scripts/migrate_to_pg.py`.
+- **A migration must never lose production data** (`tests/test_zz_migration_safety.py`).
+  Static: outside `downgrade()`, a revision may not call `drop_table` / `drop_column` /
+  `drop_constraint` / `alter_column` / `rename_table` / `.delete()` or carry `DROP TABLE|COLUMN`,
+  `DELETE FROM`, `TRUNCATE`, `ALTER TABLE … DROP|RENAME|ALTER` SQL (0001 exempt). Dynamic: a copy
+  of the populated test DB is downgraded to `0004` and upgraded **one revision at a time**; every
+  table, column, row (by PK) and old-column value before a step must survive it — new tables,
+  columns and rows are fine. `bash scripts/check.sh --pg` runs the same chain on Postgres, which
+  also catches the timestamp triggers: an `UPDATE` of old rows there bumps `updated_at` (0010
+  did, for matched members — the one entry in `ALLOWED_CHANGES`). An intentional rewrite of old
+  values goes into `ALLOWED_CHANGES` with a reason; anything else fails the build. CI runs the
+  SQLite half, so a destructive migration never reaches the deploy job.
 - **Two sites, one Flask app.** `run.py` builds the app via `create_app()` and registers fourteen
   blueprints — `admin_units` + `union` + `users` + `content` + `admin_forms` + `admin_news` +
   `portal_settings` + `admin_feedback` + `notifications` + `admin_dashboard` (admin site) and
@@ -890,14 +901,6 @@ bash scripts/check.sh --pg     # + Postgres in docker: alembic, model drift, Pos
   picks the shape. Defaults 20 per page, capped at 100, `page<1` → 1, non-numeric → 400.
   `/api/menu?tree=1` is never paged, and `/api/me/organizations` keeps its `{items}` wrapper
   (meta is added when paged).
-  The paginated list endpoints (`/api/admin/forms`, `/api/admin/news`, `/api/portal/news`,
-  `/api/admin/suggestions`, `/api/admin/complaints`, `/api/admin/notifications`) also
-  take `?search=&page=&per_page=`; **news answers in the news spec's shape**
-  (`{data, total, per_page, current_page, pages}`), forms and feedback in the other
-  (`{items, total, page, per_page, pages}`). `per_page` is capped at 100 and a non-numeric
-  `page`/`per_page` is a 400.
-- Imports are absolute (`from core.orm import session`, `from admin.union import bp`) and assume the repo
-  root is on `sys.path` — always run from the repo root (`python run.py`).
   **`/api/user`, `/api/member`, `/api/organization` follow `server_list_api_spec.md`**
   (`core/list_query.py` + a `ListSpec` whitelist per endpoint: `USER_LIST` in
   `admin/users/accounts.py`, `MEMBER_LIST` / `ORG_LIST` in `admin/union/list_specs.py`):
@@ -911,3 +914,11 @@ bash scripts/check.sh --pg     # + Postgres in docker: alembic, model drift, Pos
   three differ from the other lists: default `per_page` **10**, `pages` ≥ 1, and a bad
   `sort`/`order`/`page`/`per_page`/int filter is **422** `{error, message}` (others: 400).
   Without `page`/`per_page` they still return the plain array.
+  The paginated list endpoints (`/api/admin/forms`, `/api/admin/news`, `/api/portal/news`,
+  `/api/admin/suggestions`, `/api/admin/complaints`, `/api/admin/notifications`) also
+  take `?search=&page=&per_page=`; **news answers in the news spec's shape**
+  (`{data, total, per_page, current_page, pages}`), forms and feedback in the other
+  (`{items, total, page, per_page, pages}`). `per_page` is capped at 100 and a non-numeric
+  `page`/`per_page` is a 400.
+- Imports are absolute (`from core.orm import session`, `from admin.union import bp`) and assume the repo
+  root is on `sys.path` — always run from the repo root (`python run.py`).
