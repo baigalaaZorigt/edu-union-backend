@@ -45,7 +45,7 @@ def test_member_export_layout_and_values(api):
                                    "value": "99112233"})
     api.post("/api/contact", json={"owner_type": "member", "owner_id": m["id"], "type": "факс",
                                    "value": "70112233"})
-    r = api.get(f"/api/member/export?organization_id={org['id']}")
+    r = api.get(f"/api/member/export?organization_id={org['id']}&sort=created_at&order=asc")
     assert r.headers["Content-Disposition"].startswith("attachment")
     assert f"{dt.date.today().isoformat()}.xlsx" in r.headers["Content-Disposition"]
     assert "filename*=UTF-8''" in r.headers["Content-Disposition"]          # кирилл нэр

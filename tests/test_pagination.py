@@ -48,7 +48,7 @@ def test_large_list_defaults_and_caps(api):
 
 @pytest.mark.parametrize("qs", ["page=x", "per_page=abc", "page=1.5"])
 def test_non_numeric_is_400(api, qs):
-    r = api.get("/api/member?" + qs)
+    r = api.get("/api/role?" + qs)          # user/member/organization нь 422 (test_server_list)
     assert r.status_code == 400 and "error" in r.get_json()
 
 

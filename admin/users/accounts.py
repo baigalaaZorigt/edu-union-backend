@@ -3,10 +3,11 @@ from flask import abort, jsonify, request
 from sqlalchemy import delete, select, update
 from sqlalchemy.exc import SQLAlchemyError
 
+from core import list_query
 from core.helpers import require, json_body, list_json
+from core.list_query import ListSpec, contains, full_name, int_equals
 from core.orm import session
 from core.orm.models import AppUser, Role, Structure, UserScope
-from core.orm.query import paginate
 from core.scope_core import public_scope
 
 from admin.users import bp
@@ -27,6 +28,19 @@ BOOL_FIELDS = ("is_active", "must_change_password")
 # ======================= app_user (Хэрэглэгч) =======================
 NOT_FOUND = "Хэрэглэгч олдсонгүй"
 
+# GET /api/user-ийн хайлт / шүүлт / эрэмбийн whitelist (параметр = frontend-ийн баганын key)
+USER_LIST = ListSpec(
+    id=AppUser.id,
+    search=[contains(full_name(AppUser)), contains(AppUser.username), contains(AppUser.email),
+            contains(Role.name)],
+    filters={"name": contains(full_name(AppUser)), "username": contains(AppUser.username),
+             "email": contains(AppUser.email), "role_name": contains(Role.name),
+             "is_active": int_equals(AppUser.is_active, "is_active")},
+    sort={"name": [AppUser.last_name, AppUser.first_name], "username": [AppUser.username],
+          "email": [AppUser.email], "role_name": [Role.name], "is_active": [AppUser.is_active],
+          "created_at": [AppUser.created_at], "updated_at": [AppUser.updated_at]},
+)
+
 
 def _check_user_refs(data):
     """role_id / structure_id өгсөн (null биш) бол лавлахад байгаа эсэхийг шалгана."""
@@ -46,7 +60,8 @@ def list_user():
     for f in ("role_id", "structure_id"):
         if request.args.get(f):
             stmt = stmt.where(getattr(AppUser, f) == request.args[f])
-    items, meta = paginate(stmt.order_by(AppUser.id), mappings=True)
+    # ?search= / баганын шүүлт / ?sort=&order= — USER_LIST (server_list_api_spec.md §4.1)
+    items, meta = list_query.paginate(list_query.apply(stmt, USER_LIST))
     data = [public_user(x) for x in items]
     # Хамрах хүрээг шууд хамт өгнө — хэрэглэгч бүрээр /scope дуудах шаардлагагүй
     scopes = {r.user_id: public_scope(r.to_dict())

@@ -6,10 +6,11 @@ from sqlalchemy import case, func, select, update
 from core.helpers import json_body, list_json, pick, require
 from core.orm import session
 from core.orm.models import Contact, Member, Organization, SchoolCategory, Structure
-from core.orm.query import paginate
+from core import list_query
 from core.scope_core import adopt_org, check_org_scope, check_org_write, org_clause
 
 from admin.union import bp
+from admin.union.list_specs import ORG_LIST
 from admin.union.common import (_arg_filters, _check_au, _check_ref, _delete_by_id,
                                 _digit_code, _org_full_code, _purge_orphan_contacts,
                                 category_code, full_code, under35_cutoff)
@@ -84,7 +85,7 @@ def org_stats(org_id):
 # =================== organization (Гишүүн байгууллага) ===================
 @bp.route("/api/organization", methods=["GET"])
 def list_org():
-    items, meta = paginate(org_list_query(), mappings=True)
+    items, meta = list_query.paginate(org_list_query())
     data = [org_row(m) for m in items]
     stats = org_stats_many([o["id"] for o in data])   # хуудасны мөрүүдэд, нэг query
     for o in data:
@@ -95,13 +96,14 @@ def list_org():
 def org_list_query():
     """GET /api/organization-ийн select — шүүлт + хамрах хүрээ (Excel экспорт ч ашиглана).
 
-    ?school_category_id= ба ?structure_id= шүүлтүүр — хосолж болно.
+    ?school_category_id= ба ?structure_id= шүүлтүүр + ?search= / баганын шүүлт / ?sort=&order=
+    (ORG_LIST, server_list_api_spec.md) — бүгд AND, хамрах хүрээтэй хамт.
     """
     cond = _arg_filters(Organization, ("school_category_id", "structure_id"))
     scope = org_clause()        # Хамрах хүрээ — серверийн талд НЭМЭГДЭХ нөхцөл (спек §5)
     if scope is not None:
         cond.append(scope)
-    return ORG_QUERY.where(*cond).order_by(Organization.id)
+    return list_query.apply(ORG_QUERY.where(*cond), ORG_LIST)
 
 
 def _read(oid):

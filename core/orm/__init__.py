@@ -21,6 +21,7 @@ from sqlalchemy import create_engine, event
 
 from core import db as _db
 from core.orm.base import Base  # noqa: F401  (models импортлоход хэрэгтэй)
+from core.orm.ci import sqlite_lower
 from core.orm.soft import SoftSession
 from core.orm import stamp  # noqa: F401,E402  (аудитын listener-уудыг бүртгэнэ)
 
@@ -51,6 +52,8 @@ def engine():
             @event.listens_for(eng, "connect")
             def _fk_on(dbapi_conn, _record):
                 dbapi_conn.execute("PRAGMA foreign_keys = ON")
+                # Кирилл том/жижиг үсэг үл ялгах хайлт (core/orm/ci.py)
+                dbapi_conn.create_function("ci_lower", 1, sqlite_lower, deterministic=True)
         _engines[key] = eng
     return eng
 

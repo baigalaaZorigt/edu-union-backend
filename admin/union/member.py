@@ -8,7 +8,7 @@ from core.helpers import json_body, list_json, pick, require
 from core.orm import session
 from core.orm.models import (Contact, Member, MemberEducation, MemberFile, MemberReward,
                              MemberStatus, Organization, Position, Profession, SalaryScale, SchoolCategory)
-from core.orm.query import paginate
+from core import list_query
 from core.scope_core import check_member_scope, check_org_scope, member_clause
 
 from admin.union import bp
@@ -16,6 +16,7 @@ from admin.union.common import (CARD_CODE_LEN, MEMBER_REWARD_QUERY, _check_au, _
                                 _create, _delete_by_id, _digit_code, _org_full_code,
                                 _purge_orphan_contacts, _require_row,
                                 _update_by_id, full_code)
+from admin.union.list_specs import MEMBER_LIST
 from admin.union.member_education import EDUCATION_QUERY
 
 
@@ -180,7 +181,7 @@ def _read(mid):
 # ======================= member (Гишүүн) =======================
 @bp.route("/api/member", methods=["GET"])
 def list_member():
-    items, meta = paginate(member_list_query(), mappings=True)
+    items, meta = list_query.paginate(member_list_query())
     return list_json([member_row(m) for m in items], meta)
 
 
@@ -188,7 +189,8 @@ def member_list_query():
     """GET /api/member-ийн select — шүүлт + хамрах хүрээ. Excel экспорт (export.py)
     ЯГ ЭНИЙГ ашиглана, тиймээс файл жагсаалттай ижил мөрүүдийг агуулна.
 
-    ?organization_id= ба ?is_active= (0/1) шүүлтүүд — хосолж болно.
+    ?organization_id= ба ?is_active= (0/1) шүүлтүүд + ?search= / баганын шүүлт / ?sort=&order=
+    (MEMBER_LIST, server_list_api_spec.md) — бүгд AND, хамрах хүрээтэй хамт.
     """
     cond = []
     if request.args.get("organization_id"):
@@ -200,7 +202,7 @@ def member_list_query():
     scope = member_clause()
     if scope is not None:
         cond.append(scope)
-    return MEMBER_QUERY.where(*cond).order_by(Member.id)
+    return list_query.apply(MEMBER_QUERY.where(*cond), MEMBER_LIST)
 
 
 @bp.route("/api/member/<int:mid>", methods=["GET"])

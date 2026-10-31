@@ -898,3 +898,16 @@ bash scripts/check.sh --pg     # + Postgres in docker: alembic, model drift, Pos
   `page`/`per_page` is a 400.
 - Imports are absolute (`from core.orm import session`, `from admin.union import bp`) and assume the repo
   root is on `sys.path` — always run from the repo root (`python run.py`).
+  **`/api/user`, `/api/member`, `/api/organization` follow `server_list_api_spec.md`**
+  (`core/list_query.py` + a `ListSpec` whitelist per endpoint: `USER_LIST` in
+  `admin/users/accounts.py`, `MEMBER_LIST` / `ORG_LIST` in `admin/union/list_specs.py`):
+  `?search=` (OR over the spec's search columns), column filters named after the frontend's
+  column keys (`name`, `organization`, `birth_year`, `phone_fax`, `org_code` on the 5-digit
+  full code — `11-123` works, `leader`, `role_name`, …), `?sort=&order=` (default
+  **`created_at desc`**, always `, id` in the same direction, `NULLS LAST`), all AND-ed with
+  the old filters and the scope; the Excel exports get the same. Text matches are
+  case-insensitive **in Cyrillic** through `ci_lower()` (`core/orm/ci.py`: Python `str.lower`
+  registered on every SQLite connection, `lower()` on Postgres) with `%`/`_` escaped. These
+  three differ from the other lists: default `per_page` **10**, `pages` ≥ 1, and a bad
+  `sort`/`order`/`page`/`per_page`/int filter is **422** `{error, message}` (others: 400).
+  Without `page`/`per_page` they still return the plain array.
