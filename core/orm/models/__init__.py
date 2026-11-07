@@ -3,7 +3,7 @@ from core.orm.models.geo import (  # noqa: F401
     AdminUnit1, AdminUnit2, AdminUnit3, SchoolCategory,
 )
 from core.orm.models.union import (  # noqa: F401
-    Contact, Holboo, Horoo, Member, Organization, SalaryRequest, SalaryScale,
+    Contact, Holboo, Horoo, Member, MemberCheckAttempt, Organization, SalaryRequest, SalaryScale,
 )
 from core.orm.models.union_refs import (  # noqa: F401
     EducationDegree, MemberEducation, MemberFile, MemberReward, MemberStatus, Position, Profession, RewardType, Structure,

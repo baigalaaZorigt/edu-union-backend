@@ -49,6 +49,7 @@ from client.search import bp as portal_search_bp
 from client.legal import bp as portal_legal_bp
 from client.stats import bp as portal_stats_bp
 from client.content import bp as portal_content_bp
+from client.member_check import bp as portal_member_check_bp
 
 # Бүртгэх blueprint-ууд. ШИНЭ blueprint-ийг энд нэмэхгүй бол түүний маршрут харагдахгүй.
 BLUEPRINTS = (
@@ -77,6 +78,7 @@ BLUEPRINTS = (
     portal_legal_bp,      # /api/portal/legal_documents, /api/portal/legal_references
     portal_stats_bp,      # /api/portal/membership_structure (нүүр хуудасны статистик)
     portal_content_bp,    # /api/portal/menu|page|page_block|upload (цэс, контент, файл)
+    portal_member_check_bp,  # /api/member_check — гишүүн шалгах (auth.py PUBLIC_PATHS)
 )
 
 

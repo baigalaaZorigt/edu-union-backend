@@ -91,6 +91,7 @@ portal's token-free API (`/api/portal/...`, `/api/public/...`). What both sides 
   `is_visible`) and `published` pages on visible menus; hidden/draft → 404 or `[]`. The
   token-free upload has the admin upload's type/size rules plus a per-IP limit of 10 per 10 min
   per worker → 429),
+  `member_check.py` (`POST /api/member_check`, see *Architecture notes*),
   `stats.py` (`/api/portal/membership_structure` — «Гишүүнчлэлийн бүтэц» pie: members per
   school category, plus `rural` = members of schools a ХОН specialist is assigned (taken out of
   their category, never double-counted) and `other` = schools without a category; integer
@@ -150,6 +151,7 @@ alembic/            # migration-ууд: 0001_baseline (хуучин бүх сх�
                     #   0009_legal_reference_details (doc_number/approved_date/summary/pdf)
                     #   0010_member_status (лавлах + member.status_id, хуучин текстийг тааруулна)
                     #   0011_home_about (нүүрний «Холбооны тухай» + 3 карт seed)
+                    #   0012_member_check_attempt (гишүүн шалгах IP тоолуур)
   auth.py           #   JWT + global permission check (before_request)
   helpers.py        #   require, json_body, pick, client_ip, now_str, page_params, list_json
   forms_core/       #   survey/poll домэйний цөм (base, questions, results, documents)
@@ -187,6 +189,7 @@ client/             # ── CLIENT SITE (портал, токенгүй) ──
   stats.py          #   "portal_stats": /api/portal/membership_structure
   content.py        #   "portal_content": /api/portal/menu|page|page_block|upload
   legal.py          #   "portal_legal": /api/portal/legal_documents
+  member_check.py   #   "portal_member_check": POST /api/member_check (гишүүн шалгах)
 scripts/
   migrate_to_pg.py  # SQLite -> Postgres хуулах
   migrate_uploads_to_s3.py  # хуучин локал файлуудыг S3 руу (нэг удаа, идемпотент)
@@ -268,8 +271,8 @@ bash scripts/check.sh --pg     # + Postgres in docker: alembic, model drift, Pos
   The Postman collection (`docs/edu-union-backend.postman_collection.json`) is the second,
   black-box suite, run against a live server. It runs **top to bottom** (Postman Runner or
   `newman run docs/edu-union-backend.postman_collection.json --env-var base_url=...`, **from the
-  repo root** — the form-data requests upload `docs/fixtures/sample.png|pdf` by relative path): 770 requests,
-  ~1437 assertions (a few are conditional), and repeatable — three consecutive runs leave every table's **visible**
+  repo root** — the form-data requests upload `docs/fixtures/sample.png|pdf` by relative path): 779 requests,
+  ~1453 assertions (a few are conditional), and repeatable — three consecutive runs leave every table's **visible**
   row count (`deleted_at IS NULL`) unchanged; since every delete is soft, hidden rows do pile up. Every request is green, on a fresh database too (`Нэгийг авах` in
   the member_education folder reads the row its own `Нэмэх` created, not a seed id). **Keep it that way when adding requests:** run "0. Нэвтрэлт" first (it stores
   `{{token}}`), have each folder's `Нэмэх` save the new id into a `{{new_*}}` variable, and point
@@ -417,6 +420,17 @@ bash scripts/check.sh --pg     # + Postgres in docker: alembic, model drift, Pos
   visible (with the five fields); search indexes rows with a `url` or `pdf_url` as
   `type="document"` (body = `doc_number` + `summary`). The older `legal_document`
   routes below are superseded by this but **still in place** until the frontend switches.
+- **`POST /api/member_check` is the one anonymous read of member data** (`client/member_check.py`,
+  `member-check-spec.md`) — not under `/api/portal/`: it is listed by itself in `PUBLIC_PATHS`.
+  Exact trimmed, case-insensitive `first_name` + exact `birth_date` + `member_status = 'идэвхтэй'`
+  across all organizations; a dedicated four-field response (`organization_name`, `last_name`,
+  `first_name`, `position_name`), never `member_row()`. Limit: 10/min and 50/24 h per IP → 429,
+  counted in `member_check_attempt` (Alembic 0012) so all workers share it and a restart does not
+  reset it; every request counts except a rejected one. Rows older than 24 h are removed
+  **physically** (`execution_options(hard=True)`) — an IP counter, not business data. Every call
+  arrives through Next.js on Vercel (no fixed IP), so `X-Forwarded-For`'s first hop is the client
+  **only** when `X-Proxy-Secret` equals env `MEMBER_CHECK_PROXY_SECRET`; otherwise `client_ip()`
+  (`X-Real-IP`). Without the secret on both sides, all portal users therefore share one bucket.
 - **Schema changes go through Alembic.** `alembic/versions/0001_baseline.py` runs the frozen
   legacy DDL (`core/db/schema*.py` + `_pg_schema()` + timestamp triggers), so a fresh database is
   byte-for-byte the production schema (checked with `pg_dump`). `core.db.bootstrap.migrate()`

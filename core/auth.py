@@ -85,8 +85,8 @@ IMPLIED_READ = {
     "role": _USER_FORM,
 }
 
-# Токен шаардахгүй нээлттэй замууд (нэвтрэлт)
-PUBLIC_PATHS = {"/api/login"}
+# Токен шаардахгүй нээлттэй замууд (нэвтрэлт; гишүүн шалгах — client/member_check.py)
+PUBLIC_PATHS = {"/api/login", "/api/member_check"}
 
 # Токен шаардахгүй нээлттэй угтваруудтай замууд.
 # /uploads/     — порталын <img src>/татах холбоос толгой дамжуулж чаддаггүй тул

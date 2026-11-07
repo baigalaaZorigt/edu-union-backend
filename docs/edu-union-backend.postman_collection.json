@@ -31162,6 +31162,400 @@
      ]
     }
    ]
+  },
+  {
+   "name": "Гишүүн шалгах 1 — Нээлттэй (ТОКЕНГҮЙ) /api/member_check",
+   "item": [
+    {
+     "name": "Байгууллага үүсгэх → mc_org_id",
+     "request": {
+      "method": "POST",
+      "url": {
+       "raw": "{{base_url}}/api/organization",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "organization"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"name\": \"Гишүүн шалгах тест байгууллага\",\n  \"school_category_id\": 13,\n  \"org_code\": \"877\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "pm.collectionVariables.set('mc_org_id', pm.response.json().id);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Идэвхтэй гишүүн → mc_member_id",
+     "request": {
+      "method": "POST",
+      "url": {
+       "raw": "{{base_url}}/api/member",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"organization_id\": \"{{mc_org_id}}\",\n  \"last_name\": \"Шалгалт\",\n  \"first_name\": \"Өлзийтүвшиншалгах\",\n  \"gender\": \"эм\",\n  \"birth_date\": \"1977-07-07\",\n  \"status\": \"идэвхтэй\",\n  \"member_status\": \"идэвхтэй\",\n  \"register_number\": \"МШ77070712\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 201', () => pm.response.to.have.status(201));",
+         "pm.collectionVariables.set('mc_member_id', pm.response.json().id);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Шалгах (ТОКЕНГҮЙ, том/жижиг үсэг, зай) → олдсон, зөвхөн 4 талбар",
+     "request": {
+      "method": "POST",
+      "url": {
+       "raw": "{{base_url}}/api/member_check",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member_check"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       },
+       {
+        "key": "X-Real-IP",
+        "value": "{{mc_ip}}"
+       }
+      ],
+      "auth": {
+       "type": "noauth"
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"first_name\": \"  ӨЛЗИЙТҮВШИНШАЛГАХ \",\n  \"birth_date\": \"1977-07-07\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "prerequest",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "// Давтан ажиллуулахад 10/мин хязгаарт орохгүй: ажиллуулалт бүр өөр IP (nginx-гүй үед)",
+         "pm.collectionVariables.set('mc_ip', '198.51.' + _.random(0, 255) + '.' + _.random(1, 254));"
+        ]
+       }
+      },
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "var mcF = pm.response.json();",
+         "pm.test('exists', () => pm.expect(mcF.exists).to.be.true);",
+         "pm.test('яг 4 талбар', () => pm.expect(Object.keys(mcF.members[0])).to.have.members(['organization_name','last_name','first_name','position_name']));",
+         "pm.test('нэр хадгалсан хэлбэрээр', () => pm.expect(mcF.members[0].first_name).to.eql('Өлзийтүвшиншалгах'));",
+         "pm.test('байгууллага', () => pm.expect(mcF.members[0].organization_name).to.eql('Гишүүн шалгах тест байгууллага'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Хэсэгчилсэн нэр → бүртгэлгүй (200)",
+     "request": {
+      "method": "POST",
+      "url": {
+       "raw": "{{base_url}}/api/member_check",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member_check"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       },
+       {
+        "key": "X-Real-IP",
+        "value": "{{mc_ip}}"
+       }
+      ],
+      "auth": {
+       "type": "noauth"
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"first_name\": \"Өлзийтүвшиншалга\",\n  \"birth_date\": \"1977-07-07\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('exists=false, members=[]', () => pm.expect(pm.response.json()).to.eql({exists: false, members: []}));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Огноо буруу → 400",
+     "request": {
+      "method": "POST",
+      "url": {
+       "raw": "{{base_url}}/api/member_check",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member_check"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       },
+       {
+        "key": "X-Real-IP",
+        "value": "{{mc_ip}}"
+       }
+      ],
+      "auth": {
+       "type": "noauth"
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"first_name\": \"Өлзийтүвшиншалгах\",\n  \"birth_date\": \"1977-02-30\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 400', () => pm.response.to.have.status(400));",
+         "pm.test('error', () => pm.expect(pm.response.json().error).to.be.a('string'));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "GET /api/member токенгүй → 401 (бусад маршрут хамгаалагдсан)",
+     "request": {
+      "method": "GET",
+      "url": {
+       "raw": "{{base_url}}/api/member",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member"
+       ]
+      },
+      "header": [],
+      "auth": {
+       "type": "noauth"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 401', () => pm.response.to.have.status(401));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Гишүүн устгах",
+     "request": {
+      "method": "DELETE",
+      "url": {
+       "raw": "{{base_url}}/api/member/{{mc_member_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member",
+        "{{mc_member_id}}"
+       ]
+      },
+      "header": []
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Устгасан гишүүн → бүртгэлгүй",
+     "request": {
+      "method": "POST",
+      "url": {
+       "raw": "{{base_url}}/api/member_check",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "member_check"
+       ]
+      },
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       },
+       {
+        "key": "X-Real-IP",
+        "value": "{{mc_ip}}"
+       }
+      ],
+      "auth": {
+       "type": "noauth"
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"first_name\": \"Өлзийтүвшиншалгах\",\n  \"birth_date\": \"1977-07-07\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));",
+         "pm.test('exists=false', () => pm.expect(pm.response.json().exists).to.be.false);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Цэвэрлэх: байгууллага",
+     "request": {
+      "method": "DELETE",
+      "url": {
+       "raw": "{{base_url}}/api/organization/{{mc_org_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "organization",
+        "{{mc_org_id}}"
+       ]
+      },
+      "header": []
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('статус 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    }
+   ]
   }
  ]
 }

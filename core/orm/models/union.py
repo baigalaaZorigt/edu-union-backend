@@ -113,6 +113,20 @@ class Member(Base):
 
 
 
+class MemberCheckAttempt(Base):
+    """POST /api/member_check-ийн IP тоолуур (client/member_check.py, 24 цаг хадгална)."""
+    __tablename__ = "member_check_attempt"
+    __table_args__ = (
+        Index('idx_member_check_attempt_ip', 'ip', 'created_at'),
+        Index('idx_member_check_attempt_time', 'created_at'),
+    )
+
+    id: Mapped[int] = mapped_column(Int, primary_key=True)
+    ip: Mapped[str] = mapped_column(Str, nullable=False)
+    created_at: Mapped[str] = mapped_column(Str, nullable=False)
+    deleted_at: Mapped[Optional[str]] = mapped_column(Str)          # SoftSession-ий шаардлага
+
+
 class Contact(Base):
     __tablename__ = "contact"
     __table_args__ = (
